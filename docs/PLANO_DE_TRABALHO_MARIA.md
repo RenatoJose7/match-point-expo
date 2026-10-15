@@ -33,22 +33,22 @@ visual, respeitando os limites para estilos locais de outras áreas.
 
 ## Estado observado
 
-- As telas atuais de login, recuperação e cadastro são majoritariamente
-  apresentações visuais e navegação; os formulários ainda precisam de validação
-  e integração funcional.
+- As telas de login e cadastro ainda não chamam autenticação. A recuperação de
+  senha agora consome o contrato do repositório e exibe carregamento e erro.
 - Já existem componentes básicos de botão, campo e estrutura de tela em
   `src/components/ui/`.
 - O repositório em memória já expõe operações de idade, identificação de menor,
   vínculo e atualização como responsável.
 - O mecanismo de convite/código ainda não está definido no contrato nem na
   implementação observada.
-- A implementação de autenticação em memória é demonstrativa: não valida
-  senhas reais nem oferece persistência de conta.
-- A configuração local `.env` seleciona `firebase`, mas a fábrica em
-  `src/repositories/index.js` ainda só implementa `memory` e lança erro para
-  `firebase`.
+- Em `develop`, o Firebase está configurado no repositório para autenticação,
+  criação de conta, recuperação de senha e sessão.
 - Não foi localizada uma tela própria para o responsável consultar e administrar
   os atletas vinculados.
+- A tela de recuperação agora possui estados reais de carregamento, erro e
+  confirmação de envio. `OperationFeedback` e `EmptyState` estão disponíveis
+  como componentes reutilizáveis; o estado vazio ainda precisa ser aplicado a
+  uma lista de uma área autorizada.
 
 ## Plano de execução
 
@@ -150,3 +150,31 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 - Isso indica que a implementação reportada pode ainda não ter sido integrada
   ou atualizada nesta cópia do projeto; não confirma que o trabalho de Renato
   não exista em outra branch ou ambiente.
+
+> **Correção:** a revisão de `main` acima não refletia `develop`. A branch oficial
+> já contém a implementação Firebase descrita no registro abaixo.
+
+### 2026-10-15 — Revisão da base oficial e trabalho independente
+
+- Confirmada `origin/develop` como base oficial; os commits da Maria são
+  preparados em branches separadas com destino de PR para `develop`.
+- A idade foi implementada no formulário de atleta e validada no navegador.
+- O commit `deea4ac` foi publicado em
+  `feat/maria-calculo-idade-menor`, com destino à base `develop`. A PR não pôde
+  ser aberta pelas ferramentas disponíveis; o link de comparação foi gerado
+  pelo push e precisa ser usado para solicitar revisão.
+- No branch atual, RF24 tem `OperationFeedback` para estados de carregamento,
+  confirmação, sucesso e erro. RF25 tem o componente `EmptyState`, sem alterar
+  listas pertencentes às áreas de Marcelo ou Laura.
+- A tela de recuperação consome `authentication.recuperarSenha` e só avança
+  para confirmação quando a operação retorna sucesso; falhas aparecem na tela.
+- RF25 permanece em andamento até um consumidor autorizado aplicar o componente
+  a uma lista real. RF24 permanece em andamento até validação visual e PR.
+- Validações desta branch:
+  - `npm run check:contracts` — passou.
+  - `npm run progress -- --check` — passou.
+  - `npm run export:web` — passou.
+  - Verificação no navegador com e-mail inválido exibiu a mensagem de erro sem
+    navegar para a confirmação; nenhuma mensagem foi enviada a uma conta real.
+- As alterações de RF24/RF25 estão em `feat/maria-estados-compartilhados`, criada
+  diretamente a partir de `origin/develop`; precisam de PR para integração.

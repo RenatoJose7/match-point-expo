@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-15T16:56:55.003Z
+Última atualização registrada: 2026-10-15T18:26:37.439Z
 
 ## Barras de progresso
 
@@ -17,7 +17,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
-| Maria | 0/7 | 0/7 | 0 | 0 |
+| Maria | 0/7 | 0/7 | 2 | 0 |
 | Marcelo | 0/6 | 0/7 | 0 | 0 |
 | Laura | 0/3 | 0/6 | 0 | 0 |
 | Renato | 0/5 | 0/5 | 1 | 0 |
@@ -49,8 +49,8 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF21 — Decisão institucional | P0 | Laura | Não iniciado | — | — |
 | RF22 — Histórico das alterações | P0 | Renato | Não iniciado | — | — |
 | RF23 — Notificações | P1 | Marcelo | Não iniciado | — | — |
-| RF24 — Mensagens operacionais | P0 | Maria | Não iniciado | — | — |
-| RF25 — Estados vazios | P0 | Maria | Não iniciado | — | — |
+| RF24 — Mensagens operacionais | P0 | Maria | Em andamento | — | — |
+| RF25 — Estados vazios | P0 | Maria | Em andamento | — | — |
 | RF26 — Denúncias | P2 | Backlog futuro | Não iniciado | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Não iniciado | — | — |
 | RF28 — Moderação | P2 | Backlog futuro | Não iniciado | — | — |

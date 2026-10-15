@@ -1,12 +1,75 @@
 {
   "responsavel": "Maria",
   "requisitos": [
-    { "id": "RF01", "titulo": "Cadastro e login", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF04", "titulo": "Cálculo de idade", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF05", "titulo": "Identificação de menor", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF06", "titulo": "Vínculo do responsável", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF07", "titulo": "Responsável administra atleta", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF24", "titulo": "Mensagens operacionais", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF25", "titulo": "Estados vazios", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" }
+    {
+      "id": "RF01",
+      "titulo": "Cadastro e login",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF04",
+      "titulo": "Cálculo de idade",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF05",
+      "titulo": "Identificação de menor",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF06",
+      "titulo": "Vínculo do responsável",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF07",
+      "titulo": "Responsável administra atleta",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF24",
+      "titulo": "Mensagens operacionais",
+      "prioridade": "P0",
+      "status": "em_andamento",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-15T18:26:36.517Z"
+    },
+    {
+      "id": "RF25",
+      "titulo": "Estados vazios",
+      "prioridade": "P0",
+      "status": "em_andamento",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-15T18:26:37.439Z"
+    }
   ]
 }
