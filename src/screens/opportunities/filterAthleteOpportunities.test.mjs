@@ -33,6 +33,14 @@ const opportunities = [
     fimInscricoes: 'data-inválida',
     status: 'ativa',
   },
+  {
+    id: 'no-deadline',
+    titulo: 'Oportunidade sem prazo',
+    modalidade: 'Atletismo',
+    categoria: 'Sub-18',
+    localizacao: 'Suzano - SP',
+    status: 'ativa',
+  },
 ]
 
 test('search matches text without accent sensitivity', () => {
@@ -56,10 +64,10 @@ test('combines text, modality, category, location and status filters', () => {
 test('includes active and closed opportunities when status is all', () => {
   const result = filterAthleteOpportunities(opportunities, { status: 'todas' }, referenceDate)
 
-  assert.deepEqual(result.map(item => item.id), ['tennis-scholarship', 'football-evaluation', 'missing-deadline'])
+  assert.deepEqual(result.map(item => item.id), ['tennis-scholarship', 'football-evaluation', 'missing-deadline', 'no-deadline'])
 })
 
-test('open-deadline filter excludes expired and invalid deadlines', () => {
+test('open-deadline filter excludes expired, invalid and missing deadlines', () => {
   const result = filterAthleteOpportunities(opportunities, { status: 'todas', prazoAberto: true }, referenceDate)
 
   assert.deepEqual(result.map(item => item.id), ['tennis-scholarship'])

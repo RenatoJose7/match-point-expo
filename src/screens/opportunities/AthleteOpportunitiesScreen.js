@@ -105,6 +105,8 @@ export function AthleteOpportunitiesScreen(props) {
         {!loading && !error && visibleOpportunities.map(opportunity => (
           <Pressable
             key={opportunity.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver oportunidade ${opportunity.titulo}`}
             onPress={() => go('matchScore', { oportunidadeId: opportunity.id })}
             style={styles.listCard}
           >
