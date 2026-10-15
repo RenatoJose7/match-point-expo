@@ -15,41 +15,41 @@
       "id": "RF12",
       "titulo": "Compatibilidade",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-15T18:17:58.380Z"
     },
     {
       "id": "RF13",
       "titulo": "Elegibilidade",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-15T18:18:00.983Z"
     },
     {
       "id": "RF14",
       "titulo": "Bloqueio da candidatura",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-15T18:18:03.498Z"
     },
     {
       "id": "RF22",
       "titulo": "Histórico das alterações",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-15T18:18:05.253Z"
     }
   ]
 }

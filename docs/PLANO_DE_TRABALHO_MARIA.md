@@ -41,8 +41,14 @@ visual, respeitando os limites para estilos locais de outras áreas.
   vínculo e atualização como responsável.
 - O mecanismo de convite/código ainda não está definido no contrato nem na
   implementação observada.
-- Em `develop`, o Firebase está configurado no repositório para autenticação,
-  criação de conta, recuperação de senha e sessão.
+- Em `develop`, o repositório Firebase e a seleção por
+  `EXPO_PUBLIC_DATA_PROVIDER` já estão implementados. O adaptador oferece
+  cadastro, login, logout, recuperação de senha e leitura/observação da sessão.
+- As telas de cadastro e login ainda não chamam essas operações; a recuperação
+  de senha já chama `authentication.recuperarSenha`.
+- O fluxo de cadastro não persiste ainda a data de nascimento nem o perfil do
+  atleta; o RF03 e os campos do perfil esportivo são responsabilidade do
+  Marcelo.
 - Não foi localizada uma tela própria para o responsável consultar e administrar
   os atletas vinculados.
 - A tela de recuperação agora possui estados reais de carregamento, erro e
@@ -56,11 +62,13 @@ visual, respeitando os limites para estilos locais de outras áreas.
    - Definir contrato e implementação do convite/código: emissão, validação,
      uso único ou validade, erros e confirmação do vínculo.
    - Definir o acesso/rota para a área de administração do responsável.
-   - Confirmar o adaptador de autenticação que as telas devem consumir.
+   - Combinar a integração do login bem-sucedido ao direcionamento por perfil
+     (RF02), sem Maria alterar `App.js` ou assumir a navegação geral.
    - Não alterar contratos, Firebase, rotas ou arquivos controlados sem o
      alinhamento e a autorização do responsável.
 2. **Implementar RF01**
-   - Tornar funcionais cadastro, login e recuperação de senha.
+   - Tornar funcionais cadastro, login e recuperação de senha consumindo
+     `authentication.cadastrar`, `entrar` e `recuperarSenha`.
    - Validar os campos e apresentar carregamento, resultado e erros do contrato.
 3. **Implementar RF04 e RF05**
    - Reutilizar as operações de idade existentes e determinar automaticamente
@@ -140,6 +148,9 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 
 ### 2026-10-15 — Nova checagem após implementação reportada
 
+> A observação abaixo foi feita inicialmente na branch errada e está superada
+> pelas verificações seguintes de `origin/develop`.
+
 - Conferidos o estado do Git, os commits recentes, o painel individual de
   Renato, `src/repositories/index.js` e as pastas de repositórios e serviços.
 - Não há implementação Firebase visível nesta cópia/branch: só existem a
@@ -185,3 +196,111 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 - As branches foram enviadas ao remoto, mas as PRs não puderam ser abertas pelas
   ferramentas disponíveis nesta sessão. Não foi feito push direto para
   `develop`.
+
+### 2026-10-15 — Correção da base e integração
+
+- A checagem inicial foi feita na branch `main`, não em `develop`; essa
+  conclusão não deve ser usada para avaliar o que foi integrado em `develop`.
+
+### 2026-10-15 — Revisão de `origin/develop`
+
+- Revisado o branch remoto `origin/develop`, sem trocar a branch de trabalho.
+- `develop` contém a dependência `firebase` e o merge da PR #3 de infraestrutura
+  Firebase, além de marcar RF02 como `em_andamento`.
+- O merge adiciona o SDK e inicia RF02, mas não inclui uma implementação do
+  adaptador Firebase: `src/repositories/index.js` ainda só cria o adaptador
+  `memory` e lança `Provedor de dados ainda não configurado: firebase` para
+  qualquer outro provedor.
+- Não foram encontradas implementações Firebase nas pastas de repositório ou
+  serviços em `develop`; RF12, RF13, RF14 e RF22 permanecem `não_iniciado`.
+- Assim, a base de SDK foi integrada, mas autenticação, persistência Firebase e
+  demais entregas de dados ainda não estão concluídas em `develop`. O erro
+  acontece quando `createRepositories()` é chamado com o provedor `firebase`;
+  a busca no código não encontrou chamadas atuais à fábrica, então isso não
+  prova que a tela inicial falhe ao abrir.
+
+> **Correção posterior:** a avaliação acima refletia um estado anterior de
+> `develop`. O adaptador Firebase e a fábrica que o seleciona já estão presentes
+> na base atual; as telas ainda precisam consumir as operações.
+
+### 2026-10-15 — Base de trabalho corrigida
+
+- Seguidas as instruções de usar `develop` como base oficial, não `main`.
+- Executado `git fetch origin --prune`; como não havia branch local `develop`,
+  criada `docs/plano-trabalho-maria` diretamente de `origin/develop`, que aponta
+  para o merge da PR #6.
+- O documento local foi preservado durante a troca e permanece como alteração
+  de trabalho nesta branch.
+
+### 2026-10-15 — Início de RF04 e RF05
+
+- RF04 e RF05 marcados como `em_andamento` pelo comando oficial de progresso.
+- `src/screens/signup/SignupForm.js` agora formata a data de nascimento como
+  `DD/MM/AAAA`, rejeita datas impossíveis e futuras, calcula a idade usando
+  `calculateAge` do domínio e identifica automaticamente menores com `isMinor`.
+- O formulário mostra a idade calculada e informa quando será necessário
+  vincular responsável legal; impede avançar sem uma data válida.
+- Validação no navegador: `15/10/2010` exibiu 16 anos e o aviso de menor;
+  `31/02/2010` exibiu erro de data inválida; `15/10/2008` exibiu 18 anos sem
+  aviso de menor.
+- `npm run check:contracts` passou.
+- `npm run progress -- --check` passou.
+- `npm run export:web` passou depois de restaurar dependências do lockfile com
+  `npm ci`; a primeira tentativa falhou porque `firebase/auth` não estava
+  instalado localmente. A exportação registrou aviso de cache Metro e depois
+  concluiu com recompilação completa.
+- RF04 continua em andamento até revisão/PR e evidência formal.
+- RF05 está bloqueado no painel: a identificação visual está implementada, mas
+  o fluxo de menor não pode ser ativado com segurança até existir uma operação
+  de convite/código e vínculo autorizado no contrato/repositório.
+- Pedido pendente para Renato: disponibilizar, pelo contrato comum de
+  repositórios, operações para o responsável autenticado gerar um convite/código
+  e para o atleta validar esse convite e concluir o vínculo dos dois lados.
+  A validação deve falhar explicitamente para convite inválido, expirado ou já
+  usado, e a leitura/alteração de atletas deve continuar restrita aos vínculos
+  autorizados. A interface aguardará o contrato e o mock/implementação
+  correspondentes; não foi criado um fluxo local alternativo.
+- Não há outra sessão de trabalho do Renato disponível neste projeto para
+  encaminhar a mensagem diretamente. O pedido permanece registrado aqui e no
+  bloqueio do RF05 para encaminhamento pela equipe.
+
+### 2026-10-15 — Situação atual e próximos passos
+
+- Reconfirmada a base de trabalho em `develop`: existem
+  `src/repositories/firebase/index.js`, configuração de Firebase, adaptadores de
+  autenticação para web/nativo e seleção `firebase` na fábrica de repositórios.
+- O repositório já fornece as operações de cadastro, login e recuperação de
+  senha. Portanto, RF01 pode avançar na camada de interface, respeitando o
+  contrato existente e alinhando o pós-login com Renato/RF02.
+- RF04 calcula e apresenta idade no cadastro, mas ainda precisa ser conectado
+  ao fluxo de gravação do perfil; a persistência de campos do perfil esportivo
+  deve ser coordenada com Marcelo/RF03.
+- RF05 permanece bloqueado até o repositório oferecer o fluxo autorizado de
+  convite/código e vínculo.
+- RF24 e RF25 podem avançar independentemente: criar componentes compartilhados
+  de feedback e estado vazio e aplicá-los nas telas da área da Maria.
+- Próxima sequência sugerida: RF24/RF25 e integração de RF01; retomar RF04 após
+  definir como transportar a data até a gravação do perfil. RF06/RF07 aguardam
+  operações de convite/vínculo e acesso administrativo.
+
+### 2026-10-15 — PR #9 integrada e continuação
+
+- PR #9 (`feat/maria-calculo-idade-menor`) foi mesclada em `develop`; a validação
+  automática `exportar-web` passou.
+- RF04 foi registrado como `concluido` com PR #9 e evidência dos testes manuais
+  de idade, menor, adulto e data impossível.
+- RF05 continua bloqueado: falta o contrato/operação de convite e vínculo seguro.
+- A branch de estados compartilhados ainda não tem PR. Ela foi baseada em um
+  `develop` anterior à PR #9 e está sendo atualizada para a base oficial recente.
+- O próximo envio deverá criar PR para `develop`, sem push direto à branch de
+  integração. As branches distintas devem entrar em sequência para não perder
+  os registros gerados do painel.
+
+### 2026-10-15 — Sincronização e próxima PR
+
+- `origin/develop` avançou até o merge da PR #10; a branch
+  `feat/maria-estados-compartilhados` está sendo atualizada por merge dessa base.
+- RF24 e RF25 permanecem `em_andamento`; a PR de estados compartilhados será
+  aberta após resolver e validar o merge, apontando para `develop`.
+- A integração da autenticação nas telas de login/cadastro permanece como
+  próximo trabalho, coordenado com o direcionamento de sessão de RF02.
