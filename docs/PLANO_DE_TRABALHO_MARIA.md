@@ -298,9 +298,17 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 
 ### 2026-10-15 — Sincronização e próxima PR
 
-- `origin/develop` avançou até o merge da PR #10; a branch
-  `feat/maria-estados-compartilhados` está sendo atualizada por merge dessa base.
-- RF24 e RF25 permanecem `em_andamento`; a PR de estados compartilhados será
-  aberta após resolver e validar o merge, apontando para `develop`.
+- `origin/develop` avançou até o merge da PR #10. A branch
+  `feat/maria-estados-compartilhados` foi atualizada por merge dessa base no
+  commit `4c8db9b`, preservando as mudanças de UI e progresso.
+- Após a sincronização, `npm run check:contracts`, `npm run progress -- --check`
+  e `npm run export:web` passaram.
+- RF24 e RF25 permanecem `em_andamento`. A PR de estados compartilhados ainda
+  não foi aberta: o navegador do GitHub está sem sessão autenticada. A branch
+  está publicada e pronta para PR contra `develop`.
+- RF25 permanece sem aplicação em uma lista real; as listas atuais pertencem
+  às áreas de Marcelo/Laura e não foram alteradas para respeitar o limite de
+  área. Será necessário pedir que os responsáveis consumam `EmptyState` ou
+  autorizar explicitamente uma mudança cross-area.
 - A integração da autenticação nas telas de login/cadastro permanece como
   próximo trabalho, coordenado com o direcionamento de sessão de RF02.
