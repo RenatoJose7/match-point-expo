@@ -5,17 +5,13 @@ import { ListHeader } from '../../components/ListHeader'
 import { assets } from '../../theme/assets'
 import { BLUE } from '../../theme/colors'
 import { styles } from '../../theme/styles'
+import { filterAthleteOpportunities } from './filterAthleteOpportunities.mjs'
 
 const statusFilters = [
   ['Ativas', 'ativa'],
   ['Encerradas', 'encerrada'],
   ['Todas', 'todas'],
 ]
-
-const normalize = value => String(value ?? '')
-  .normalize('NFD')
-  .replace(/[\u0300-\u036f]/g, '')
-  .toLowerCase()
 
 const formatDeadline = value => {
   if (!value || Number.isNaN(new Date(value).getTime())) return 'Prazo não informado'
@@ -60,21 +56,13 @@ export function AthleteOpportunitiesScreen(props) {
     return () => { active = false }
   }, [repositories])
 
-  const visibleOpportunities = opportunities.filter(opportunity => {
-    if (status !== 'todas' && opportunity.status !== status) return false
-    if (search && !normalize([
-      opportunity.titulo,
-      opportunity.descricao,
-      opportunity.beneficio,
-      opportunity.modalidade,
-      opportunity.categoria,
-      opportunity.localizacao,
-    ].join(' ')).includes(normalize(search))) return false
-    if (modality && !normalize(opportunity.modalidade).includes(normalize(modality))) return false
-    if (category && !normalize(opportunity.categoria).includes(normalize(category))) return false
-    if (location && !normalize(opportunity.localizacao).includes(normalize(location))) return false
-    if (openDeadlineOnly && (!opportunity.fimInscricoes || new Date(opportunity.fimInscricoes) < new Date())) return false
-    return true
+  const visibleOpportunities = filterAthleteOpportunities(opportunities, {
+    texto: search,
+    modalidade: modality,
+    categoria: category,
+    localizacao: location,
+    status,
+    prazoAberto: openDeadlineOnly,
   })
 
   return (
@@ -115,7 +103,11 @@ export function AthleteOpportunitiesScreen(props) {
         ) : null}
 
         {!loading && !error && visibleOpportunities.map(opportunity => (
-          <Pressable key={opportunity.id} onPress={() => go('matchScore')} style={styles.listCard}>
+          <Pressable
+            key={opportunity.id}
+            onPress={() => go('matchScore', { oportunidadeId: opportunity.id })}
+            style={styles.listCard}
+          >
             <Image source={assets.arenaSuzy} style={styles.listThumb} />
             <View style={styles.listCopy}>
               <Text style={styles.listName}>{opportunity.titulo}</Text>
