@@ -178,3 +178,10 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
     navegar para a confirmação; nenhuma mensagem foi enviada a uma conta real.
 - As alterações de RF24/RF25 estão em `feat/maria-estados-compartilhados`, criada
   diretamente a partir de `origin/develop`; precisam de PR para integração.
+- Ambas as branches alteram o painel e este documento. Para evitar que uma PR
+  sobrescreva o progresso da outra, integrar primeiro a PR de idade e atualizar
+  `feat/maria-estados-compartilhados` a partir do `develop` resultante antes de
+  integrar a segunda PR.
+- As branches foram enviadas ao remoto, mas as PRs não puderam ser abertas pelas
+  ferramentas disponíveis nesta sessão. Não foi feito push direto para
+  `develop`.
