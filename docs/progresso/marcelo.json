@@ -55,11 +55,11 @@
       "id": "RF17",
       "titulo": "Status e histórico do atleta",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
-      "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo pelo usuário autenticado e vínculo entre candidatura e oportunidade",
-      "atualizadoEm": "2026-10-15T19:21:43.059Z"
+      "evidencia": "ApplicationsScreen consulta o perfil da sessão e lista somente candidaturas do atleta com dados da oportunidade; ApplicationDetailScreen carrega candidatura, status, histórico e documentos por candidaturaId via repositórios. Validado no adaptador em memória com a candidatura seed e dois eventos; navegador mostrou lista e histórico, inclusive data de atualização pelo último evento; check:contracts, progress e export:web passaram. Firebase real ainda não validado.",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-16T18:14:41.501Z"
     },
     {
       "id": "RF23",
