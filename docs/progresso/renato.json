@@ -5,11 +5,11 @@
       "id": "RF02",
       "titulo": "Direcionamento por perfil",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "bloqueado",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "",
-      "atualizadoEm": "2026-10-15T16:56:55.003Z"
+      "bloqueio": "Aguardando a tela inicial do responsável da área da Maria para concluir o direcionamento do tipo responsavel.",
+      "atualizadoEm": "2026-10-16T18:07:11.503Z"
     },
     {
       "id": "RF12",
@@ -25,31 +25,31 @@
       "id": "RF13",
       "titulo": "Elegibilidade",
       "prioridade": "P0",
-      "status": "em_andamento",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#26",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:18:00.983Z"
+      "atualizadoEm": "2026-10-16T18:07:15.335Z"
     },
     {
       "id": "RF14",
       "titulo": "Bloqueio da candidatura",
       "prioridade": "P0",
-      "status": "em_andamento",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#26",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:18:03.498Z"
+      "atualizadoEm": "2026-10-16T18:07:19.053Z"
     },
     {
       "id": "RF22",
       "titulo": "Histórico das alterações",
       "prioridade": "P0",
-      "status": "em_andamento",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#26",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:18:05.253Z"
+      "atualizadoEm": "2026-10-16T18:07:22.576Z"
     }
   ]
 }

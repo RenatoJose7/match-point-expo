@@ -5,11 +5,11 @@
       "id": "RF01",
       "titulo": "Cadastro e login",
       "prioridade": "P0",
-      "status": "bloqueado",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#29",
       "evidencia": "",
-      "bloqueio": "Melhorias de formato e senha forte validadas e publicadas em feat/maria-cadastro-formatos-seguranca; aguardando criação manual da PR porque a sessão do GitHub está desautenticada. Link: https://github.com/RenatoJose7/match-point-expo/compare/develop...feat/maria-cadastro-formatos-seguranca?expand=1",
-      "atualizadoEm": "2026-10-16T17:33:22.825Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-16T18:28:16.890Z"
     },
     {
       "id": "RF04",

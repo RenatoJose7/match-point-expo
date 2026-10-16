@@ -881,6 +881,8 @@ export function createFirebaseRepositories() {
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
             status: APPLICATION_STATUS.SUBMITTED,
+            statusAnterior: null,
+            statusNovo: APPLICATION_STATUS.SUBMITTED,
             descricao: 'Candidatura realizada.',
             data: createdAt,
             responsavelId: data.responsavelId ?? athleteId,
@@ -958,6 +960,8 @@ export function createFirebaseRepositories() {
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
             status: nextStatus,
+            statusAnterior: application.status,
+            statusNovo: nextStatus,
             descricao: `${application.status} → ${nextStatus}`,
             data: updatedAt,
             responsavelId: responsibleId,

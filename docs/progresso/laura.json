@@ -1,11 +1,65 @@
 {
   "responsavel": "Laura",
   "requisitos": [
-    { "id": "RF08", "titulo": "Verificação de parceiros", "prioridade": "P1", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF09", "titulo": "Gerenciar oportunidades", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF18", "titulo": "Visualizar candidatos", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF19", "titulo": "Avaliação técnica", "prioridade": "P1", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF20", "titulo": "Solicitar avaliação", "prioridade": "P1", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF21", "titulo": "Decisão institucional", "prioridade": "P0", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" }
+    {
+      "id": "RF08",
+      "titulo": "Verificação de parceiros",
+      "prioridade": "P1",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF09",
+      "titulo": "Gerenciar oportunidades",
+      "prioridade": "P0",
+      "status": "em_revisao",
+      "pr": "#30",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-16T18:47:30.752Z"
+    },
+    {
+      "id": "RF18",
+      "titulo": "Visualizar candidatos",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF19",
+      "titulo": "Avaliação técnica",
+      "prioridade": "P1",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF20",
+      "titulo": "Solicitar avaliação",
+      "prioridade": "P1",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    },
+    {
+      "id": "RF21",
+      "titulo": "Decisão institucional",
+      "prioridade": "P0",
+      "status": "nao_iniciado",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": ""
+    }
   ]
 }

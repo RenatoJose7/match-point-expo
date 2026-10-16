@@ -139,6 +139,8 @@ export const demoApplications = [
       {
         id: 'evento-demo-inscricao',
         status: APPLICATION_STATUS.SUBMITTED,
+        statusAnterior: null,
+        statusNovo: APPLICATION_STATUS.SUBMITTED,
         descricao: 'Inscrição de demonstração realizada.',
         data: '2026-10-09T12:00:00.000Z',
         responsavelId: 'usuario-atleta-adulto',
@@ -146,6 +148,8 @@ export const demoApplications = [
       {
         id: 'evento-demo-analise',
         status: APPLICATION_STATUS.UNDER_REVIEW,
+        statusAnterior: APPLICATION_STATUS.SUBMITTED,
+        statusNovo: APPLICATION_STATUS.UNDER_REVIEW,
         descricao: 'Candidatura encaminhada para análise.',
         data: '2026-10-09T12:05:00.000Z',
         responsavelId: 'usuario-instituicao',

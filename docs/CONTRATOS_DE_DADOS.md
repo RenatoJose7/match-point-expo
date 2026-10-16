@@ -166,10 +166,15 @@ enviadoEm?
 ```text
 id
 status
+statusAnterior?
+statusNovo?
 descricao?
 data
 responsavelId?
 ```
+
+Eventos de transição preenchem `statusAnterior` e `statusNovo`. Eventos antigos
+sem esses campos continuam válidos e podem usar `status` como estado resultante.
 
 ### Match Score
 
