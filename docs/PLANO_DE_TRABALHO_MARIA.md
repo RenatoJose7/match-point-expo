@@ -33,9 +33,8 @@ visual, respeitando os limites para estilos locais de outras áreas.
 
 ## Estado observado
 
-- As telas atuais de login, recuperação e cadastro são majoritariamente
-  apresentações visuais e navegação; os formulários ainda precisam de validação
-  e integração funcional.
+- As telas de login e cadastro ainda não chamam autenticação. A recuperação de
+  senha agora consome o contrato do repositório e exibe carregamento e erro.
 - Já existem componentes básicos de botão, campo e estrutura de tela em
   `src/components/ui/`.
 - O repositório em memória já expõe operações de idade, identificação de menor,
@@ -45,13 +44,17 @@ visual, respeitando os limites para estilos locais de outras áreas.
 - Em `develop`, o repositório Firebase e a seleção por
   `EXPO_PUBLIC_DATA_PROVIDER` já estão implementados. O adaptador oferece
   cadastro, login, logout, recuperação de senha e leitura/observação da sessão.
-- As telas de cadastro, login e recuperação ainda não chamam essas operações;
-  os botões atuais continuam sem integração com autenticação.
+- As telas de cadastro e login ainda não chamam essas operações; a recuperação
+  de senha já chama `authentication.recuperarSenha`.
 - O fluxo de cadastro não persiste ainda a data de nascimento nem o perfil do
   atleta; o RF03 e os campos do perfil esportivo são responsabilidade do
   Marcelo.
 - Não foi localizada uma tela própria para o responsável consultar e administrar
   os atletas vinculados.
+- A tela de recuperação agora possui estados reais de carregamento, erro e
+  confirmação de envio. `OperationFeedback` e `EmptyState` estão disponíveis
+  como componentes reutilizáveis; o estado vazio ainda precisa ser aplicado a
+  uma lista de uma área autorizada.
 
 ## Plano de execução
 
@@ -145,6 +148,57 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 
 ### 2026-10-15 — Nova checagem após implementação reportada
 
+> A observação abaixo foi feita inicialmente na branch errada e está superada
+> pelas verificações seguintes de `origin/develop`.
+
+- Conferidos o estado do Git, os commits recentes, o painel individual de
+  Renato, `src/repositories/index.js` e as pastas de repositórios e serviços.
+- Não há implementação Firebase visível nesta cópia/branch: só existem a
+  fábrica e o adaptador em memória, e os requisitos de Renato continuam
+  `não_iniciado`.
+- Com `EXPO_PUBLIC_DATA_PROVIDER=firebase`, `createRepositories()` ainda lança
+  `Provedor de dados ainda não configurado: firebase`.
+- Isso indica que a implementação reportada pode ainda não ter sido integrada
+  ou atualizada nesta cópia do projeto; não confirma que o trabalho de Renato
+  não exista em outra branch ou ambiente.
+
+> **Correção:** a revisão de `main` acima não refletia `develop`. A branch oficial
+> já contém a implementação Firebase descrita no registro abaixo.
+
+### 2026-10-15 — Revisão da base oficial e trabalho independente
+
+- Confirmada `origin/develop` como base oficial; os commits da Maria são
+  preparados em branches separadas com destino de PR para `develop`.
+- A idade foi implementada no formulário de atleta e validada no navegador.
+- O commit `deea4ac` foi publicado em
+  `feat/maria-calculo-idade-menor`, com destino à base `develop`. A PR não pôde
+  ser aberta pelas ferramentas disponíveis; o link de comparação foi gerado
+  pelo push e precisa ser usado para solicitar revisão.
+- No branch atual, RF24 tem `OperationFeedback` para estados de carregamento,
+  confirmação, sucesso e erro. RF25 tem o componente `EmptyState`, sem alterar
+  listas pertencentes às áreas de Marcelo ou Laura.
+- A tela de recuperação consome `authentication.recuperarSenha` e só avança
+  para confirmação quando a operação retorna sucesso; falhas aparecem na tela.
+- RF25 permanece em andamento até um consumidor autorizado aplicar o componente
+  a uma lista real. RF24 permanece em andamento até validação visual e PR.
+- Validações desta branch:
+  - `npm run check:contracts` — passou.
+  - `npm run progress -- --check` — passou.
+  - `npm run export:web` — passou.
+  - Verificação no navegador com e-mail inválido exibiu a mensagem de erro sem
+    navegar para a confirmação; nenhuma mensagem foi enviada a uma conta real.
+- As alterações de RF24/RF25 estão em `feat/maria-estados-compartilhados`, criada
+  diretamente a partir de `origin/develop`; precisam de PR para integração.
+- Ambas as branches alteram o painel e este documento. Para evitar que uma PR
+  sobrescreva o progresso da outra, integrar primeiro a PR de idade e atualizar
+  `feat/maria-estados-compartilhados` a partir do `develop` resultante antes de
+  integrar a segunda PR.
+- As branches foram enviadas ao remoto, mas as PRs não puderam ser abertas pelas
+  ferramentas disponíveis nesta sessão. Não foi feito push direto para
+  `develop`.
+
+### 2026-10-15 — Correção da base e integração
+
 - A checagem inicial foi feita na branch `main`, não em `develop`; essa
   conclusão não deve ser usada para avaliar o que foi integrado em `develop`.
 
@@ -231,9 +285,7 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
 
 ### Atualização — implementação de RF01
 
-- Trabalho em andamento na branch `feat/maria-autenticacao`, derivada de
-  `origin/develop`. A branch foi publicada em `origin` no commit `2766834`;
-  ainda não há PR aberta.
+- O trabalho foi integrado em `develop` pela PR #16.
 - Login e cadastro agora usam o contrato `repositories.authentication`,
   apresentam erros e estado de envio e validam os campos antes de chamar o
   repositório. A recuperação de senha funcional já está registrada na PR #13.
@@ -257,13 +309,30 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
   Nenhuma conta real foi criada nem operação Firebase executada.
 - Validações: `npm run check:contracts`, `npm run progress -- --check`,
   `npm run export:web` e `git diff --check` passaram.
-- RF04 foi marcado como `concluido` com evidência da PR #9 integrada em
-  `develop`; RF01 permanece `em_andamento` até validação final e publicação.
-- Pendências de RF01: abrir a PR e solicitar revisão do Renato. A modalidade e
-  os demais dados esportivos continuam dependentes do fluxo RF03, sob
-  responsabilidade do Marcelo.
+- RF04 está `concluido` com evidência da PR #9 integrada em `develop`. RF01
+  permanece `em_andamento` até confirmar as regras do Firebase antes de
+  habilitar cadastros reais.
+- A PR #16 de RF01 já foi integrada. A modalidade e os demais dados esportivos
+  continuam dependentes do fluxo RF03, sob responsabilidade do Marcelo.
 - As regras de segurança do Firestore não estão versionadas neste repositório;
   o acesso de cada usuário à criação do próprio perfil precisa ser confirmado no
   projeto Firebase antes de habilitar cadastros reais.
 - RF05, RF06 e RF07 continuam dependendo do contrato e das operações de convite,
   vínculo e administração; não foram alteradas telas de outras áreas.
+
+### 2026-10-16 — Retomada de RF24 e RF25
+
+- A PR #13 contém `OperationFeedback`, que comunica carregamento, confirmação,
+  sucesso e erro, e `EmptyState`, componente compartilhado para listas vazias.
+- A branch da PR #13 foi sincronizada localmente com a `develop` que recebeu a
+  PR #16. `Field.js` preserva tanto os campos controlados da PR #13 quanto a
+  opção `autoCapitalize` da PR #16.
+- A tela de recuperação agora consome o repositório recebido por props, valida
+  o e-mail e impede envios repetidos enquanto a operação estiver em andamento.
+- Teste manual no navegador com o provedor `memory`: e-mail malformado exibiu
+  erro e permaneceu na tela; e-mail de demonstração válido exibiu a confirmação.
+  Nenhuma solicitação foi enviada ao Firebase.
+- RF25 permanece sem consumidor de lista no escopo autorizado da Maria; a
+  aplicação em telas de Marcelo ou Laura depende de autorização entre áreas.
+- `npm run check:contracts`, `npm run progress -- --check`, `npm run export:web`
+  e `git diff --check` passaram após a sincronização.

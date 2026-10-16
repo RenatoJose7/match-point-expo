@@ -55,21 +55,21 @@
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "nao_iniciado",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#13",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-16T17:00:37.452Z"
     },
     {
       "id": "RF25",
       "titulo": "Estados vazios",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "bloqueado",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "",
-      "atualizadoEm": ""
+      "bloqueio": "EmptyState está pronto em componente compartilhado, mas ainda não foi aplicado a uma lista real; as telas de listas pertencem a Marcelo ou Laura e a alteração aguarda pedido/autorização entre áreas.",
+      "atualizadoEm": "2026-10-16T16:12:58.664Z"
     }
   ]
 }
