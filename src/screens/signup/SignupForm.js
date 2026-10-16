@@ -32,12 +32,33 @@ function formatBirthDate(value) {
 }
 
 function Feedback({ status, children }) {
-  const color = status === 'error' ? '#b42318' : '#126b35'
+  const appearance = status === 'error'
+    ? { color: '#7a271a', backgroundColor: '#fef3f2', borderColor: '#fda29b', title: 'Atenção' }
+    : status === 'success'
+      ? { color: '#05603a', backgroundColor: '#ecfdf3', borderColor: '#6ce9a6', title: 'Sucesso' }
+      : { color: '#1849a9', backgroundColor: '#eff8ff', borderColor: '#84caff', title: 'Informação' }
 
   return (
-    <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={{ color, fontFamily: 'Poppins_400Regular', marginVertical: 8 }}>
-      {children}
-    </Text>
+    <View
+      accessibilityRole="alert"
+      accessibilityLiveRegion="polite"
+      style={{
+        backgroundColor: appearance.backgroundColor,
+        borderColor: appearance.borderColor,
+        borderLeftWidth: 5,
+        borderRadius: 8,
+        borderWidth: 1,
+        marginVertical: 8,
+        padding: 12,
+      }}
+    >
+      <Text style={{ color: appearance.color, fontFamily: 'Poppins_500Medium', marginBottom: 2 }}>
+        {appearance.title}
+      </Text>
+      <Text style={{ color: appearance.color, fontFamily: 'Poppins_400Regular' }}>
+        {children}
+      </Text>
+    </View>
   )
 }
 
@@ -186,20 +207,15 @@ export function SignupForm({ config, go, back, repositories }) {
                     autoCapitalize={isPassword || normalizedField.includes('email') ? 'none' : 'sentences'}
                     maxLength={isBirthDate ? 10 : undefined}
                   />
-                  {isBirthDate && birthDate && age !== null && (
-                    <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular' }}>
-                      Idade calculada: {age} anos.
-                    </Text>
-                  )}
                   {isBirthDate && minor && (
-                    <Text style={{ color: '#126b35', fontFamily: 'Poppins_500Medium' }}>
+                    <Feedback status="info">
                       Atleta menor de 18 anos: será necessário vincular um responsável legal.
-                    </Text>
+                    </Feedback>
                   )}
                   {isBirthDate && birthDateInput.length > 0 && !birthDate && (
-                    <Text style={{ color: '#b42318', fontFamily: 'Poppins_400Regular' }}>
+                    <Feedback status="error">
                       Informe uma data válida no formato DD/MM/AAAA.
-                    </Text>
+                    </Feedback>
                   )}
                 </React.Fragment>
               )
