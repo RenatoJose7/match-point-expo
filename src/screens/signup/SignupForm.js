@@ -175,6 +175,7 @@ export function SignupForm({ config, go, back, repositories }) {
     && /[a-z]/.test(passwordValue)
     && /[A-Z]/.test(passwordValue)
     && /\d/.test(passwordValue)
+    && /[\x21-\x2F\x3A-\x40\x5B-\x60\x7B-\x7E]/.test(passwordValue)
 
   const updateValue = (field, value) => {
     const lowerField = field.toLowerCase()
@@ -226,7 +227,7 @@ export function SignupForm({ config, go, back, repositories }) {
     if (!hasStrongPassword) {
       setFeedback({
         status: 'error',
-        message: 'Use uma senha com pelo menos 8 caracteres, incluindo letras maiúsculas, minúsculas e números.',
+        message: 'Use pelo menos 8 caracteres e inclua uma letra maiúscula, uma minúscula, um número e um símbolo (como !).',
       })
       return
     }
@@ -387,19 +388,10 @@ export function SignupForm({ config, go, back, repositories }) {
                       maxLength={isBirthDate ? 10 : isDocument ? (normalizedField.includes('cnpj') ? 18 : 14) : undefined}
                     />
                   )}
-                  {isPassword && !isPasswordConfirmation && (
-                    <View style={{ borderRadius: 8, backgroundColor: '#fff', padding: 12, gap: 4 }}>
-                      <Text style={{ color: BLUE, fontFamily: 'Poppins_500Medium' }}>
-                        Senha forte
-                      </Text>
-                      <Text style={{ color: hasStrongPassword ? '#05603a' : BLUE, fontFamily: 'Poppins_400Regular', fontSize: 12 }}>
-                        {hasStrongPassword ? '✓' : '○'} Pelo menos 8 caracteres, com letras maiúsculas, minúsculas e números
-                      </Text>
-                      <Text style={{ color: '#475467', fontFamily: 'Poppins_400Regular', fontSize: 12 }}>
-                        Símbolos são recomendados para aumentar a segurança.
-                      </Text>
-                      <Text style={{ color: '#475467', fontFamily: 'Poppins_400Regular', fontSize: 12 }}>
-                        Seu aparelho ou navegador pode oferecer salvar a senha. O MatchPoint não a salva no perfil.
+                  {isPassword && !isPasswordConfirmation && passwordValue.length > 0 && !hasStrongPassword && (
+                    <View style={{ borderRadius: 8, backgroundColor: '#fff', padding: 12 }}>
+                      <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 12 }}>
+                        Use pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (como !).
                       </Text>
                     </View>
                   )}

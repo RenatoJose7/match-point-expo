@@ -479,6 +479,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       application.historico.push({
         id: nextId('evento'),
         status: application.status,
+        statusAnterior: null,
+        statusNovo: application.status,
         descricao: 'Candidatura realizada.',
         data: application.criadoEm,
         responsavelId: data.responsavelId ?? athleteId,
@@ -512,6 +514,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       application.historico.push({
         id: nextId('evento'),
         status: nextStatus,
+        statusAnterior: previousStatus,
+        statusNovo: nextStatus,
         descricao: `${previousStatus} → ${nextStatus}`,
         data: application.atualizadoEm,
         responsavelId: responsibleId,

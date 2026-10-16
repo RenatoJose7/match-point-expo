@@ -1,5 +1,11 @@
 import assert from 'node:assert/strict'
-import { APPLICATION_STATUS, USER_TYPES, calculateAge, isMinor } from '../src/domain/contracts.js'
+import {
+  APPLICATION_STATUS,
+  REPOSITORY_ERROR_CODES,
+  USER_TYPES,
+  calculateAge,
+  isMinor,
+} from '../src/domain/contracts.js'
 import { createMemoryRepositories } from '../src/repositories/memory/index.js'
 
 const repositories = createMemoryRepositories()
@@ -18,10 +24,37 @@ assert.equal(activeOpportunities.data.length, 2)
 const eligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(eligible.ok, true)
 assert.equal(eligible.data.elegivel, true)
+assert.equal(eligible.data.criterios.every((criterion) => criterion.atendido), true)
+assert.deepEqual(eligible.data.motivosBloqueio, [])
+
+const compatibleScore = await repositories.match.calcularMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
+assert.equal(compatibleScore.ok, true)
+assert.equal(compatibleScore.data.percentualTotal, 100)
+assert.equal(compatibleScore.data.criterios.length, 2)
+assert.equal(compatibleScore.data.criterios.every((criterion) => criterion.percentual === 100), true)
+assert.equal(typeof compatibleScore.data.versaoDoCalculo, 'string')
 
 const ineligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-futebol-incompativel')
 assert.equal(ineligible.ok, true)
 assert.equal(ineligible.data.elegivel, false)
+assert.equal(ineligible.data.criterios.length, 1)
+assert.equal(ineligible.data.criterios[0].atendido, false)
+assert.equal(ineligible.data.motivosBloqueio.length, 1)
+
+const incompatibleScore = await repositories.match.calcularMatchScore('atleta-menor', 'oportunidade-futebol-incompativel')
+assert.equal(incompatibleScore.ok, true)
+assert.equal(incompatibleScore.data.percentualTotal, 0)
+
+const applicationsBeforeBlock = await repositories.applications.listarCandidaturasDoAtleta('atleta-menor')
+const blockedApplication = await repositories.applications.criarCandidatura(
+  'oportunidade-futebol-incompativel',
+  'atleta-menor',
+)
+assert.equal(blockedApplication.ok, false)
+assert.equal(blockedApplication.codigo, REPOSITORY_ERROR_CODES.INELIGIBLE_ATHLETE)
+assert.deepEqual(blockedApplication.detalhes.motivosBloqueio, ineligible.data.motivosBloqueio)
+const applicationsAfterBlock = await repositories.applications.listarCandidaturasDoAtleta('atleta-menor')
+assert.equal(applicationsAfterBlock.data.length, applicationsBeforeBlock.data.length)
 
 const application = await repositories.applications.criarCandidatura(
   'oportunidade-bolsa-tenis',
@@ -29,6 +62,22 @@ const application = await repositories.applications.criarCandidatura(
   { responsavelId: 'usuario-atleta-menor' },
 )
 assert.equal(application.ok, true)
+assert.equal(application.data.historico.length, 1)
+assert.equal(application.data.historico[0].status, APPLICATION_STATUS.SUBMITTED)
+assert.equal(application.data.historico[0].statusAnterior, null)
+assert.equal(application.data.historico[0].statusNovo, APPLICATION_STATUS.SUBMITTED)
+assert.equal(application.data.historico[0].responsavelId, 'usuario-atleta-menor')
+
+const invalidTransition = await repositories.applications.atualizarStatusDaCandidatura(
+  application.data.id,
+  APPLICATION_STATUS.APPROVED,
+  'usuario-instituicao',
+)
+assert.equal(invalidTransition.ok, false)
+assert.equal(invalidTransition.codigo, REPOSITORY_ERROR_CODES.INVALID_TRANSITION)
+const unchangedApplication = await repositories.applications.obterCandidatura(application.data.id)
+assert.equal(unchangedApplication.data.status, APPLICATION_STATUS.SUBMITTED)
+assert.equal(unchangedApplication.data.historico.length, 1)
 
 const duplicate = await repositories.applications.criarCandidatura(
   'oportunidade-bolsa-tenis',
@@ -43,6 +92,11 @@ const underReview = await repositories.applications.atualizarStatusDaCandidatura
   'usuario-instituicao',
 )
 assert.equal(underReview.ok, true)
+assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.SUBMITTED)
+assert.equal(underReview.data.historico.at(-1).statusNovo, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.match(underReview.data.historico.at(-1).descricao, /inscrita.*em_analise/)
 
 const approved = await repositories.applications.atualizarStatusDaCandidatura(
   application.data.id,
@@ -51,6 +105,11 @@ const approved = await repositories.applications.atualizarStatusDaCandidatura(
 )
 assert.equal(approved.ok, true)
 assert.equal(approved.data.historico.length, 3)
+assert.equal(approved.data.historico.at(-1).status, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.ok(Date.parse(approved.data.historico.at(-1).data))
 
 const uploadedDocument = await repositories.storage.enviarArquivoCandidatura(application.data.id, {
   tipo: 'curriculo_esportivo',

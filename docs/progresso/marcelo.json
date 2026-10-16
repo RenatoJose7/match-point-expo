@@ -35,11 +35,11 @@
       "id": "RF15",
       "titulo": "Realizar candidatura",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
-      "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo pelo usuário autenticado e routeParams funcional no App",
-      "atualizadoEm": "2026-10-15T19:21:34.725Z"
+      "evidencia": "ApplicationInfoScreen identifica o perfil pela sessão, aceita oportunidadeId/atletaId em routeParams ou lista oportunidades abertas quando o ID falta, verifica duplicidade e elegibilidade e cria candidatura pelo repositório; sucesso mostra o ID gerado. Validado em memória para sucesso, duplicidade e inelegibilidade; fluxo visual com usuário fictício confirmou seletor e bloqueio de duplicata; check:contracts, progress e export:web passaram. Firebase real ainda não validado.",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-16T18:02:12.468Z"
     },
     {
       "id": "RF16",
@@ -59,7 +59,7 @@
       "pr": "",
       "evidencia": "ApplicationsScreen consulta o perfil da sessão e lista somente candidaturas do atleta com dados da oportunidade; ApplicationDetailScreen carrega candidatura, status, histórico e documentos por candidaturaId via repositórios. Validado no adaptador em memória com a candidatura seed e dois eventos; navegador mostrou lista e histórico, inclusive data de atualização pelo último evento; check:contracts, progress e export:web passaram. Firebase real ainda não validado.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:14:41.501Z"
+      "atualizadoEm": "2026-10-16T18:55:16.424Z"
     },
     {
       "id": "RF23",
