@@ -1,6 +1,22 @@
 import React, { useState } from 'react'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { BLUE } from '../../theme/colors'
 import { styles } from '../../theme/styles'
+
+const fieldStyles = StyleSheet.create({
+  container: {
+    backgroundColor: '#fff',
+    borderColor: BLUE,
+    borderWidth: 1,
+  },
+  input: {
+    color: BLUE,
+    fontSize: 14,
+  },
+  eye: {
+    color: BLUE,
+  },
+})
 
 export function Field({
   placeholder,
@@ -13,12 +29,12 @@ export function Field({
   const [hidden, setHidden] = useState(secureTextEntry)
 
   return (
-    <View style={styles.field}>
+    <View style={[styles.field, fieldStyles.container]}>
       <TextInput
         placeholder={placeholder}
-        placeholderTextColor="#d4e1ef"
+        placeholderTextColor={BLUE}
         secureTextEntry={hidden}
-        style={styles.input}
+        style={[styles.input, fieldStyles.input]}
         autoCapitalize={autoCapitalize}
         value={value}
         onChangeText={onChangeText}
@@ -26,7 +42,7 @@ export function Field({
       />
       {secureTextEntry && (
         <Pressable onPress={() => setHidden(value => !value)} hitSlop={12}>
-          <Text style={styles.eye}>{hidden ? '⊙' : '◉'}</Text>
+          <Text style={[styles.eye, fieldStyles.eye]}>{hidden ? '⊙' : '◉'}</Text>
         </Pressable>
       )}
     </View>
