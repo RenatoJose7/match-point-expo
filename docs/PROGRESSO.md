@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-16T16:26:05.289Z
+Última atualização registrada: 2026-10-16T17:18:18.886Z
 
 ## Barras de progresso
 
@@ -18,7 +18,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
 | Maria | 1/7 | 1/7 | 1 | 1 |
-| Marcelo | 0/6 | 0/7 | 2 | 4 |
+| Marcelo | 0/6 | 0/7 | 3 | 3 |
 | Laura | 0/3 | 0/6 | 0 | 0 |
 | Renato | 0/5 | 0/5 | 5 | 0 |
 
@@ -36,7 +36,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF08 — Verificação de parceiros | P1 | Laura | Não iniciado | — | — |
 | RF09 — Gerenciar oportunidades | P0 | Laura | Não iniciado | — | — |
 | RF10 — Pesquisa e filtros | P0 | Marcelo | Em andamento | — | — |
-| RF11 — Detalhes da oportunidade | P0 | Marcelo | Bloqueado | — | Aguardando rota com routeParams e operação Firebase para obter oportunidade por ID |
+| RF11 — Detalhes da oportunidade | P0 | Marcelo | Em andamento | — | AthleteOpportunitiesScreen envia oportunidadeId e atletaId; MatchScoreScreen calcula percentual e critérios pelo repositório; OpportunityDetailScreen consulta pelo ID e exibe descrição, categoria, benefício, localização, requisitos, documentos e prazo. Fluxo de navegador validado com usuário e seed fictícios em memória; check:contracts, progress e export:web passaram. Consulta de dados reais no Firebase ainda não testada. |
 | RF12 — Compatibilidade | P0 | Renato | Em andamento | — | — |
 | RF13 — Elegibilidade | P0 | Renato | Em andamento | — | — |
 | RF14 — Bloqueio da candidatura | P0 | Renato | Em andamento | — | — |

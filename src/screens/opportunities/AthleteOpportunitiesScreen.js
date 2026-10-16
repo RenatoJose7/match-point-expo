@@ -23,8 +23,9 @@ const formatDeadline = value => {
 }
 
 export function AthleteOpportunitiesScreen(props) {
-  const { repositories, go, back } = props
+  const { repositories, go, back, session } = props
   const [opportunities, setOpportunities] = useState([])
+  const [athleteId, setAthleteId] = useState('')
   const [search, setSearch] = useState('')
   const [modality, setModality] = useState('')
   const [category, setCategory] = useState('')
@@ -59,6 +60,27 @@ export function AthleteOpportunitiesScreen(props) {
     loadOpportunities()
     return () => { active = false }
   }, [repositories])
+
+  useEffect(() => {
+    let active = true
+
+    const loadAthleteProfile = async () => {
+      if (!session?.id) {
+        setAthleteId('')
+        return
+      }
+
+      try {
+        const result = await repositories.users.obterPerfilAtletaPorUsuario(session.id)
+        if (active && result.ok) setAthleteId(result.data.id)
+      } catch {
+        if (active) setAthleteId('')
+      }
+    }
+
+    loadAthleteProfile()
+    return () => { active = false }
+  }, [repositories, session?.id])
 
   const visibleOpportunities = opportunities.filter(opportunity => {
     if (status !== 'todas' && opportunity.status !== status) return false
@@ -115,7 +137,21 @@ export function AthleteOpportunitiesScreen(props) {
         ) : null}
 
         {!loading && !error && visibleOpportunities.map(opportunity => (
-          <Pressable key={opportunity.id} onPress={() => go('matchScore')} style={styles.listCard}>
+          <Pressable
+            key={opportunity.id}
+            accessibilityRole="button"
+            accessibilityLabel={`Ver oportunidade ${opportunity.titulo}`}
+            onPress={() => {
+              const routeParams = { oportunidadeId: opportunity.id }
+              if (athleteId) {
+                routeParams.atletaId = athleteId
+                go('matchScore', routeParams)
+              } else {
+                go('opportunityDetail', routeParams)
+              }
+            }}
+            style={styles.listCard}
+          >
             <Image source={assets.arenaSuzy} style={styles.listThumb} />
             <View style={styles.listCopy}>
               <Text style={styles.listName}>{opportunity.titulo}</Text>
