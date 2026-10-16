@@ -55,11 +55,11 @@
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "bloqueado",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:32:46.848Z"
+      "bloqueio": "Branch rebased e publicada; aguardando criação da PR para develop porque esta sessão não tem autenticação GitHub.",
+      "atualizadoEm": "2026-10-16T18:33:45.109Z"
     },
     {
       "id": "RF25",
