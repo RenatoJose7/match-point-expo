@@ -24,6 +24,8 @@ const statusLabels = {
   concluido: 'Concluído',
 }
 
+const normalizeLineEndings = (value) => value.replace(/\r\n/g, '\n')
+
 async function loadSources() {
   return Promise.all(sourceFiles.map(async (file) => {
     const filePath = path.join(progressDirectory, file)
@@ -188,7 +190,7 @@ const dashboard = generateDashboard(requirements)
 
 if (checkOnly) {
   const current = await fs.readFile(dashboardPath, 'utf8').catch(() => '')
-  if (current !== dashboard) {
+  if (normalizeLineEndings(current) !== normalizeLineEndings(dashboard)) {
     throw new Error('docs/PROGRESSO.md está desatualizado. Execute npm run progress.')
   }
   console.log('Painel de progresso validado.')

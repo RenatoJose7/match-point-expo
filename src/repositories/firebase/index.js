@@ -13,12 +13,15 @@ import {
   getDocs,
   query,
   runTransaction,
+  setDoc,
   updateDoc,
   where,
   writeBatch,
 } from 'firebase/firestore'
+import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import {
   APPLICATION_STATUS,
+  OPPORTUNITY_STATUS,
   REPOSITORY_ERROR_CODES,
   USER_TYPES,
   canTransitionApplicationStatus,
@@ -26,7 +29,7 @@ import {
   isMinor,
 } from '../../domain/contracts'
 import { getFirebaseAuth } from '../../services/firebase/auth'
-import { getFirebaseDatabase } from '../../services/firebase/config'
+import { getFirebaseDatabase, getFirebaseStorage } from '../../services/firebase/config'
 
 const USERS_COLLECTION = 'usuarios'
 const ATHLETES_COLLECTION = 'atletas'
@@ -169,6 +172,23 @@ function applicationKey(opportunityId, athleteId) {
   return `${encodeURIComponent(opportunityId)}__${encodeURIComponent(athleteId)}`
 }
 
+function newId(database, collectionName) {
+  return doc(collection(database, collectionName)).id
+}
+
+function filterOpportunities(opportunities, filters = {}) {
+  const text = String(filters.texto ?? '').toLowerCase()
+  return opportunities.filter((opportunity) => {
+    if (text && !`${opportunity.titulo} ${opportunity.descricao}`.toLowerCase().includes(text)) return false
+    if (filters.modalidade && opportunity.modalidade !== filters.modalidade) return false
+    if (filters.categoria && opportunity.categoria !== filters.categoria) return false
+    if (filters.localizacao && opportunity.localizacao !== filters.localizacao) return false
+    if (filters.status && opportunity.status !== filters.status) return false
+    if (filters.prazoAberto && new Date(opportunity.fimInscricoes) < new Date()) return false
+    return true
+  })
+}
+
 function evaluateEligibility(athlete, opportunity, evaluatedAt = now()) {
   const criteria = opportunity.criteriosElegibilidade ?? []
   const evaluatedCriteria = criteria.map((criterion) => {
@@ -212,6 +232,7 @@ function calculateMatchScore(eligibility, calculatedAt = now()) {
 export function createFirebaseRepositories() {
   const auth = getFirebaseAuth()
   const database = getFirebaseDatabase()
+  const storage = getFirebaseStorage()
 
   const getUserById = async (id) => {
     try {
@@ -233,6 +254,36 @@ export function createFirebaseRepositories() {
       return snapshot.exists()
         ? success(normalizeDocument(snapshot))
         : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta não encontrado.')
+    } catch (error) {
+      return mapFirebaseError(error)
+    }
+  }
+
+  const getAthleteByUserId = async (userId) => {
+    try {
+      const snapshots = await getDocs(query(
+        collection(database, ATHLETES_COLLECTION),
+        where('usuarioId', '==', userId),
+      ))
+      const athleteSnapshot = snapshots.docs[0]
+      return athleteSnapshot
+        ? success(normalizeDocument(athleteSnapshot))
+        : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil esportivo não encontrado para este usuário.')
+    } catch (error) {
+      return mapFirebaseError(error)
+    }
+  }
+
+  const getPartnerByUserId = async (userId) => {
+    try {
+      const snapshots = await getDocs(query(
+        collection(database, PARTNERS_COLLECTION),
+        where('usuarioId', '==', userId),
+      ))
+      const partnerSnapshot = snapshots.docs[0]
+      return partnerSnapshot
+        ? success(normalizeDocument(partnerSnapshot))
+        : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil parceiro não encontrado para este usuário.')
     } catch (error) {
       return mapFirebaseError(error)
     }
@@ -407,6 +458,208 @@ export function createFirebaseRepositories() {
         return mapFirebaseError(error)
       }
     },
+    criarPerfilAtleta: async (userId, data) => {
+      const user = await getUserById(userId)
+      if (!user.ok) return user
+
+      const existingProfile = await getAthleteByUserId(userId)
+      if (existingProfile.ok) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Este usuário já possui um perfil esportivo.')
+      }
+      if (existingProfile.codigo !== REPOSITORY_ERROR_CODES.NOT_FOUND) return existingProfile
+
+      const athlete = {
+        ...data,
+        id: data.id ?? userId,
+        usuarioId: userId,
+        perfilCompleto: Boolean(data.perfilCompleto),
+      }
+      if (isMinor(athlete.dataNascimento) && !athlete.responsavelId) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Atleta menor de idade exige responsável legal.')
+      }
+
+      try {
+        await setDoc(doc(database, ATHLETES_COLLECTION, athlete.id), athlete)
+        return success(athlete)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    obterPerfilAtleta: getAthleteById,
+    obterPerfilAtletaPorUsuario: getAthleteByUserId,
+    atualizarPerfilAtleta: async (id, data) => {
+      try {
+        await updateDoc(doc(database, ATHLETES_COLLECTION, id), { ...data, id })
+        return getAthleteById(id)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    criarPerfilParceiro: async (userId, data) => {
+      const user = await getUserById(userId)
+      if (!user.ok) return user
+
+      const existingProfile = await getPartnerByUserId(userId)
+      if (existingProfile.ok) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Este usuário já possui um perfil parceiro.')
+      }
+      if (existingProfile.codigo !== REPOSITORY_ERROR_CODES.NOT_FOUND) return existingProfile
+
+      const partner = {
+        id: newId(database, PARTNERS_COLLECTION),
+        usuarioId: userId,
+        ...data,
+        verificado: Boolean(data.verificado),
+      }
+      try {
+        await setDoc(doc(database, PARTNERS_COLLECTION, partner.id), partner)
+        return success(partner)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    obterPerfilParceiro: async (id) => {
+      try {
+        const snapshot = await getDoc(doc(database, PARTNERS_COLLECTION, id))
+        return snapshot.exists()
+          ? success(normalizeDocument(snapshot))
+          : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Parceiro não encontrado.')
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    obterPerfilParceiroPorUsuario: getPartnerByUserId,
+    atualizarPerfilParceiro: async (id, data) => {
+      try {
+        await updateDoc(doc(database, PARTNERS_COLLECTION, id), { ...data, id })
+        return users.obterPerfilParceiro(id)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    criarResponsavel: async (userId, data) => {
+      const user = await getUserById(userId)
+      if (!user.ok) return user
+
+      const guardian = {
+        id: newId(database, GUARDIANS_COLLECTION),
+        usuarioId: userId,
+        atletasVinculadosIds: [],
+        ...data,
+        criadoEm: now(),
+        atualizadoEm: now(),
+      }
+      try {
+        await setDoc(doc(database, GUARDIANS_COLLECTION, guardian.id), guardian)
+        return success(guardian)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    calcularIdade: async (birthDate, referenceDate) => success(calculateAge(birthDate, referenceDate)),
+    identificarMenor: async (birthDate, referenceDate) => success(isMinor(birthDate, referenceDate)),
+    vincularResponsavel: async (athleteId, guardianId) => {
+      const athleteReference = doc(database, ATHLETES_COLLECTION, athleteId)
+      const guardianReference = doc(database, GUARDIANS_COLLECTION, guardianId)
+      try {
+        return await runTransaction(database, async (transaction) => {
+          const [athleteSnapshot, guardianSnapshot] = await Promise.all([
+            transaction.get(athleteReference),
+            transaction.get(guardianReference),
+          ])
+          if (!athleteSnapshot.exists() || !guardianSnapshot.exists()) {
+            return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou responsável não encontrado.')
+          }
+          const guardian = normalizeDocument(guardianSnapshot)
+          const athlete = { ...normalizeDocument(athleteSnapshot), responsavelId: guardianId }
+          const atletasVinculadosIds = [...new Set([...(guardian.atletasVinculadosIds ?? []), athleteId])]
+          transaction.update(athleteReference, { responsavelId: guardianId })
+          transaction.update(guardianReference, { atletasVinculadosIds, atualizadoEm: now() })
+          return success({ athlete, guardian: { ...guardian, atletasVinculadosIds } })
+        })
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    obterAtletasDoResponsavel: async (guardianId) => {
+      try {
+        const guardianSnapshot = await getDoc(doc(database, GUARDIANS_COLLECTION, guardianId))
+        if (!guardianSnapshot.exists()) {
+          return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Responsável não encontrado.')
+        }
+        const guardian = normalizeDocument(guardianSnapshot)
+        const athletes = await Promise.all((guardian.atletasVinculadosIds ?? []).map(async (athleteId) => {
+          const result = await getAthleteById(athleteId)
+          return result.ok ? result.data : null
+        }))
+        return success(athletes.filter(Boolean))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    atualizarAtletaComoResponsavel: async (guardianId, athleteId, data) => {
+      const guardianResult = await users.obterAtletasDoResponsavel(guardianId)
+      if (!guardianResult.ok) return guardianResult
+      if (!guardianResult.data.some((athlete) => athlete.id === athleteId)) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Responsável não possui vínculo com este atleta.')
+      }
+      return users.atualizarPerfilAtleta(athleteId, data)
+    },
+  }
+
+  const opportunities = {
+    listarOportunidades: async (filters = {}) => {
+      try {
+        const snapshots = await getDocs(collection(database, OPPORTUNITIES_COLLECTION))
+        return success(filterOpportunities(snapshots.docs.map(normalizeDocument), filters))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    obterOportunidade: getOpportunityById,
+    criarOportunidade: async (data) => {
+      const createdAt = now()
+      const opportunity = {
+        id: newId(database, OPPORTUNITIES_COLLECTION),
+        ...data,
+        status: data.status ?? OPPORTUNITY_STATUS.DRAFT,
+        criadoEm: createdAt,
+        atualizadoEm: createdAt,
+      }
+      try {
+        await setDoc(doc(database, OPPORTUNITIES_COLLECTION, opportunity.id), opportunity)
+        return success(opportunity)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    atualizarOportunidade: async (id, data) => {
+      try {
+        await updateDoc(doc(database, OPPORTUNITIES_COLLECTION, id), {
+          ...data,
+          id,
+          atualizadoEm: now(),
+        })
+        return getOpportunityById(id)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    encerrarOportunidade: async (id) => opportunities.atualizarOportunidade(id, {
+      status: OPPORTUNITY_STATUS.CLOSED,
+    }),
+    listarOportunidadesDoParceiro: async (partnerId, filters = {}) => {
+      const result = await opportunities.listarOportunidades(filters)
+      return result.ok
+        ? success(result.data.filter((opportunity) => opportunity.criadorId === partnerId))
+        : result
+    },
+    listarDocumentosNecessarios: async (id) => {
+      const opportunity = await getOpportunityById(id)
+      return opportunity.ok
+        ? success(opportunity.data.documentosNecessarios ?? [])
+        : opportunity
+    },
   }
 
   const match = {
@@ -429,6 +682,43 @@ export function createFirebaseRepositories() {
         : eligibility
     },
     obterMatchScore: async (athleteId, opportunityId) => match.calcularMatchScore(athleteId, opportunityId),
+  }
+
+  const uploadApplicationDocument = async (applicationId, documentData = {}) => {
+    const application = await getApplicationById(applicationId)
+    if (!application.ok) return application
+
+    const { arquivo, file: sourceFile, ...metadata } = documentData
+    if (metadata.arquivoUrl) return success(metadata)
+
+    const source = arquivo ?? sourceFile
+    if (!source) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Selecione um arquivo antes de enviar o documento.')
+    }
+
+    try {
+      const file = source.uri
+        ? await (await fetch(source.uri)).blob()
+        : source
+      const documentId = metadata.id ?? newId(database, 'documentosCandidatura')
+      const fileName = metadata.nome ?? source.name ?? `${documentId}.bin`
+      const storageReference = ref(storage, `candidaturas/${applicationId}/${documentId}-${fileName}`)
+      await uploadBytes(storageReference, file, {
+        contentType: metadata.tipoMime ?? source.type ?? 'application/octet-stream',
+      })
+      return success({
+        ...metadata,
+        id: documentId,
+        nome: fileName,
+        arquivoUrl: await getDownloadURL(storageReference),
+      })
+    } catch (error) {
+      return mapFirebaseError(error)
+    }
+  }
+
+  const storageRepository = {
+    enviarArquivoCandidatura: uploadApplicationDocument,
   }
 
   const applications = {
@@ -593,6 +883,8 @@ export function createFirebaseRepositories() {
     enviarDocumento: async (id, documentData) => {
       const applicationReference = doc(database, APPLICATIONS_COLLECTION, id)
       const updatedAt = now()
+      const uploadedDocument = await storageRepository.enviarArquivoCandidatura(id, documentData)
+      if (!uploadedDocument.ok) return uploadedDocument
 
       try {
         return await runTransaction(database, async (transaction) => {
@@ -603,9 +895,8 @@ export function createFirebaseRepositories() {
 
           const application = normalizeDocument(snapshot)
           const document = {
-            id: documentData.id ?? doc(collection(database, 'documentosCandidatura')).id,
-            ...documentData,
-            enviadoEm: documentData.enviadoEm ?? updatedAt,
+            ...uploadedDocument.data,
+            enviadoEm: uploadedDocument.data.enviadoEm ?? updatedAt,
           }
           const documentos = [...(application.documentos ?? []), document]
           const updated = { ...application, documentos, atualizadoEm: updatedAt }
@@ -649,5 +940,5 @@ export function createFirebaseRepositories() {
     },
   }
 
-  return { authentication, users, applications, match }
+  return { authentication, users, opportunities, applications, match, storage: storageRepository }
 }

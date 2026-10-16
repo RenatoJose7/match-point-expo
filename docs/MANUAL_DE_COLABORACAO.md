@@ -281,6 +281,8 @@ Toda Pull Request deve informar:
 - contrato de dados alterado, se houver;
 - pessoa que precisa revisar.
 
+Depois que a branch de tarefa estiver validada e publicada, a IA responsável deve abrir automaticamente a Pull Request com destino em `develop`. Se o ambiente não estiver autenticado no GitHub, ela deve informar o link direto de criação da Pull Request; nesse caso, a pessoa responsável apenas cria ou integra a solicitação. A IA não deve aguardar uma instrução adicional para preparar a PR.
+
 Uma Pull Request que toca duas áreas deve ser aprovada pelos dois responsáveis. Uma Pull Request que altera arquivo controlado também precisa da aprovação do Renato ou da Maria, conforme a tabela anterior.
 
 ### 5.5 Integração

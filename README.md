@@ -77,6 +77,8 @@ O documento do projeto possui 30 requisitos funcionais. A meta mínima do ciclo 
 
 O progresso oficial pode ser acompanhado no [painel automático](docs/PROGRESSO.md). Apenas requisitos integrados, com Pull Request e evidência, avançam a barra.
 
+O painel de atividade da equipe é gerado pelo GitHub Actions a cada integração na `develop`, em atualizações de Pull Request e também pode ser executado manualmente na aba **Actions**. Depois que a automação chegar à branch padrão (`main`), ela também roda a cada quatro horas. O painel mostra commits e Pull Requests no resumo da execução e como artefato por 14 dias, sem confundir atividade com requisito funcional concluído nem criar commits automáticos na `develop`.
+
 ## Cronograma resumido
 
 | Dia | Objetivo | Principais entregas | Marco de validação |

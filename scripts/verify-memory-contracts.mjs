@@ -52,6 +52,22 @@ const approved = await repositories.applications.atualizarStatusDaCandidatura(
 assert.equal(approved.ok, true)
 assert.equal(approved.data.historico.length, 3)
 
+const uploadedDocument = await repositories.storage.enviarArquivoCandidatura(application.data.id, {
+  tipo: 'curriculo_esportivo',
+  arquivo: { uri: 'memory://curriculo.pdf', name: 'curriculo.pdf', type: 'application/pdf' },
+})
+assert.equal(uploadedDocument.ok, true)
+assert.equal(uploadedDocument.data.arquivoUrl, 'memory://curriculo.pdf')
+assert.equal('arquivo' in uploadedDocument.data, false)
+
+const applicationWithDocument = await repositories.applications.enviarDocumento(
+  application.data.id,
+  uploadedDocument.data,
+)
+assert.equal(applicationWithDocument.ok, true)
+assert.equal(applicationWithDocument.data.documentos.length, 1)
+assert.equal(applicationWithDocument.data.documentos[0].arquivoUrl, 'memory://curriculo.pdf')
+
 const signupRepositories = createMemoryRepositories()
 let observedSession = null
 signupRepositories.authentication.observarSessao((session) => {
@@ -69,6 +85,9 @@ assert.equal(observedSession.id, athleteSignup.data.id)
 const athleteProfile = await signupRepositories.users.obterPerfilAtleta(athleteSignup.data.id)
 assert.equal(athleteProfile.ok, true)
 assert.equal(athleteProfile.data.dataNascimento, '2000-10-10')
+const athleteProfileByUser = await signupRepositories.users.obterPerfilAtletaPorUsuario(athleteSignup.data.id)
+assert.equal(athleteProfileByUser.ok, true)
+assert.equal(athleteProfileByUser.data.id, athleteProfile.data.id)
 
 const partnerSignup = await signupRepositories.authentication.cadastrar(
   'novo.treinador@matchpoint.example',
@@ -83,6 +102,9 @@ assert.equal(partnerSignup.ok, true)
 const partnerProfile = await signupRepositories.users.obterPerfilParceiro(partnerSignup.data.id)
 assert.equal(partnerProfile.ok, true)
 assert.equal(partnerProfile.data.documento, '12345678900')
+const partnerProfileByUser = await signupRepositories.users.obterPerfilParceiroPorUsuario(partnerSignup.data.id)
+assert.equal(partnerProfileByUser.ok, true)
+assert.equal(partnerProfileByUser.data.id, partnerProfile.data.id)
 
 const institutionSignup = await signupRepositories.authentication.cadastrar(
   'nova.instituicao@matchpoint.example',

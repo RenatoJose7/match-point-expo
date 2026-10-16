@@ -88,6 +88,7 @@ Itens `simulado` não avançam a barra. O estado `concluido` exige PR e evidênc
 - branches de tarefa partem de `develop`;
 - não faça commit diretamente em `main` ou `develop`;
 - use os padrões de branch e commit definidos no manual;
+- depois de validar e publicar uma tarefa, abra automaticamente uma Pull Request para `develop`; se a autenticação do GitHub impedir essa ação, informe o link direto para criá-la;
 - não use comandos destrutivos para descartar trabalho existente;
 - não copie código manualmente entre branches quando a dependência deve chegar por Pull Request;
 - revise `git status` e `git diff` antes de entregar.
