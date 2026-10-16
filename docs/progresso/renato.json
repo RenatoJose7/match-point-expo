@@ -15,11 +15,11 @@
       "id": "RF12",
       "titulo": "Compatibilidade",
       "prioridade": "P0",
-      "status": "em_andamento",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#26",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:17:58.380Z"
+      "atualizadoEm": "2026-10-16T18:29:39.568Z"
     },
     {
       "id": "RF13",

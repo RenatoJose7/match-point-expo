@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-16T18:07:22.576Z
+Última atualização registrada: 2026-10-16T18:29:39.568Z
 
 ## Barras de progresso
 
@@ -20,7 +20,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | Maria | 1/7 | 1/7 | 0 | 2 |
 | Marcelo | 0/6 | 0/7 | 3 | 3 |
 | Laura | 0/3 | 0/6 | 0 | 0 |
-| Renato | 0/5 | 0/5 | 1 | 1 |
+| Renato | 0/5 | 0/5 | 0 | 1 |
 
 ## Requisitos
 
@@ -37,7 +37,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF09 — Gerenciar oportunidades | P0 | Laura | Não iniciado | — | — |
 | RF10 — Pesquisa e filtros | P0 | Marcelo | Em andamento | — | — |
 | RF11 — Detalhes da oportunidade | P0 | Marcelo | Bloqueado | — | Aguardando rota com routeParams e operação Firebase para obter oportunidade por ID |
-| RF12 — Compatibilidade | P0 | Renato | Em andamento | — | — |
+| RF12 — Compatibilidade | P0 | Renato | Em revisão | #26 | — |
 | RF13 — Elegibilidade | P0 | Renato | Em revisão | #26 | — |
 | RF14 — Bloqueio da candidatura | P0 | Renato | Em revisão | #26 | — |
 | RF15 — Realizar candidatura | P0 | Marcelo | Em andamento | — | ApplicationInfoScreen identifica o perfil pela sessão, aceita oportunidadeId/atletaId em routeParams ou lista oportunidades abertas quando o ID falta, verifica duplicidade e elegibilidade e cria candidatura pelo repositório; sucesso mostra o ID gerado. Validado em memória para sucesso, duplicidade e inelegibilidade; fluxo visual com usuário fictício confirmou seletor e bloqueio de duplicata; check:contracts, progress e export:web passaram. Firebase real ainda não validado. |
