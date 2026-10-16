@@ -7,9 +7,9 @@
       "prioridade": "P0",
       "status": "em_andamento",
       "pr": "",
-      "evidencia": "",
+      "evidencia": "AthleteProfileScreen consulta pelo usuarioId da sessão, exibe e edita os campos esportivos e cria perfil ausente com dataNascimento/modalidade; inclui carregamento, erro, sucesso e validação da data ISO. Validado com operações de perfil em memória, check:contracts, progress e export:web; tela inicial web abriu. Falta validar consulta/salvamento no Firebase com sessão real.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T16:26:05.289Z"
+      "atualizadoEm": "2026-10-16T16:41:08.539Z"
     },
     {
       "id": "RF10",
