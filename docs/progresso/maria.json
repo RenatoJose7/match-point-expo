@@ -55,11 +55,11 @@
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-16T18:32:46.848Z"
     },
     {
       "id": "RF25",
