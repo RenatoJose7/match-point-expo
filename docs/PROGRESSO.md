@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-16T17:14:57.675Z
+Última atualização registrada: 2026-10-16T17:18:50.385Z
 
 ## Barras de progresso
 
@@ -17,7 +17,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
-| Maria | 1/7 | 1/7 | 2 | 0 |
+| Maria | 1/7 | 1/7 | 1 | 1 |
 | Marcelo | 0/6 | 0/7 | 2 | 4 |
 | Laura | 0/3 | 0/6 | 0 | 0 |
 | Renato | 0/5 | 0/5 | 5 | 0 |
@@ -30,7 +30,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF02 — Direcionamento por perfil | P0 | Renato | Em andamento | — | — |
 | RF03 — Perfil esportivo | P0 | Marcelo | Em andamento | — | — |
 | RF04 — Cálculo de idade | P0 | Maria | Concluído | #9 | PR #9 integrada em develop; formato DD/MM/AAAA, validação, cálculo automático de idade e identificação de menor verificados no navegador. |
-| RF05 — Identificação de menor | P0 | Maria | Em andamento | — | — |
+| RF05 — Identificação de menor | P0 | Maria | Bloqueado | — | Código validado e publicado em feat/maria-rf05-identificacao-menor; aguardando abertura manual da PR porque GitHub não está autenticado no navegador e gh CLI não está instalado. Link: https://github.com/RenatoJose7/match-point-expo/compare/develop...feat/maria-rf05-identificacao-menor?expand=1 |
 | RF06 — Vínculo do responsável | P0 | Maria | Não iniciado | — | — |
 | RF07 — Responsável administra atleta | P0 | Maria | Não iniciado | — | — |
 | RF08 — Verificação de parceiros | P1 | Laura | Não iniciado | — | — |

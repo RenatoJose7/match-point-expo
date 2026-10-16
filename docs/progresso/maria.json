@@ -25,11 +25,11 @@
       "id": "RF05",
       "titulo": "Identificação de menor",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "bloqueado",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "",
-      "atualizadoEm": "2026-10-16T17:14:57.675Z"
+      "bloqueio": "Código validado e publicado em feat/maria-rf05-identificacao-menor; aguardando abertura manual da PR porque GitHub não está autenticado no navegador e gh CLI não está instalado. Link: https://github.com/RenatoJose7/match-point-expo/compare/develop...feat/maria-rf05-identificacao-menor?expand=1",
+      "atualizadoEm": "2026-10-16T17:18:50.385Z"
     },
     {
       "id": "RF06",
