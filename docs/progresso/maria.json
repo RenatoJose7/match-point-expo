@@ -5,11 +5,11 @@
       "id": "RF01",
       "titulo": "Cadastro e login",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-15T19:27:50.406Z"
     },
     {
       "id": "RF04",
@@ -17,9 +17,9 @@
       "prioridade": "P0",
       "status": "concluido",
       "pr": "#9",
-      "evidencia": "PR #9 integrada em develop; CI exportar-web passou; testado no navegador: cálculo da idade, menor de 18, data impossível e adulto",
+      "evidencia": "PR #9 integrada em develop; formato DD/MM/AAAA, validação, cálculo automático de idade e identificação de menor verificados no navegador.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T19:04:20.838Z"
+      "atualizadoEm": "2026-10-15T19:34:03.726Z"
     },
     {
       "id": "RF05",
@@ -55,21 +55,21 @@
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "em_andamento",
-      "pr": "",
+      "status": "em_revisao",
+      "pr": "#13",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:26:36.517Z"
+      "atualizadoEm": "2026-10-16T16:18:58.215Z"
     },
     {
       "id": "RF25",
       "titulo": "Estados vazios",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "bloqueado",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "",
-      "atualizadoEm": "2026-10-15T18:26:37.439Z"
+      "bloqueio": "EmptyState está pronto em componente compartilhado, mas ainda não foi aplicado a uma lista real; as telas de listas pertencem a Marcelo ou Laura e a alteração aguarda pedido/autorização entre áreas.",
+      "atualizadoEm": "2026-10-16T16:12:58.664Z"
     }
   ]
 }

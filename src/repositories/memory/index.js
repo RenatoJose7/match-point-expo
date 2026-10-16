@@ -13,6 +13,20 @@ const clone = (value) => JSON.parse(JSON.stringify(value))
 const success = (data) => ({ ok: true, data: clone(data) })
 const failure = (codigo, mensagem, detalhes) => ({ ok: false, codigo, mensagem, detalhes })
 
+function isValidBirthDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
+  if (!match) return false
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const parsedDate = new Date(year, month - 1, day)
+  return parsedDate.getFullYear() === year
+    && parsedDate.getMonth() === month - 1
+    && parsedDate.getDate() === day
+    && calculateAge(value) !== null
+}
+
 export function createMemoryRepositories(initialSeed = demoSeed) {
   let state = clone(initialSeed)
   let currentUserId = null
@@ -83,6 +97,59 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         atualizadoEm: now(),
       }
       state.users.push(user)
+
+      const createdAt = user.criadoEm
+      const profile = initialData.perfil ?? {}
+      let profileResult = success(null)
+      if (type === USER_TYPES.ATHLETE) {
+        if (!isValidBirthDate(profile.dataNascimento)) {
+          state.users = state.users.filter((item) => item.id !== user.id)
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe uma data de nascimento válida para o perfil do atleta.')
+        }
+        if (isMinor(profile.dataNascimento)) {
+          state.users = state.users.filter((item) => item.id !== user.id)
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O perfil de atleta menor exige vínculo confirmado com o responsável legal.')
+        }
+        profileResult = await users.criarPerfilAtleta(user.id, {
+          id: user.id,
+          dataNascimento: profile.dataNascimento,
+          modalidade: profile.modalidade ?? '',
+          perfilCompleto: false,
+          criadoEm: createdAt,
+          atualizadoEm: createdAt,
+        })
+      } else if (type === USER_TYPES.TRAINER || type === USER_TYPES.INSTITUTION) {
+        profileResult = await users.criarPerfilParceiro(user.id, {
+          id: user.id,
+          tipo: type,
+          nomeExibicao: profile.nomeExibicao?.trim() || user.nome,
+          documento: profile.documento?.trim() || undefined,
+          descricao: profile.descricao?.trim() || undefined,
+          localizacao: profile.localizacao?.trim() || undefined,
+          verificado: false,
+          criadoEm: createdAt,
+          atualizadoEm: createdAt,
+        })
+      } else if (type === USER_TYPES.GUARDIAN) {
+        if (!profile.parentesco?.trim()) {
+          state.users = state.users.filter((item) => item.id !== user.id)
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe o parentesco com o atleta.')
+        }
+        profileResult = await users.criarResponsavel(user.id, {
+          id: user.id,
+          parentesco: profile.parentesco.trim(),
+          documento: profile.documento?.trim() || undefined,
+          telefone: profile.telefone?.trim() || user.telefone,
+          criadoEm: createdAt,
+          atualizadoEm: createdAt,
+        })
+      }
+
+      if (!profileResult.ok) {
+        state.users = state.users.filter((item) => item.id !== user.id)
+        return profileResult
+      }
+
       currentUserId = user.id
       emitSession()
       return success(user)

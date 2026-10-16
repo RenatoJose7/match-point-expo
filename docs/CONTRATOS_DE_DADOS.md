@@ -190,6 +190,21 @@ obterSessaoAtual()
 observarSessao(callback)
 ```
 
+`dadosIniciais` pode conter `nome`, `telefone` e o perfil inicial associado ao
+tipo da conta:
+
+```text
+atleta:      { dataNascimento, modalidade? }
+treinador:   { nomeExibicao, documento?, descricao?, localizacao? }
+instituicao: { nomeExibicao, documento?, descricao?, localizacao? }
+responsavel: { parentesco, documento?, telefone? }
+```
+
+O cadastro grava o usuário e seu perfil inicial de forma atômica, usando o mesmo
+ID nos dois registros. A sessão só é publicada depois que ambos forem salvos.
+Atletas menores não podem concluir esse cadastro antes da confirmação do
+vínculo do responsável legal.
+
 ### Usuários e perfis
 
 ```text

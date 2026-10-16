@@ -1,5 +1,6 @@
 import {
   createUserWithEmailAndPassword,
+  deleteUser,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
@@ -12,21 +13,25 @@ import {
   getDocs,
   query,
   runTransaction,
-  setDoc,
   updateDoc,
   where,
+  writeBatch,
 } from 'firebase/firestore'
 import {
   APPLICATION_STATUS,
   REPOSITORY_ERROR_CODES,
   USER_TYPES,
   canTransitionApplicationStatus,
+  calculateAge,
+  isMinor,
 } from '../../domain/contracts'
 import { getFirebaseAuth } from '../../services/firebase/auth'
 import { getFirebaseDatabase } from '../../services/firebase/config'
 
 const USERS_COLLECTION = 'usuarios'
 const ATHLETES_COLLECTION = 'atletas'
+const PARTNERS_COLLECTION = 'parceiros'
+const GUARDIANS_COLLECTION = 'responsaveis'
 const OPPORTUNITIES_COLLECTION = 'oportunidades'
 const APPLICATIONS_COLLECTION = 'candidaturas'
 const APPLICATION_KEYS_COLLECTION = 'chavesCandidatura'
@@ -75,6 +80,89 @@ function normalizeUser(id, data) {
 
 function normalizeDocument(snapshot) {
   return { id: snapshot.id, ...snapshot.data() }
+}
+
+function isValidBirthDate(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
+  if (!match) return false
+
+  const year = Number(match[1])
+  const month = Number(match[2])
+  const day = Number(match[3])
+  const parsedDate = new Date(year, month - 1, day)
+  return parsedDate.getFullYear() === year
+    && parsedDate.getMonth() === month - 1
+    && parsedDate.getDate() === day
+    && calculateAge(value) !== null
+}
+
+function buildRegistrationProfile(type, userId, initialData, createdAt) {
+  const profile = initialData.perfil ?? {}
+  const base = {
+    id: userId,
+    usuarioId: userId,
+    criadoEm: createdAt,
+    atualizadoEm: createdAt,
+  }
+
+  if (type === USER_TYPES.ATHLETE) {
+    if (!isValidBirthDate(profile.dataNascimento)) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe uma data de nascimento válida para o perfil do atleta.')
+    }
+    if (isMinor(profile.dataNascimento)) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O perfil de atleta menor exige vínculo confirmado com o responsável legal.')
+    }
+
+    return success({
+      collection: ATHLETES_COLLECTION,
+      data: {
+        ...base,
+        dataNascimento: profile.dataNascimento,
+        modalidade: profile.modalidade?.trim() ?? '',
+        perfilCompleto: false,
+      },
+    })
+  }
+
+  if (type === USER_TYPES.TRAINER || type === USER_TYPES.INSTITUTION) {
+    const nomeExibicao = profile.nomeExibicao?.trim() || initialData.nome?.trim() || ''
+    if (!nomeExibicao) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe o nome do perfil parceiro.')
+    }
+
+    return success({
+      collection: PARTNERS_COLLECTION,
+      data: {
+        ...base,
+        tipo: type,
+        nomeExibicao,
+        documento: profile.documento?.trim() || null,
+        descricao: profile.descricao?.trim() || null,
+        localizacao: profile.localizacao?.trim() || null,
+        verificado: false,
+      },
+    })
+  }
+
+  if (type === USER_TYPES.GUARDIAN) {
+    const parentesco = profile.parentesco?.trim() ?? ''
+    if (!parentesco) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe o parentesco com o atleta.')
+    }
+
+    return success({
+      collection: GUARDIANS_COLLECTION,
+      data: {
+        ...base,
+        atletasVinculadosIds: [],
+        parentesco,
+        documento: profile.documento?.trim() || null,
+        telefone: profile.telefone?.trim() || initialData.telefone?.trim() || null,
+      },
+    })
+  }
+
+  return success(null)
 }
 
 function applicationKey(opportunityId, athleteId) {
@@ -172,30 +260,70 @@ export function createFirebaseRepositories() {
     }
   }
 
+  const sessionObservers = new Set()
+  const incompleteRegistrationIds = new Set()
+  let registrationInProgress = false
+
   const authentication = {
     cadastrar: async (email, password, type, initialData = {}) => {
       if (!email || !password || !Object.values(USER_TYPES).includes(type)) {
         return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'E-mail, senha e tipo de usuário são obrigatórios.')
       }
 
+      const createdAt = now()
+      const profileValidation = buildRegistrationProfile(type, 'validacao', initialData, createdAt)
+      if (!profileValidation.ok) return profileValidation
+
+      let credential
+      let user
       try {
-        const credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
-        const user = {
+        registrationInProgress = true
+        credential = await createUserWithEmailAndPassword(auth, email.trim(), password)
+        user = {
           id: credential.user.uid,
           email: credential.user.email ?? email.trim(),
           tipo: type,
           nome: initialData.nome?.trim() || initialData.nomeExibicao?.trim() || '',
           telefone: initialData.telefone?.trim() || null,
           fotoUrl: null,
-          criadoEm: now(),
-          atualizadoEm: now(),
+          criadoEm: createdAt,
+          atualizadoEm: createdAt,
         }
 
-        await setDoc(doc(database, USERS_COLLECTION, credential.user.uid), user)
-        return success(user)
+        const profileResult = buildRegistrationProfile(type, user.id, initialData, createdAt)
+        if (!profileResult.ok) {
+          await deleteUser(credential.user)
+          registrationInProgress = false
+          return profileResult
+        }
+
+        const batch = writeBatch(database)
+        batch.set(doc(database, USERS_COLLECTION, user.id), user)
+        if (profileResult.data) {
+          batch.set(doc(database, profileResult.data.collection, user.id), profileResult.data.data)
+        }
+        await batch.commit()
       } catch (error) {
+        if (credential?.user) {
+          try {
+            await deleteUser(credential.user)
+          } catch (rollbackError) {
+            registrationInProgress = false
+            incompleteRegistrationIds.add(credential.user.uid)
+            return failure(
+              REPOSITORY_ERROR_CODES.NETWORK_ERROR,
+              'Não foi possível salvar o perfil e a conta não pôde ser removida automaticamente. Entre em contato com o suporte antes de tentar novamente.',
+              { firebaseCode: error?.code, rollbackCode: rollbackError?.code },
+            )
+          }
+        }
+        registrationInProgress = false
         return mapFirebaseError(error)
       }
+
+      registrationInProgress = false
+      sessionObservers.forEach((callback) => callback(user))
+      return success(user)
     },
 
     entrar: async (email, password) => {
@@ -238,15 +366,24 @@ export function createFirebaseRepositories() {
       return getUserById(auth.currentUser.uid)
     },
 
-    observarSessao: (callback) => onAuthStateChanged(auth, async (firebaseUser) => {
-      if (!firebaseUser) {
-        callback(null)
-        return
-      }
+    observarSessao: (callback) => {
+      sessionObservers.add(callback)
+      const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+        if (registrationInProgress || (firebaseUser && incompleteRegistrationIds.has(firebaseUser.uid))) return
+        if (!firebaseUser) {
+          callback(null)
+          return
+        }
 
-      const result = await getUserById(firebaseUser.uid)
-      callback(result.ok ? result.data : null)
-    }),
+        const result = await getUserById(firebaseUser.uid)
+        callback(result.ok ? result.data : null)
+      })
+
+      return () => {
+        sessionObservers.delete(callback)
+        unsubscribe()
+      }
+    },
   }
 
   const users = {

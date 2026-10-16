@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { APPLICATION_STATUS, calculateAge, isMinor } from '../src/domain/contracts.js'
+import { APPLICATION_STATUS, USER_TYPES, calculateAge, isMinor } from '../src/domain/contracts.js'
 import { createMemoryRepositories } from '../src/repositories/memory/index.js'
 
 const repositories = createMemoryRepositories()
@@ -51,5 +51,86 @@ const approved = await repositories.applications.atualizarStatusDaCandidatura(
 )
 assert.equal(approved.ok, true)
 assert.equal(approved.data.historico.length, 3)
+
+const signupRepositories = createMemoryRepositories()
+let observedSession = null
+signupRepositories.authentication.observarSessao((session) => {
+  observedSession = session
+})
+
+const athleteSignup = await signupRepositories.authentication.cadastrar(
+  'novo.atleta@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Novo', perfil: { dataNascimento: '2000-10-10', modalidade: '' } },
+)
+assert.equal(athleteSignup.ok, true)
+assert.equal(observedSession.id, athleteSignup.data.id)
+const athleteProfile = await signupRepositories.users.obterPerfilAtleta(athleteSignup.data.id)
+assert.equal(athleteProfile.ok, true)
+assert.equal(athleteProfile.data.dataNascimento, '2000-10-10')
+
+const partnerSignup = await signupRepositories.authentication.cadastrar(
+  'novo.treinador@matchpoint.example',
+  'demo-local',
+  USER_TYPES.TRAINER,
+  {
+    nome: 'Treinador Novo',
+    perfil: { nomeExibicao: 'Treinador Novo', documento: '12345678900', verificado: false },
+  },
+)
+assert.equal(partnerSignup.ok, true)
+const partnerProfile = await signupRepositories.users.obterPerfilParceiro(partnerSignup.data.id)
+assert.equal(partnerProfile.ok, true)
+assert.equal(partnerProfile.data.documento, '12345678900')
+
+const institutionSignup = await signupRepositories.authentication.cadastrar(
+  'nova.instituicao@matchpoint.example',
+  'demo-local',
+  USER_TYPES.INSTITUTION,
+  {
+    nome: 'Clube Novo',
+    perfil: {
+      tipo: USER_TYPES.INSTITUTION,
+      nomeExibicao: 'Clube Novo',
+      documento: '12345678000100',
+      localizacao: 'São Paulo',
+    },
+  },
+)
+assert.equal(institutionSignup.ok, true)
+const institutionProfile = await signupRepositories.users.obterPerfilParceiro(institutionSignup.data.id)
+assert.equal(institutionProfile.ok, true)
+assert.equal(institutionProfile.data.localizacao, 'São Paulo')
+
+const guardianSignup = await signupRepositories.authentication.cadastrar(
+  'novo.responsavel@matchpoint.example',
+  'demo-local',
+  USER_TYPES.GUARDIAN,
+  {
+    nome: 'Responsável Novo',
+    perfil: { parentesco: 'Mãe', documento: '98765432100', telefone: '11999999999' },
+  },
+)
+assert.equal(guardianSignup.ok, true)
+const guardianProfile = await signupRepositories.users.obterAtletasDoResponsavel(guardianSignup.data.id)
+assert.equal(guardianProfile.ok, true)
+assert.deepEqual(guardianProfile.data, [])
+
+const minorSignup = await signupRepositories.authentication.cadastrar(
+  'novo.menor@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Menor', perfil: { dataNascimento: '2010-10-15' } },
+)
+assert.equal(minorSignup.ok, false)
+assert.equal(observedSession.id, guardianSignup.data.id)
+const invalidBirthDateSignup = await signupRepositories.authentication.cadastrar(
+  'data.invalida@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta com data inválida', perfil: { dataNascimento: '2010-02-31' } },
+)
+assert.equal(invalidBirthDateSignup.ok, false)
 
 console.log('Contratos P0 em memória verificados com sucesso.')

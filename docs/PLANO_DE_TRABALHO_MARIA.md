@@ -283,32 +283,56 @@ assumir a implementação do Firebase ou de rotas pertencentes ao Renato.
   definir como transportar a data até a gravação do perfil. RF06/RF07 aguardam
   operações de convite/vínculo e acesso administrativo.
 
-### 2026-10-15 — PR #9 integrada e continuação
+### Atualização — implementação de RF01
 
-- PR #9 (`feat/maria-calculo-idade-menor`) foi mesclada em `develop`; a validação
-  automática `exportar-web` passou.
-- RF04 foi registrado como `concluido` com PR #9 e evidência dos testes manuais
-  de idade, menor, adulto e data impossível.
-- RF05 continua bloqueado: falta o contrato/operação de convite e vínculo seguro.
-- A branch de estados compartilhados ainda não tem PR. Ela foi baseada em um
-  `develop` anterior à PR #9 e está sendo atualizada para a base oficial recente.
-- O próximo envio deverá criar PR para `develop`, sem push direto à branch de
-  integração. As branches distintas devem entrar em sequência para não perder
-  os registros gerados do painel.
+- O trabalho foi integrado em `develop` pela PR #16.
+- Login e cadastro agora usam o contrato `repositories.authentication`,
+  apresentam erros e estado de envio e validam os campos antes de chamar o
+  repositório. A recuperação de senha funcional já está registrada na PR #13.
+- Formulários de atleta, treinador, instituição e responsável usam campos
+  controlados. A chamada de cadastro envia os dados do perfil correspondente.
+- Com autorização explícita da usuária, `src/repositories/firebase/index.js`
+  agora grava usuário e perfil inicial juntos em lote; em memória, o perfil é
+  salvo antes de publicar a sessão. Isso inclui data de nascimento do atleta,
+  documento/localização do parceiro e parentesco/documento/telefone do
+  responsável.
+- O perfil esportivo do atleta nasce como incompleto (`perfilCompleto: false`);
+  modalidade e demais dados esportivos continuam dependentes do fluxo RF03 do
+  Marcelo.
+- O fluxo de atleta menor identifica a idade, mas bloqueia a criação da conta
+  até haver vínculo confirmado do responsável. Isso preserva RF05 bloqueado
+  sem criar uma sessão de menor sem autorização.
+- Testes manuais com o provedor `memory`: login de atleta, cadastro de treinador
+  e de atleta adulto, rejeição de senhas divergentes, bloqueio de atleta menor
+  e ocultação de ambas as senhas. A verificação automatizada também cobre a
+  criação dos quatro tipos de perfil e rejeita data inválida/menor sem vínculo.
+  Nenhuma conta real foi criada nem operação Firebase executada.
+- Validações: `npm run check:contracts`, `npm run progress -- --check`,
+  `npm run export:web` e `git diff --check` passaram.
+- RF04 está `concluido` com evidência da PR #9 integrada em `develop`. RF01
+  permanece `em_andamento` até confirmar as regras do Firebase antes de
+  habilitar cadastros reais.
+- A PR #16 de RF01 já foi integrada. A modalidade e os demais dados esportivos
+  continuam dependentes do fluxo RF03, sob responsabilidade do Marcelo.
+- As regras de segurança do Firestore não estão versionadas neste repositório;
+  o acesso de cada usuário à criação do próprio perfil precisa ser confirmado no
+  projeto Firebase antes de habilitar cadastros reais.
+- RF05, RF06 e RF07 continuam dependendo do contrato e das operações de convite,
+  vínculo e administração; não foram alteradas telas de outras áreas.
 
-### 2026-10-15 — Sincronização e próxima PR
+### 2026-10-16 — Retomada de RF24 e RF25
 
-- `origin/develop` avançou até o merge da PR #10. A branch
-  `feat/maria-estados-compartilhados` foi atualizada por merge dessa base no
-  commit `4c8db9b`, preservando as mudanças de UI e progresso.
-- Após a sincronização, `npm run check:contracts`, `npm run progress -- --check`
-  e `npm run export:web` passaram.
-- RF24 e RF25 permanecem `em_andamento`. A PR de estados compartilhados ainda
-  não foi aberta: o navegador do GitHub está sem sessão autenticada. A branch
-  está publicada e pronta para PR contra `develop`.
-- RF25 permanece sem aplicação em uma lista real; as listas atuais pertencem
-  às áreas de Marcelo/Laura e não foram alteradas para respeitar o limite de
-  área. Será necessário pedir que os responsáveis consumam `EmptyState` ou
-  autorizar explicitamente uma mudança cross-area.
-- A integração da autenticação nas telas de login/cadastro permanece como
-  próximo trabalho, coordenado com o direcionamento de sessão de RF02.
+- A PR #13 contém `OperationFeedback`, que comunica carregamento, confirmação,
+  sucesso e erro, e `EmptyState`, componente compartilhado para listas vazias.
+- A branch da PR #13 foi sincronizada localmente com a `develop` que recebeu a
+  PR #16. `Field.js` preserva tanto os campos controlados da PR #13 quanto a
+  opção `autoCapitalize` da PR #16.
+- A tela de recuperação agora consome o repositório recebido por props, valida
+  o e-mail e impede envios repetidos enquanto a operação estiver em andamento.
+- Teste manual no navegador com o provedor `memory`: e-mail malformado exibiu
+  erro e permaneceu na tela; e-mail de demonstração válido exibiu a confirmação.
+  Nenhuma solicitação foi enviada ao Firebase.
+- RF25 permanece sem consumidor de lista no escopo autorizado da Maria; a
+  aplicação em telas de Marcelo ou Laura depende de autorização entre áreas.
+- `npm run check:contracts`, `npm run progress -- --check`, `npm run export:web`
+  e `git diff --check` passaram após a sincronização.

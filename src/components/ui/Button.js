@@ -3,7 +3,7 @@ import { Animated, Pressable, Text } from 'react-native'
 import { USE_NATIVE_DRIVER } from '../motion'
 import { styles } from '../../theme/styles'
 
-export function Button({ children, onPress, variant = 'green', wide = false }) {
+export function Button({ children, onPress, variant = 'green', wide = false, disabled = false }) {
   const scale = useRef(new Animated.Value(1)).current
   const animateScale = toValue => Animated.spring(scale, {
     toValue,
@@ -17,13 +17,15 @@ export function Button({ children, onPress, variant = 'green', wide = false }) {
     <Animated.View style={[styles.buttonMotion, wide && styles.buttonMotionWide, { transform: [{ scale }] }]}>
       <Pressable
         onPress={onPress}
-        onPressIn={() => animateScale(0.965)}
-        onPressOut={() => animateScale(1)}
+        disabled={disabled}
+        onPressIn={() => !disabled && animateScale(0.965)}
+        onPressOut={() => !disabled && animateScale(1)}
         style={({ pressed }) => [
           styles.button,
           wide && styles.buttonWide,
           variant === 'blue' ? styles.buttonBlue : styles.buttonGreen,
           pressed && styles.buttonPressed,
+          disabled && { opacity: 0.6 },
         ]}
       >
         <Text style={[styles.buttonText, variant === 'blue' && styles.buttonTextWhite]}>{children}</Text>

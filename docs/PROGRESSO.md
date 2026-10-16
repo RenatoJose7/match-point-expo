@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-15T19:04:20.838Z
+Última atualização registrada: 2026-10-16T16:18:58.215Z
 
 ## Barras de progresso
 
@@ -17,7 +17,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
-| Maria | 1/7 | 1/7 | 2 | 1 |
+| Maria | 1/7 | 1/7 | 1 | 2 |
 | Marcelo | 0/6 | 0/7 | 0 | 0 |
 | Laura | 0/3 | 0/6 | 0 | 0 |
 | Renato | 0/5 | 0/5 | 5 | 0 |
@@ -26,10 +26,10 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 
 | RF | Prioridade | Responsável | Status | PR | Evidência ou bloqueio |
 | --- | --- | --- | --- | --- | --- |
-| RF01 — Cadastro e login | P0 | Maria | Não iniciado | — | — |
+| RF01 — Cadastro e login | P0 | Maria | Em andamento | — | — |
 | RF02 — Direcionamento por perfil | P0 | Renato | Em andamento | — | — |
 | RF03 — Perfil esportivo | P0 | Marcelo | Não iniciado | — | — |
-| RF04 — Cálculo de idade | P0 | Maria | Concluído | #9 | PR #9 integrada em develop; CI exportar-web passou; testado no navegador: cálculo da idade, menor de 18, data impossível e adulto |
+| RF04 — Cálculo de idade | P0 | Maria | Concluído | #9 | PR #9 integrada em develop; formato DD/MM/AAAA, validação, cálculo automático de idade e identificação de menor verificados no navegador. |
 | RF05 — Identificação de menor | P0 | Maria | Bloqueado | — | Aguardando contrato e operação de convite/código e vínculo do responsável no repositório; sem isso não é possível ativar o fluxo de menor de forma segura. |
 | RF06 — Vínculo do responsável | P0 | Maria | Não iniciado | — | — |
 | RF07 — Responsável administra atleta | P0 | Maria | Não iniciado | — | — |
@@ -49,8 +49,8 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF21 — Decisão institucional | P0 | Laura | Não iniciado | — | — |
 | RF22 — Histórico das alterações | P0 | Renato | Em andamento | — | — |
 | RF23 — Notificações | P1 | Marcelo | Não iniciado | — | — |
-| RF24 — Mensagens operacionais | P0 | Maria | Em andamento | — | — |
-| RF25 — Estados vazios | P0 | Maria | Em andamento | — | — |
+| RF24 — Mensagens operacionais | P0 | Maria | Em revisão | #13 | — |
+| RF25 — Estados vazios | P0 | Maria | Bloqueado | — | EmptyState está pronto em componente compartilhado, mas ainda não foi aplicado a uma lista real; as telas de listas pertencem a Marcelo ou Laura e a alteração aguarda pedido/autorização entre áreas. |
 | RF26 — Denúncias | P2 | Backlog futuro | Não iniciado | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Não iniciado | — | — |
 | RF28 — Moderação | P2 | Backlog futuro | Não iniciado | — | — |

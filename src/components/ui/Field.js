@@ -2,7 +2,14 @@ import React, { useState } from 'react'
 import { Pressable, Text, TextInput, View } from 'react-native'
 import { styles } from '../../theme/styles'
 
-export function Field({ placeholder, secureTextEntry = false, value, onChangeText, keyboardType }) {
+export function Field({
+  placeholder,
+  secureTextEntry = false,
+  value,
+  onChangeText,
+  keyboardType,
+  autoCapitalize = 'none',
+}) {
   const [hidden, setHidden] = useState(secureTextEntry)
 
   return (
@@ -12,7 +19,7 @@ export function Field({ placeholder, secureTextEntry = false, value, onChangeTex
         placeholderTextColor="#d4e1ef"
         secureTextEntry={hidden}
         style={styles.input}
-        autoCapitalize="none"
+        autoCapitalize={autoCapitalize}
         value={value}
         onChangeText={onChangeText}
         keyboardType={keyboardType}
