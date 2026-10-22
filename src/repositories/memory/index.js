@@ -31,6 +31,7 @@ function isValidBirthDate(value) {
 export function createMemoryRepositories(initialSeed = demoSeed) {
   let state = clone(initialSeed)
   state.guardianInvites ??= []
+  state.notifications ??= []
   let currentUserId = null
   let sequence = 1
   const sessionListeners = new Set()
@@ -586,6 +587,21 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         data: application.atualizadoEm,
         responsavelId: user.id,
       })
+      if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
+        const athlete = findAthlete(application.atletaId)
+        if (athlete?.usuarioId) {
+          state.notifications.push({
+            id: nextId('notificacao'),
+            usuarioId: athlete.usuarioId,
+            candidaturaId: application.id,
+            oportunidadeId: application.oportunidadeId,
+            titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
+            mensagem: nextStatus === APPLICATION_STATUS.APPROVED ? 'Sua candidatura foi aprovada pela instituição.' : 'Sua candidatura recebeu uma atualização da instituição.',
+            lida: false,
+            criadoEm: application.atualizadoEm,
+          })
+        }
+      }
       return success(application)
     },
     enviarDocumento: async (id, documentData) => {
@@ -636,11 +652,29 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
   }
 
+  const notifications = {
+    listarNotificacoesDoUsuario: async (userId) => {
+      if (currentUserId !== userId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas notificações.')
+      return success(state.notifications
+        .filter((notification) => notification.usuarioId === userId)
+        .sort((first, second) => new Date(second.criadoEm) - new Date(first.criadoEm)))
+    },
+    marcarComoLida: async (id) => {
+      const notification = state.notifications.find((item) => item.id === id)
+      if (!notification) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Notificação não encontrada.')
+      if (notification.usuarioId !== currentUserId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para atualizar esta notificação.')
+      notification.lida = true
+      notification.lidaEm = now()
+      return success(notification)
+    },
+  }
+
   return {
     authentication,
     users,
     opportunities,
     applications,
+    notifications,
     match,
     storage,
     snapshot: () => clone(state),

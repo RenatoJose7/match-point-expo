@@ -412,3 +412,16 @@ Antes da implementação do Firebase, a equipe deve aprovar:
 - necessidade de perfil administrativo.
 
 Os itens administrativos, avaliações técnicas e notificações permanecem fora do contrato congelado P0 e serão acrescentados de forma compatível na próxima versão.
+
+## Extensão P1 — Notificações
+
+```text
+notifications.listarNotificacoesDoUsuario(usuarioId)
+notifications.marcarComoLida(notificacaoId)
+```
+
+Cada notificação contém `id`, `usuarioId`, `titulo`, `mensagem`, `lida`,
+`criadoEm` e, quando vier de uma candidatura, `candidaturaId` e
+`oportunidadeId`. Decisões finais de aprovação ou rejeição criam uma
+notificação para o atleta. Somente o próprio usuário pode listar ou marcar
+como lidas as suas notificações.

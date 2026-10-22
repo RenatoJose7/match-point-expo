@@ -42,6 +42,7 @@ const OPPORTUNITIES_COLLECTION = 'oportunidades'
 const APPLICATIONS_COLLECTION = 'candidaturas'
 const APPLICATION_KEYS_COLLECTION = 'chavesCandidatura'
 const PUBLIC_CANDIDATE_PROFILES_SUBCOLLECTION = 'perfisCandidatos'
+const NOTIFICATIONS_COLLECTION = 'notificacoes'
 
 function success(data) {
   return { ok: true, data }
@@ -1052,6 +1053,9 @@ export function createFirebaseRepositories() {
           if (!canTransitionApplicationStatus(application.status, nextStatus)) {
             return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
           }
+          const athleteSnapshot = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)
+            ? await transaction.get(doc(database, ATHLETES_COLLECTION, application.atletaId))
+            : null
 
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
@@ -1075,6 +1079,21 @@ export function createFirebaseRepositories() {
             historico: updated.historico,
             atualizadoEm: updated.atualizadoEm,
           })
+          if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
+            if (athleteSnapshot?.exists()) {
+              const notificationReference = doc(collection(database, NOTIFICATIONS_COLLECTION))
+              transaction.set(notificationReference, {
+                id: notificationReference.id,
+                usuarioId: athleteSnapshot.data().usuarioId,
+                candidaturaId: application.id,
+                oportunidadeId: application.oportunidadeId,
+                titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
+                mensagem: nextStatus === APPLICATION_STATUS.APPROVED ? 'Sua candidatura foi aprovada pela instituição.' : 'Sua candidatura recebeu uma atualização da instituição.',
+                lida: false,
+                criadoEm: updatedAt,
+              })
+            }
+          }
           return success(updated)
         })
       } catch (error) {
@@ -1167,5 +1186,34 @@ export function createFirebaseRepositories() {
     },
   }
 
-  return { authentication, users, opportunities, applications, match, storage: storageRepository }
+  const notifications = {
+    listarNotificacoesDoUsuario: async (userId) => {
+      if (!auth.currentUser || auth.currentUser.uid !== userId) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas notificações.')
+      }
+      try {
+        const snapshots = await getDocs(query(
+          collection(database, NOTIFICATIONS_COLLECTION),
+          where('usuarioId', '==', userId),
+        ))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    marcarComoLida: async (id) => {
+      try {
+        const reference = doc(database, NOTIFICATIONS_COLLECTION, id)
+        await updateDoc(reference, { lida: true, lidaEm: now() })
+        const snapshot = await getDoc(reference)
+        return snapshot.exists()
+          ? success(normalizeDocument(snapshot))
+          : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Notificação não encontrada.')
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+  }
+
+  return { authentication, users, opportunities, applications, notifications, match, storage: storageRepository }
 }

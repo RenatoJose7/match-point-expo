@@ -207,6 +207,15 @@ assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPRO
 assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
 assert.ok(Date.parse(approved.data.historico.at(-1).data))
 
+await repositories.authentication.entrar('atleta.menor@matchpoint.example', 'demo-local')
+const athleteNotifications = await repositories.notifications.listarNotificacoesDoUsuario('usuario-atleta-menor')
+assert.equal(athleteNotifications.ok, true)
+assert.equal(athleteNotifications.data.length, 1)
+assert.equal(athleteNotifications.data[0].lida, false)
+const readNotification = await repositories.notifications.marcarComoLida(athleteNotifications.data[0].id)
+assert.equal(readNotification.ok, true)
+assert.equal(readNotification.data.lida, true)
+
 const signupRepositories = createMemoryRepositories()
 let observedSession = null
 signupRepositories.authentication.observarSessao((session) => {

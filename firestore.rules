@@ -53,6 +53,12 @@ service cloud.firestore {
       return ownsOpportunity(application.oportunidadeId);
     }
 
+    function canNotifyApplicationAthlete(applicationId, userId) {
+      let application = get(/databases/$(database)/documents/candidaturas/$(applicationId)).data;
+      let athlete = get(/databases/$(database)/documents/atletas/$(application.atletaId)).data;
+      return ownsApplicationOpportunity(application) && athlete.usuarioId == userId;
+    }
+
     function candidateApplicationExists(opportunityId, athleteId, applicationId) {
       let applicationPath = /databases/$(database)/documents/candidaturas/$(applicationId);
       return exists(applicationPath)
@@ -417,6 +423,24 @@ service cloud.firestore {
         && request.resource.data.candidaturaId is string
         && request.resource.data.oportunidadeId is string;
       allow update, delete: if false;
+    }
+
+    match /notificacoes/{notificationId} {
+      allow get, list: if signedIn() && resource.data.usuarioId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.id == notificationId
+        && request.resource.data.usuarioId is string
+        && request.resource.data.candidaturaId is string
+        && request.resource.data.oportunidadeId is string
+        && request.resource.data.titulo is string
+        && request.resource.data.mensagem is string
+        && request.resource.data.lida == false
+        && canNotifyApplicationAthlete(request.resource.data.candidaturaId, request.resource.data.usuarioId);
+      allow update: if signedIn()
+        && resource.data.usuarioId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'lidaEm'])
+        && request.resource.data.lida == true;
+      allow delete: if false;
     }
 
     match /{document=**} {

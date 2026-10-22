@@ -2,14 +2,14 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-22T00:37:25.413Z
+Última atualização registrada: 2026-10-22T00:38:43.260Z
 
 ## Barras de progresso
 
 - **P0:** `████████████████████ 100% (21/21)`
-- **P1:** `█████░░░░░░░░░░░░░░░ 25% (1/4)`
+- **P1:** `██████████░░░░░░░░░░ 50% (2/4)`
 - **P2:** `░░░░░░░░░░░░░░░░░░░░ 0% (0/5)`
-- **Total:** `███████████████░░░░░ 73% (22/30)`
+- **Total:** `███████████████░░░░░ 77% (23/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
 
@@ -18,7 +18,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
 | Maria | 7/7 | 7/7 | 0 | 0 |
-| Marcelo | 6/6 | 6/7 | 0 | 0 |
+| Marcelo | 6/6 | 7/7 | 0 | 0 |
 | Laura | 3/3 | 4/6 | 0 | 0 |
 | Renato | 5/5 | 5/5 | 0 | 0 |
 
@@ -48,7 +48,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF20 — Solicitar avaliação | P1 | Laura | Não iniciado | — | — |
 | RF21 — Decisão institucional | P0 | Laura | Concluído | — | — |
 | RF22 — Histórico das alterações | P0 | Renato | Concluído | #26 | — |
-| RF23 — Notificações | P1 | Marcelo | Não iniciado | — | — |
+| RF23 — Notificações | P1 | Marcelo | Concluído | — | — |
 | RF24 — Mensagens operacionais | P0 | Maria | Concluído | — | — |
 | RF25 — Estados vazios | P0 | Maria | Concluído | — | — |
 | RF26 — Denúncias | P2 | Backlog futuro | Não iniciado | — | — |
