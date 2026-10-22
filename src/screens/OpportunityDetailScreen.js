@@ -94,6 +94,8 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
         <View style={styles.requirementsBlock}>
           <Text style={styles.opportunitySectionTitle}>Requisitos</Text>
           <Text style={styles.opportunityBodyCopy}>{(opportunity.requisitos ?? []).length ? opportunity.requisitos.map((item) => `• ${item}`).join('\n') : 'Nenhum requisito informado.'}</Text>
+          <Text style={styles.opportunitySectionTitle}>Documentos necessários</Text>
+          <Text style={styles.opportunityBodyCopy}>{(opportunity.documentosNecessarios ?? []).length ? opportunity.documentosNecessarios.map((item) => `• ${item}`).join('\n') : 'Nenhum documento exigido.'}</Text>
           <Text style={styles.deadline}>{opportunity.fimInscricoes ? `Inscrições até ${new Date(opportunity.fimInscricoes).toLocaleDateString('pt-BR')}` : 'Prazo não informado'}</Text>
         </View>
 
