@@ -1,9 +1,11 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCredential,
   signOut,
 } from 'firebase/auth'
 import {
@@ -491,6 +493,79 @@ export function createFirebaseRepositories() {
       try {
         const credential = await signInWithEmailAndPassword(auth, email.trim(), password)
         return getUserById(credential.user.uid)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+
+    entrarComGoogle: async (idToken) => {
+      if (!idToken) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível validar a resposta do Google.')
+      try {
+        const credential = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))
+        const existingUser = await getUserById(credential.user.uid)
+        if (existingUser.ok) return existingUser
+        if (existingUser.codigo !== REPOSITORY_ERROR_CODES.NOT_FOUND) return existingUser
+        return success({
+          id: credential.user.uid,
+          email: credential.user.email ?? '',
+          nome: credential.user.displayName ?? '',
+          fotoUrl: credential.user.photoURL ?? null,
+          cadastroPendente: true,
+        })
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+
+    concluirCadastroGoogle: async (type, initialData = {}) => {
+      const firebaseUser = auth.currentUser
+      if (!firebaseUser || !Object.values(USER_TYPES).includes(type)) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre com Google antes de concluir o cadastro.')
+      }
+
+      const createdAt = now()
+      const profileResult = buildRegistrationProfile(type, firebaseUser.uid, initialData, createdAt)
+      if (!profileResult.ok) return profileResult
+      const userReference = doc(database, USERS_COLLECTION, firebaseUser.uid)
+      const user = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email ?? initialData.email ?? '',
+        tipo: type,
+        nome: initialData.nome?.trim() || firebaseUser.displayName || '',
+        telefone: initialData.telefone?.trim() || null,
+        fotoUrl: firebaseUser.photoURL ?? null,
+        criadoEm: createdAt,
+        atualizadoEm: createdAt,
+      }
+
+      try {
+        const minorRegistration = type === USER_TYPES.ATHLETE
+          && isMinor(profileResult.data?.data?.dataNascimento)
+        if (minorRegistration) {
+          const linkCode = normalizeLinkCode(initialData.perfil?.codigoResponsavel)
+          const invitationReference = doc(database, GUARDIAN_INVITES_COLLECTION, linkCode)
+          const athleteReference = doc(database, ATHLETES_COLLECTION, firebaseUser.uid)
+          const result = await runTransaction(database, async (transaction) => {
+            const invitationSnapshot = await transaction.get(invitationReference)
+            if (!invitationSnapshot.exists() || !isActiveGuardianInvite(normalizeDocument(invitationSnapshot), createdAt)) {
+              return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Código de responsável inválido, expirado ou já utilizado.')
+            }
+            const invitation = normalizeDocument(invitationSnapshot)
+            transaction.set(userReference, user)
+            transaction.set(athleteReference, { ...profileResult.data.data, responsavelId: invitation.responsavelId, vinculoResponsavelId: linkCode })
+            transaction.update(doc(database, GUARDIANS_COLLECTION, invitation.responsavelId), { atletasVinculadosIds: arrayUnion(firebaseUser.uid), atualizadoEm: createdAt })
+            transaction.update(invitationReference, { status: 'utilizado', utilizadoPorAtletaId: firebaseUser.uid, utilizadoEm: createdAt })
+            return success(user)
+          })
+          if (result.ok) sessionObservers.forEach((callback) => callback(user))
+          return result
+        }
+        const batch = writeBatch(database)
+        batch.set(userReference, user)
+        if (profileResult.data) batch.set(doc(database, profileResult.data.collection, firebaseUser.uid), profileResult.data.data)
+        await batch.commit()
+        sessionObservers.forEach((callback) => callback(user))
+        return success(user)
       } catch (error) {
         return mapFirebaseError(error)
       }

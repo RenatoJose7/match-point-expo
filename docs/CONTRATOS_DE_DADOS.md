@@ -261,6 +261,8 @@ avaliadoEm
 ```text
 cadastrar(email, senha, tipo, dadosIniciais)
 entrar(email, senha)
+entrarComGoogle(idToken)
+concluirCadastroGoogle(tipo, dadosIniciais)
 sair()
 recuperarSenha(email)
 obterSessaoAtual()
@@ -281,6 +283,10 @@ O cadastro grava o usuário e seu perfil inicial de forma atômica, usando o mes
 ID nos dois registros. A sessão só é publicada depois que ambos forem salvos.
 Atletas menores não podem concluir esse cadastro antes da confirmação do
 vínculo do responsável legal.
+
+No login social, uma conta já vinculada entra diretamente. Para uma conta Google
+sem perfil MatchPoint, `entrarComGoogle` retorna `cadastroPendente`; a interface
+coleta o tipo de perfil e chama `concluirCadastroGoogle` sem criar uma senha.
 
 ### Usuários e perfis
 

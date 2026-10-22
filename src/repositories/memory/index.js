@@ -214,6 +214,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       emitSession()
       return success(user)
     },
+    entrarComGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O login com Google requer o provedor Firebase configurado.'),
+    concluirCadastroGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O cadastro com Google requer o provedor Firebase configurado.'),
     sair: async () => {
       currentUserId = null
       emitSession()
