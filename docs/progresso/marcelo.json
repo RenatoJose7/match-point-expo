@@ -45,11 +45,11 @@
       "id": "RF16",
       "titulo": "Enviar documentos",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo, routeParams funcional e contrato de upload para arquivo real",
-      "atualizadoEm": "2026-10-15T19:21:38.716Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:24:43.752Z"
     },
     {
       "id": "RF17",
