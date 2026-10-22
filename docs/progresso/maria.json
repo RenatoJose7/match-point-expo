@@ -5,11 +5,11 @@
       "id": "RF01",
       "titulo": "Cadastro e login",
       "prioridade": "P0",
-      "status": "em_revisao",
+      "status": "concluido",
       "pr": "#29",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:28:16.890Z"
+      "atualizadoEm": "2026-10-22T00:36:16.973Z"
     },
     {
       "id": "RF04",
@@ -25,51 +25,51 @@
       "id": "RF05",
       "titulo": "Identificação de menor",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:20:07.960Z"
+      "atualizadoEm": "2026-10-22T00:35:51.240Z"
     },
     {
       "id": "RF06",
       "titulo": "Vínculo do responsável",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:20:08.392Z"
+      "atualizadoEm": "2026-10-22T00:35:51.586Z"
     },
     {
       "id": "RF07",
       "titulo": "Responsável administra atleta",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:20:08.835Z"
+      "atualizadoEm": "2026-10-22T00:35:51.968Z"
     },
     {
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:25:19.948Z"
+      "atualizadoEm": "2026-10-22T00:36:17.955Z"
     },
     {
       "id": "RF25",
       "titulo": "Estados vazios",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:26:12.735Z"
+      "atualizadoEm": "2026-10-22T00:36:18.204Z"
     }
   ]
 }

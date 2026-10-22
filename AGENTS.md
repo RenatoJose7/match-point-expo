@@ -10,7 +10,7 @@ Estas regras se aplicam a qualquer IA que leia, analise ou altere este repositó
 4. Identifique a área responsável e os arquivos autorizados pela solicitação.
 5. Verifique o estado atual dos arquivos antes de editar e preserve mudanças existentes.
 6. Declare quais arquivos pretende alterar quando o trabalho ultrapassar uma única tela ou componente.
-7. Antes de iniciar um requisito, atualize seu status no painel de progresso; antes de entregar, atualize novamente com PR e evidência.
+7. Antes de iniciar um requisito, atualize seu status no painel de progresso; antes de entregar, atualize novamente com o resultado da validação.
 
 Se a solicitação conflitar com este documento, siga a solicitação explícita do usuário, mas informe claramente o conflito e o impacto.
 
@@ -67,7 +67,7 @@ Cada IA deve:
 2. usar `npm run progress -- set RFXX em_andamento` antes de começar;
 3. usar `bloqueado` com `--blocker` se ficar impedida de continuar;
 4. usar `em_revisao` com `--pr` ao abrir a Pull Request;
-5. usar `concluido` somente com `--pr` e `--evidence`, depois dos critérios de pronto;
+5. usar `concluido` quando o fluxo funcional estiver validado; PR e evidência são campos opcionais de rastreabilidade;
 6. incluir no commit tanto o JSON do responsável quanto `docs/PROGRESSO.md`;
 7. nunca editar `docs/PROGRESSO.md` manualmente.
 
@@ -77,10 +77,10 @@ Exemplos:
 npm run progress -- set RF09 em_andamento
 npm run progress -- set RF09 bloqueado --blocker "Aguardando contrato"
 npm run progress -- set RF09 em_revisao --pr "#12"
-npm run progress -- set RF09 concluido --pr "#12" --evidence "Roteiro 3 aprovado"
+npm run progress -- set RF09 concluido
 ```
 
-Itens `simulado` não avançam a barra. O estado `concluido` exige PR e evidência.
+Itens `simulado` não avançam a barra. O estado `concluido` exige validação funcional.
 
 ## Uso de Git e GitHub
 

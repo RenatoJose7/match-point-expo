@@ -226,6 +226,18 @@ assert.equal(athleteProfile.data.dataNascimento, '2000-10-10')
 const athleteProfileByUser = await signupRepositories.users.obterPerfilAtletaPorUsuario(athleteSignup.data.id)
 assert.equal(athleteProfileByUser.ok, true)
 assert.equal(athleteProfileByUser.data.id, athleteProfile.data.id)
+const updatedAthleteProfile = await signupRepositories.users.atualizarPerfilAtleta(
+  athleteProfile.data.id,
+  {
+    modalidade: 'Tenis',
+    categoria: 'Universitario',
+    posicao: 'Individual',
+    perfilCompleto: true,
+  },
+)
+assert.equal(updatedAthleteProfile.ok, true)
+assert.equal(updatedAthleteProfile.data.modalidade, 'Tenis')
+assert.equal(updatedAthleteProfile.data.perfilCompleto, true)
 
 const partnerSignup = await signupRepositories.authentication.cadastrar(
   'novo.treinador@matchpoint.example',
