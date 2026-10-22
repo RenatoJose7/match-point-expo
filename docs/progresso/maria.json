@@ -55,11 +55,11 @@
       "id": "RF24",
       "titulo": "Mensagens operacionais",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "A tela de redefinição ainda precisa de operação no contrato para validar o link/token e atualizar a senha. A etapa aguarda alinhamento e implementação de Renato.",
-      "atualizadoEm": "2026-10-16T19:09:56.860Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:25:19.948Z"
     },
     {
       "id": "RF25",

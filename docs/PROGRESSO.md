@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-22T00:24:43.752Z
+Última atualização registrada: 2026-10-22T00:25:19.948Z
 
 ## Barras de progresso
 
@@ -17,7 +17,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
-| Maria | 1/7 | 1/7 | 3 | 1 |
+| Maria | 1/7 | 1/7 | 4 | 0 |
 | Marcelo | 0/6 | 0/7 | 5 | 1 |
 | Laura | 0/3 | 0/6 | 1 | 0 |
 | Renato | 0/5 | 0/5 | 3 | 0 |
@@ -49,7 +49,7 @@ Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens
 | RF21 — Decisão institucional | P0 | Laura | Em andamento | — | — |
 | RF22 — Histórico das alterações | P0 | Renato | Em andamento | #26 | — |
 | RF23 — Notificações | P1 | Marcelo | Não iniciado | — | — |
-| RF24 — Mensagens operacionais | P0 | Maria | Bloqueado | — | A tela de redefinição ainda precisa de operação no contrato para validar o link/token e atualizar a senha. A etapa aguarda alinhamento e implementação de Renato. |
+| RF24 — Mensagens operacionais | P0 | Maria | Em andamento | — | — |
 | RF25 — Estados vazios | P0 | Maria | Não iniciado | — | — |
 | RF26 — Denúncias | P2 | Backlog futuro | Não iniciado | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Não iniciado | — | — |
