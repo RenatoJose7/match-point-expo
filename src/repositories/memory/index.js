@@ -386,10 +386,15 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       return opportunity ? success(opportunity) : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Oportunidade não encontrada.')
     },
     criarOportunidade: async (data) => {
+      const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
+      const partner = state.partners.find((item) => item.id === data.criadorId)
+      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
+      }
       const opportunity = {
         id: nextId('oportunidade'),
         ...data,
-        status: data.status ?? OPPORTUNITY_STATUS.DRAFT,
+        status,
         criadoEm: now(),
         atualizadoEm: now(),
       }
@@ -399,6 +404,11 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     atualizarOportunidade: async (id, data) => {
       const opportunity = findOpportunity(id)
       if (!opportunity) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Oportunidade não encontrada.')
+      const status = data.status ?? opportunity.status
+      const partner = state.partners.find((item) => item.id === opportunity.criadorId)
+      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
+      }
       Object.assign(opportunity, data, { id, atualizadoEm: now() })
       return success(opportunity)
     },

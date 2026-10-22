@@ -33,6 +33,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.usuarioId == request.auth.uid;
     }
 
+    function verifiedPartner(partnerId) {
+      return ownsPartner(partnerId)
+        && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
+    }
+
     function ownsOpportunity(opportunityId) {
       return signedIn()
         && ownsPartner(
@@ -298,11 +303,19 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.id == opportunityId
-        && ownsPartner(request.resource.data.criadorId);
+        && ownsPartner(request.resource.data.criadorId)
+        && (
+          request.resource.data.status != 'ativa'
+          || verifiedPartner(request.resource.data.criadorId)
+        );
       allow update: if signedIn()
         && ownsPartner(resource.data.criadorId)
         && request.resource.data.id == resource.data.id
-        && request.resource.data.criadorId == resource.data.criadorId;
+        && request.resource.data.criadorId == resource.data.criadorId
+        && (
+          request.resource.data.status != 'ativa'
+          || verifiedPartner(resource.data.criadorId)
+        );
       allow delete: if false;
     }
 

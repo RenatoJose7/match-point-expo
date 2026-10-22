@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import {
   APPLICATION_STATUS,
+  OPPORTUNITY_STATUS,
   REPOSITORY_ERROR_CODES,
   USER_TYPES,
   calculateAge,
@@ -255,6 +256,30 @@ assert.equal(partnerProfile.data.documento, '12345678900')
 const partnerProfileByUser = await signupRepositories.users.obterPerfilParceiroPorUsuario(partnerSignup.data.id)
 assert.equal(partnerProfileByUser.ok, true)
 assert.equal(partnerProfileByUser.data.id, partnerProfile.data.id)
+const blockedUnverifiedPublication = await signupRepositories.opportunities.criarOportunidade({
+  criadorId: partnerProfile.data.id,
+  titulo: 'Avaliação em validação',
+  descricao: 'Oportunidade de teste para parceiro ainda não verificado.',
+  modalidade: 'Tenis',
+  categoria: 'Sub-18',
+  localizacao: 'Suzano - SP',
+  fimInscricoes: '2026-12-20T23:59:59.000Z',
+  status: OPPORTUNITY_STATUS.ACTIVE,
+})
+assert.equal(blockedUnverifiedPublication.ok, false)
+assert.equal(blockedUnverifiedPublication.codigo, REPOSITORY_ERROR_CODES.FORBIDDEN)
+const unverifiedDraft = await signupRepositories.opportunities.criarOportunidade({
+  criadorId: partnerProfile.data.id,
+  titulo: 'Rascunho em validação',
+  descricao: 'Oportunidade salva até a verificação do parceiro.',
+  modalidade: 'Tenis',
+  categoria: 'Sub-18',
+  localizacao: 'Suzano - SP',
+  fimInscricoes: '2026-12-20T23:59:59.000Z',
+  status: 'rascunho',
+})
+assert.equal(unverifiedDraft.ok, true)
+assert.equal(unverifiedDraft.data.status, 'rascunho')
 
 const institutionSignup = await signupRepositories.authentication.cadastrar(
   'nova.instituicao@matchpoint.example',

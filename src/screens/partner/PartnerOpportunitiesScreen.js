@@ -116,6 +116,11 @@ export function PartnerOpportunitiesScreen({ go, repositories, session, routePar
           <FeedbackMessage tone="success">{successMessage}</FeedbackMessage>
         </View>
       ) : null}
+      {partner && !partner.verificado ? (
+        <View style={styles.messageWrap}>
+          <FeedbackMessage tone="warning">Perfil aguardando verificação. Seus rascunhos ficam salvos, mas oportunidades ativas só podem ser publicadas após a aprovação.</FeedbackMessage>
+        </View>
+      ) : null}
 
       <View style={styles.searchWrap}>
         <Ionicons name="search-outline" size={18} color={partnerColors.muted} />

@@ -304,6 +304,17 @@ export function createFirebaseRepositories() {
     }
   }
 
+  const getPartnerById = async (id) => {
+    try {
+      const snapshot = await getDoc(doc(database, PARTNERS_COLLECTION, id))
+      return snapshot.exists()
+        ? success(normalizeDocument(snapshot))
+        : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil parceiro não encontrado.')
+    } catch (error) {
+      return mapFirebaseError(error)
+    }
+  }
+
   const getGuardianByUserId = async (userId) => {
     try {
       const snapshots = await getDocs(query(
@@ -721,11 +732,19 @@ export function createFirebaseRepositories() {
     },
     obterOportunidade: getOpportunityById,
     criarOportunidade: async (data) => {
+      const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
+      if (status === OPPORTUNITY_STATUS.ACTIVE) {
+        const partner = await getPartnerById(data.criadorId)
+        if (!partner.ok) return partner
+        if (!partner.data.verificado) {
+          return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
+        }
+      }
       const createdAt = now()
       const opportunity = {
         id: newId(database, OPPORTUNITIES_COLLECTION),
         ...data,
-        status: data.status ?? OPPORTUNITY_STATUS.DRAFT,
+        status,
         criadoEm: createdAt,
         atualizadoEm: createdAt,
       }
@@ -738,6 +757,16 @@ export function createFirebaseRepositories() {
     },
     atualizarOportunidade: async (id, data) => {
       try {
+        const current = await getOpportunityById(id)
+        if (!current.ok) return current
+        const status = data.status ?? current.data.status
+        if (status === OPPORTUNITY_STATUS.ACTIVE) {
+          const partner = await getPartnerById(current.data.criadorId)
+          if (!partner.ok) return partner
+          if (!partner.data.verificado) {
+            return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
+          }
+        }
         await updateDoc(doc(database, OPPORTUNITIES_COLLECTION, id), {
           ...data,
           id,

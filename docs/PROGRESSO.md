@@ -2,14 +2,14 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-22T00:36:18.204Z
+Última atualização registrada: 2026-10-22T00:37:25.413Z
 
 ## Barras de progresso
 
 - **P0:** `████████████████████ 100% (21/21)`
-- **P1:** `░░░░░░░░░░░░░░░░░░░░ 0% (0/4)`
+- **P1:** `█████░░░░░░░░░░░░░░░ 25% (1/4)`
 - **P2:** `░░░░░░░░░░░░░░░░░░░░ 0% (0/5)`
-- **Total:** `██████████████░░░░░░ 70% (21/30)`
+- **Total:** `███████████████░░░░░ 73% (22/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
 
@@ -19,7 +19,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | --- | --- | --- | --- | --- |
 | Maria | 7/7 | 7/7 | 0 | 0 |
 | Marcelo | 6/6 | 6/7 | 0 | 0 |
-| Laura | 3/3 | 3/6 | 0 | 0 |
+| Laura | 3/3 | 4/6 | 0 | 0 |
 | Renato | 5/5 | 5/5 | 0 | 0 |
 
 ## Requisitos
@@ -33,7 +33,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF05 — Identificação de menor | P0 | Maria | Concluído | — | — |
 | RF06 — Vínculo do responsável | P0 | Maria | Concluído | — | — |
 | RF07 — Responsável administra atleta | P0 | Maria | Concluído | — | — |
-| RF08 — Verificação de parceiros | P1 | Laura | Não iniciado | — | — |
+| RF08 — Verificação de parceiros | P1 | Laura | Concluído | — | — |
 | RF09 — Gerenciar oportunidades | P0 | Laura | Concluído | #30 | — |
 | RF10 — Pesquisa e filtros | P0 | Marcelo | Concluído | — | — |
 | RF11 — Detalhes da oportunidade | P0 | Marcelo | Concluído | — | — |

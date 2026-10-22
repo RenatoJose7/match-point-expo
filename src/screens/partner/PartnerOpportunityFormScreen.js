@@ -142,6 +142,9 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       return
     }
 
+    const publicationStatus = original?.status === 'encerrada'
+      ? 'encerrada'
+      : partner.verificado ? form.status : 'rascunho'
     const payload = {
       titulo: title,
       descricao: description,
@@ -154,7 +157,7 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       fimInscricoes: endDate,
       requisitos: splitLines(form.requisitos),
       documentosNecessarios: splitLines(form.documentosNecessarios),
-      status: original?.status === 'encerrada' ? 'encerrada' : form.status,
+      status: publicationStatus,
       ...(original?.criteriosElegibilidade ? { criteriosElegibilidade: original.criteriosElegibilidade } : {}),
     }
 
@@ -165,10 +168,13 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
         : await repositories.opportunities.criarOportunidade({ ...payload, criadorId: partner.id })
       if (!result.ok) throw new Error(result.mensagem || 'Não foi possível salvar a oportunidade.')
 
+      const successMessage = partner.verificado
+        ? 'Alterações salvas com sucesso.'
+        : 'Seu perfil aguarda verificação. A oportunidade foi salva como rascunho.'
       if (editing) {
-        go('partnerOpportunityDetail', { opportunityId, flashMessage: 'Alterações salvas com sucesso.' })
+        go('partnerOpportunityDetail', { opportunityId, flashMessage: successMessage })
       } else {
-        go(listRoute, { flashMessage: 'Oportunidade criada com sucesso.' })
+        go(listRoute, { flashMessage: partner.verificado ? 'Oportunidade criada com sucesso.' : successMessage })
       }
     } catch (saveError) {
       setError(saveError.message || 'Não foi possível salvar a oportunidade.')
@@ -198,6 +204,7 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
         <KeyboardAvoidingView style={partnerStyles.scroll} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
           <ScrollView contentContainerStyle={styles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
+            {!partner.verificado ? <FeedbackMessage tone="warning">Seu perfil está aguardando verificação. Você pode salvar esta oportunidade como rascunho, mas só poderá publicá-la após a aprovação.</FeedbackMessage> : null}
 
             <View style={styles.sectionHead}>
               <Text style={partnerStyles.sectionTitle}>Informações principais</Text>
