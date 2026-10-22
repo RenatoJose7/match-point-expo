@@ -5,11 +5,20 @@ import { BottomNav } from '../components/navigation/BottomNav'
 import { Button } from '../components/ui/Button'
 import { styles } from '../theme/styles'
 
+const statusLabel = (status) => ({
+  inscrita: 'Inscrita',
+  documentos_enviados: 'Documentos enviados',
+  em_analise: 'Em análise',
+  aprovada: 'Aprovada',
+  rejeitada: 'Rejeitada',
+}[status] ?? status?.replaceAll('_', ' ') ?? 'Não informado')
+
 export function ApplicationDetailScreen({ go, back, repositories, routeParams = {} }) {
   const [application, setApplication] = useState(null)
   const [opportunity, setOpportunity] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
   const applicationId = routeParams.applicationId
 
   useEffect(() => {
@@ -27,20 +36,20 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
     }
     load()
     return () => { active = false }
-  }, [applicationId, repositories])
+  }, [applicationId, repositories, reloadKey])
 
   return (
     <View style={styles.detailScreen}>
       <BackButton onPress={back} />
       {loading ? <View style={styles.detailBody}><Text style={localStyles.state}>Carregando candidatura...</Text></View> : null}
-      {!loading && error ? <View style={styles.detailBody}><Text accessibilityRole="alert" style={localStyles.error}>{error}</Text></View> : null}
+      {!loading && error ? <View style={styles.detailBody}><Text accessibilityRole="alert" style={localStyles.error}>{error}</Text><Button wide onPress={() => setReloadKey((value) => value + 1)}>Tentar novamente</Button></View> : null}
       {!loading && application && opportunity ? <>
       <Text style={styles.detailHeading}>{opportunity.titulo}</Text>
       <Text style={styles.profileRole}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
-      <Text style={styles.statusBadge}>{application.status.replaceAll('_', ' ')}</Text>
+      <Text style={styles.statusBadge}>{statusLabel(application.status)}</Text>
       <ScrollView contentContainerStyle={styles.detailBody}>
         <Text style={styles.sectionTitle}>Status da candidatura</Text>
-        {(application.historico ?? []).map((event) => <Text key={event.id} style={styles.timeline}>✓ {event.descricao || event.statusNovo || event.status}　{new Date(event.data).toLocaleDateString('pt-BR')}</Text>)}
+        {(application.historico ?? []).length ? application.historico.map((event) => <Text key={event.id} style={styles.timeline}>✓ {event.descricao || statusLabel(event.statusNovo || event.status)}　{new Date(event.data).toLocaleDateString('pt-BR')}</Text>) : <Text style={styles.document}>Ainda não há movimentações registradas.</Text>}
         <Text style={styles.sectionTitle}>Documentos enviados</Text>
         {(application.documentos ?? []).length ? application.documentos.map((item) => <Text key={item.id} style={styles.document}>{item.nome || item.tipo || 'Documento enviado'}</Text>) : <Text style={styles.document}>Nenhum documento enviado.</Text>}
         <Button wide onPress={() => go('opportunitiesAthlete')}>Ver oportunidades</Button>
