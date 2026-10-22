@@ -5,6 +5,7 @@ const HOME_ROUTE_BY_USER_TYPE = Object.freeze({
   [USER_TYPES.TRAINER]: 'homeTrainer',
   [USER_TYPES.INSTITUTION]: 'homeInstitution',
   [USER_TYPES.GUARDIAN]: 'homeResponsible',
+  [USER_TYPES.ADMIN]: 'administration',
 })
 
 export function getHomeRouteForUser(user) {

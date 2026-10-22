@@ -2,14 +2,14 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-22T00:49:38.629Z
+Última atualização registrada: 2026-10-22T00:50:59.644Z
 
 ## Barras de progresso
 
 - **P0:** `████████████████████ 100% (21/21)`
 - **P1:** `████████████████████ 100% (4/4)`
-- **P2:** `░░░░░░░░░░░░░░░░░░░░ 0% (0/5)`
-- **Total:** `█████████████████░░░ 83% (25/30)`
+- **P2:** `████████████████████ 100% (5/5)`
+- **Total:** `████████████████████ 100% (30/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
 
@@ -51,11 +51,11 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF23 — Notificações | P1 | Marcelo | Concluído | — | — |
 | RF24 — Mensagens operacionais | P0 | Maria | Concluído | — | — |
 | RF25 — Estados vazios | P0 | Maria | Concluído | — | — |
-| RF26 — Denúncias | P2 | Backlog futuro | Não iniciado | — | — |
-| RF27 — Portal administrativo | P2 | Backlog futuro | Não iniciado | — | — |
-| RF28 — Moderação | P2 | Backlog futuro | Não iniciado | — | — |
-| RF29 — Apoios concedidos | P2 | Backlog futuro | Não iniciado | — | — |
-| RF30 — Auditoria do Match Score | P2 | Backlog futuro | Não iniciado | — | — |
+| RF26 — Denúncias | P2 | Backlog futuro | Concluído | — | — |
+| RF27 — Portal administrativo | P2 | Backlog futuro | Concluído | — | — |
+| RF28 — Moderação | P2 | Backlog futuro | Concluído | — | — |
+| RF29 — Apoios concedidos | P2 | Backlog futuro | Concluído | — | — |
+| RF30 — Auditoria do Match Score | P2 | Backlog futuro | Concluído | — | — |
 
 ## Como atualizar
 

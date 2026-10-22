@@ -150,6 +150,20 @@ O treinador indicado registra uma única avaliação estruturada para cada
 solicitação pendente; o resultado fica visível apenas à instituição solicitante
 e ao próprio treinador.
 
+### Operações P2
+
+```text
+Relato: id, autorId, alvoTipo, alvoId?, mensagem, status, criadoEm
+Recurso: id, titulo, tipo, ativo, atualizadoEm
+Apoio: id, instituicaoId, atletaId, oportunidadeId?, descricao, criadoEm
+Auditoria Match: id, atletaId, oportunidadeId, resultado, criterios, versao, criadoEm
+```
+
+Relatos podem ser enviados e acompanhados pelo autor. Recursos, decisões de
+conta e auditorias são exclusivos da administração. Instituições verificadas
+registram apoios concedidos; a auditoria guarda a versão e os critérios usados
+no Match Score para permitir conferência posterior.
+
 ### Oportunidade
 
 ```text

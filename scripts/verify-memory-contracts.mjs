@@ -137,6 +137,21 @@ const technicalEvaluation = await repositories.evaluations.registrarAvaliacao({
 assert.equal(technicalEvaluation.ok, true)
 assert.equal(repositories.snapshot().evaluationRequests.find((item) => item.id === evaluationRequest.data.id).status, 'concluida')
 await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
+const grantedSupport = await repositories.support.registrarApoio({ instituicaoId: 'instituicao-demo', atletaId: 'atleta-menor', descricao: 'Bolsa para transporte e material esportivo.' })
+assert.equal(grantedSupport.ok, true)
+const athleteReport = await repositories.reports.enviarRelato({ mensagem: 'Relato de teste para acompanhamento.' })
+assert.equal(athleteReport.ok, true)
+const adminSeed = repositories.snapshot()
+adminSeed.users.push({ id: 'usuario-admin', email: 'admin@matchpoint.example', tipo: USER_TYPES.ADMIN, nome: 'Admin Demo' })
+const adminRepositories = createMemoryRepositories(adminSeed)
+await adminRepositories.authentication.entrar('admin@matchpoint.example', 'demo-local')
+const managedResource = await adminRepositories.administration.salvarRecurso({ titulo: 'Guia de segurança' })
+assert.equal(managedResource.ok, true)
+const accountDecision = await adminRepositories.administration.decidirConta({ tipo: 'parceiro', id: 'treinador-demo', decisao: 'aprovada' })
+assert.equal(accountDecision.ok, true)
+const matchAudit = await adminRepositories.administration.auditarMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
+assert.equal(matchAudit.ok, true)
+assert.equal(matchAudit.data.versao, 'p0-memory-v1')
 
 const nonApplicantProfile = await repositories.applications.obterPerfilPublicoCandidato(
   'oportunidade-futebol-incompativel',

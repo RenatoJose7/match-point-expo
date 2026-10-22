@@ -45,6 +45,10 @@ const PUBLIC_CANDIDATE_PROFILES_SUBCOLLECTION = 'perfisCandidatos'
 const NOTIFICATIONS_COLLECTION = 'notificacoes'
 const EVALUATION_REQUESTS_COLLECTION = 'solicitacoesAvaliacao'
 const TECHNICAL_EVALUATIONS_COLLECTION = 'avaliacoesTecnicas'
+const REPORTS_COLLECTION = 'relatos'
+const RESOURCES_COLLECTION = 'recursos'
+const SUPPORTS_COLLECTION = 'apoios'
+const MATCH_AUDITS_COLLECTION = 'auditoriasMatch'
 
 function success(data) {
   return { ok: true, data }
@@ -1271,5 +1275,27 @@ export function createFirebaseRepositories() {
     },
   }
 
-  return { authentication, users, opportunities, applications, notifications, evaluations, match, storage: storageRepository }
+  const reports = {
+    enviarRelato: async (data) => {
+      if (!auth.currentUser || !String(data.mensagem ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Descreva o relato antes de enviar.')
+      try { const reference = doc(collection(database, REPORTS_COLLECTION)); const item = { id: reference.id, autorId: auth.currentUser.uid, alvoTipo: data.alvoTipo ?? 'plataforma', alvoId: data.alvoId ?? null, mensagem: data.mensagem.trim(), status: 'aberto', criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+    },
+    listarMeusRelatos: async () => { if (!auth.currentUser) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.'); try { const snapshots = await getDocs(query(collection(database, REPORTS_COLLECTION), where('autorId', '==', auth.currentUser.uid))); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+  }
+  const support = {
+    registrarApoio: async (data) => {
+      const institution = await getPartnerByUserId(auth.currentUser?.uid)
+      if (!institution.ok || institution.data.id !== data.instituicaoId || !institution.data.verificado || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
+      try { const reference = doc(collection(database, SUPPORTS_COLLECTION)); const item = { id: reference.id, ...data, descricao: data.descricao.trim(), criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+    },
+  }
+  const administration = {
+    listarRecursos: async () => { try { const snapshots = await getDocs(collection(database, RESOURCES_COLLECTION)); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+    salvarRecurso: async (data) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN || !String(data.titulo ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode gerenciar recursos.'); try { const reference = doc(database, RESOURCES_COLLECTION, data.id ?? newId(database, RESOURCES_COLLECTION)); const item = { id: reference.id, ...data, titulo: data.titulo.trim(), ativo: data.ativo !== false, atualizadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) } },
+    listarRelatos: async () => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar relatos.'); try { const snapshots = await getDocs(collection(database, REPORTS_COLLECTION)); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+    decidirConta: async (data) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN || !['aprovada', 'corrigida', 'rejeitada', 'suspensa'].includes(data.decisao)) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Decisão administrativa inválida.'); try { const collectionName = data.tipo === 'parceiro' ? PARTNERS_COLLECTION : ATHLETES_COLLECTION; await updateDoc(doc(database, collectionName, data.id), { statusAdministrativo: data.decisao, atualizadoEm: now() }); return data.tipo === 'parceiro' ? getPartnerById(data.id) : getAthleteById(data.id) } catch (error) { return mapFirebaseError(error) } },
+    auditarMatchScore: async (athleteId, opportunityId) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode auditar o Match Score.'); const score = await match.calcularMatchScore(athleteId, opportunityId); if (!score.ok) return score; try { const reference = doc(collection(database, MATCH_AUDITS_COLLECTION)); const audit = { id: reference.id, atletaId: athleteId, oportunidadeId: opportunityId, resultado: score.data, criterios: score.data.criterios, versao: score.data.versaoDoCalculo, criadoEm: now() }; await setDoc(reference, audit); return success(audit) } catch (error) { return mapFirebaseError(error) } },
+  }
+
+  return { authentication, users, opportunities, applications, notifications, evaluations, reports, support, administration, match, storage: storageRepository }
 }

@@ -34,6 +34,10 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
   state.notifications ??= []
   state.evaluationRequests ??= []
   state.technicalEvaluations ??= []
+  state.reports ??= []
+  state.resources ??= []
+  state.supports ??= []
+  state.matchAudits ??= []
   let currentUserId = null
   let sequence = 1
   const sessionListeners = new Set()
@@ -718,6 +722,30 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
   }
 
+  const reports = {
+    enviarRelato: async (data) => {
+      const user = currentSession()
+      if (!user || !String(data.mensagem ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Descreva o relato antes de enviar.')
+      const report = { id: nextId('relato'), autorId: user.id, alvoTipo: data.alvoTipo ?? 'plataforma', alvoId: data.alvoId ?? null, mensagem: data.mensagem.trim(), status: 'aberto', criadoEm: now() }
+      state.reports.push(report); return success(report)
+    },
+    listarMeusRelatos: async () => { const user = currentSession(); return user ? success(state.reports.filter((item) => item.autorId === user.id)) : failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.') },
+  }
+  const support = {
+    registrarApoio: async (data) => {
+      const user = currentSession(); const institution = state.partners.find((item) => item.id === data.instituicaoId)
+      if (!user || institution?.usuarioId !== user.id || !institution.verificado || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
+      const item = { id: nextId('apoio'), ...data, descricao: data.descricao.trim(), criadoEm: now() }; state.supports.push(item); return success(item)
+    },
+  }
+  const administration = {
+    listarRecursos: async () => success(state.resources),
+    salvarRecurso: async (data) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN || !String(data.titulo ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode gerenciar recursos.'); const item = { id: data.id ?? nextId('recurso'), ...data, titulo: data.titulo.trim(), ativo: data.ativo !== false, atualizadoEm: now() }; const index = state.resources.findIndex((resource) => resource.id === item.id); if (index >= 0) state.resources[index] = item; else state.resources.push(item); return success(item) },
+    listarRelatos: async () => { const user = currentSession(); return user?.tipo === USER_TYPES.ADMIN ? success(state.reports) : failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar relatos.') },
+    decidirConta: async (data) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN || !['aprovada', 'corrigida', 'rejeitada', 'suspensa'].includes(data.decisao)) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Decisão administrativa inválida.'); const target = data.tipo === 'parceiro' ? state.partners.find((item) => item.id === data.id) : findAthlete(data.id); if (!target) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Conta não encontrada.'); target.statusAdministrativo = data.decisao; target.atualizadoEm = now(); return success(target) },
+    auditarMatchScore: async (athleteId, opportunityId) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode auditar o Match Score.'); const result = await match.calcularMatchScore(athleteId, opportunityId); if (!result.ok) return result; const audit = { id: nextId('auditoria-match'), atletaId: athleteId, oportunidadeId: opportunityId, resultado: result.data, criterios: result.data.criterios, versao: result.data.versaoDoCalculo, criadoEm: now() }; state.matchAudits.push(audit); return success(audit) },
+  }
+
   return {
     authentication,
     users,
@@ -725,6 +753,9 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     applications,
     notifications,
     evaluations,
+    reports,
+    support,
+    administration,
     match,
     storage,
     snapshot: () => clone(state),

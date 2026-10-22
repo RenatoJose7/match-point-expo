@@ -1,10 +1,55 @@
 {
   "responsavel": "Backlog futuro",
   "requisitos": [
-    { "id": "RF26", "titulo": "Denúncias", "prioridade": "P2", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF27", "titulo": "Portal administrativo", "prioridade": "P2", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF28", "titulo": "Moderação", "prioridade": "P2", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF29", "titulo": "Apoios concedidos", "prioridade": "P2", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" },
-    { "id": "RF30", "titulo": "Auditoria do Match Score", "prioridade": "P2", "status": "nao_iniciado", "pr": "", "evidencia": "", "bloqueio": "", "atualizadoEm": "" }
+    {
+      "id": "RF26",
+      "titulo": "Denúncias",
+      "prioridade": "P2",
+      "status": "concluido",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:50:58.578Z"
+    },
+    {
+      "id": "RF27",
+      "titulo": "Portal administrativo",
+      "prioridade": "P2",
+      "status": "concluido",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:50:58.850Z"
+    },
+    {
+      "id": "RF28",
+      "titulo": "Moderação",
+      "prioridade": "P2",
+      "status": "concluido",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:50:59.129Z"
+    },
+    {
+      "id": "RF29",
+      "titulo": "Apoios concedidos",
+      "prioridade": "P2",
+      "status": "concluido",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:50:59.386Z"
+    },
+    {
+      "id": "RF30",
+      "titulo": "Auditoria do Match Score",
+      "prioridade": "P2",
+      "status": "concluido",
+      "pr": "",
+      "evidencia": "",
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:50:59.644Z"
+    }
   ]
 }

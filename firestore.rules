@@ -18,6 +18,10 @@ service cloud.firestore {
       return signedIn() && userType() in ['treinador', 'instituicao'];
     }
 
+    function isAdmin() {
+      return signedIn() && userType() == 'administrador';
+    }
+
     function ownsAthlete(athleteId) {
       return signedIn()
         && get(/databases/$(database)/documents/atletas/$(athleteId)).data.usuarioId == request.auth.uid;
@@ -478,6 +482,36 @@ service cloud.firestore {
         && request.resource.data.notaFisica >= 1 && request.resource.data.notaFisica <= 5
         && request.resource.data.notaTatica >= 1 && request.resource.data.notaTatica <= 5
         && request.resource.data.parecer is string;
+      allow update, delete: if false;
+    }
+
+    match /relatos/{reportId} {
+      allow create: if signedIn() && request.resource.data.id == reportId
+        && request.resource.data.autorId == request.auth.uid
+        && request.resource.data.mensagem is string
+        && request.resource.data.status == 'aberto';
+      allow get, list: if signedIn() && (resource.data.autorId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /recursos/{resourceId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && request.resource.data.id == resourceId;
+      allow delete: if false;
+    }
+
+    match /apoios/{supportId} {
+      allow create: if signedIn() && request.resource.data.id == supportId
+        && verifiedPartner(request.resource.data.instituicaoId)
+        && get(/databases/$(database)/documents/parceiros/$(request.resource.data.instituicaoId)).data.tipo == 'instituicao'
+        && request.resource.data.descricao is string;
+      allow get, list: if signedIn() && (ownsPartner(resource.data.instituicaoId) || ownsAthlete(resource.data.atletaId));
+      allow update, delete: if false;
+    }
+
+    match /auditoriasMatch/{auditId} {
+      allow create, get, list: if isAdmin();
       allow update, delete: if false;
     }
 

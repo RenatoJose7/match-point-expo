@@ -169,6 +169,9 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
               <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
                 <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
               </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId })} style={partnerStyles.secondaryButton}>
+                <Text style={partnerStyles.secondaryButtonText}>Registrar apoio concedido</Text>
+              </Pressable>
             </View>
           ) : null}
 
