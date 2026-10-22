@@ -43,7 +43,7 @@ export function LoginScreen({ go, back, repositories }) {
       if (result.data?.tipo === 'responsavel') {
         setFeedback({
           status: 'success',
-          message: 'Login realizado. A área do responsável será disponibilizada com o fluxo de vínculo.',
+          message: 'Login realizado. Abrindo a área do responsável.',
         })
       }
     } catch (error) {
