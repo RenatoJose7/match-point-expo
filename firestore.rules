@@ -141,7 +141,7 @@ service cloud.firestore {
     }
 
     function validApplicationTransition(previousStatus, nextStatus) {
-      return (previousStatus == 'inscrita' && nextStatus == 'em_analise')
+      return (previousStatus == 'inscrita' && nextStatus in ['documentos_enviados', 'em_analise'])
         || (previousStatus == 'documentos_enviados' && nextStatus == 'em_analise')
         || (previousStatus == 'em_analise' && nextStatus in ['aprovada', 'rejeitada']);
     }
@@ -364,8 +364,23 @@ service cloud.firestore {
         && (
           (
             ownsApplicationAthlete(resource.data)
-            && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['documentos', 'atualizadoEm'])
+            && (
+              (
+                request.resource.data.status == resource.data.status
+                && request.resource.data.historico == resource.data.historico
+                && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['documentos', 'atualizadoEm'])
+              )
+              || (
+                request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['documentos', 'status', 'historico', 'atualizadoEm'])
+                && validApplicationTransition(
+                  resource.data.status,
+                  request.resource.data.status
+                )
+                && hasValidStatusHistoryAppend()
+              )
+            )
           )
           || (
             ownsApplicationOpportunity(resource.data)

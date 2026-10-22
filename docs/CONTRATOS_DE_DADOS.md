@@ -330,7 +330,10 @@ operação retorna os metadados sem o conteúdo bruto e inclui `id`, `nome` e
 
 `applications.enviarDocumento(candidaturaId, documento)` é o fluxo completo:
 faz o upload quando necessário e associa o resultado à candidatura. Também
-aceita os metadados já retornados por `storage.enviarArquivoCandidatura`.
+aceita os metadados já retornados por `storage.enviarArquivoCandidatura`. Quando
+todos os documentos exigidos pela oportunidade forem anexados, a candidatura
+avança de `inscrita` para `documentos_enviados` e registra o evento com o
+atleta autenticado como responsável.
 
 ### Match Score
 

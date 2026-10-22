@@ -153,31 +153,6 @@ const duplicate = await repositories.applications.criarCandidatura(
 assert.equal(duplicate.ok, false)
 assert.equal(duplicate.codigo, 'CANDIDATURA_DUPLICADA')
 
-const underReview = await repositories.applications.atualizarStatusDaCandidatura(
-  application.data.id,
-  APPLICATION_STATUS.UNDER_REVIEW,
-  'usuario-instituicao',
-)
-assert.equal(underReview.ok, true)
-assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(underReview.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.SUBMITTED)
-assert.equal(underReview.data.historico.at(-1).statusNovo, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(underReview.data.historico.at(-1).responsavelId, 'usuario-instituicao')
-assert.match(underReview.data.historico.at(-1).descricao, /inscrita.*em_analise/)
-
-const approved = await repositories.applications.atualizarStatusDaCandidatura(
-  application.data.id,
-  APPLICATION_STATUS.APPROVED,
-  'usuario-instituicao',
-)
-assert.equal(approved.ok, true)
-assert.equal(approved.data.historico.length, 3)
-assert.equal(approved.data.historico.at(-1).status, APPLICATION_STATUS.APPROVED)
-assert.equal(approved.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPROVED)
-assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
-assert.ok(Date.parse(approved.data.historico.at(-1).data))
-
 const uploadedDocument = await repositories.storage.enviarArquivoCandidatura(application.data.id, {
   tipo: 'curriculo_esportivo',
   arquivo: { uri: 'memory://curriculo.pdf', name: 'curriculo.pdf', type: 'application/pdf' },
@@ -186,13 +161,52 @@ assert.equal(uploadedDocument.ok, true)
 assert.equal(uploadedDocument.data.arquivoUrl, 'memory://curriculo.pdf')
 assert.equal('arquivo' in uploadedDocument.data, false)
 
-const applicationWithDocument = await repositories.applications.enviarDocumento(
+const applicationWithFirstDocument = await repositories.applications.enviarDocumento(
   application.data.id,
   uploadedDocument.data,
 )
-assert.equal(applicationWithDocument.ok, true)
-assert.equal(applicationWithDocument.data.documentos.length, 1)
-assert.equal(applicationWithDocument.data.documentos[0].arquivoUrl, 'memory://curriculo.pdf')
+assert.equal(applicationWithFirstDocument.ok, true)
+assert.equal(applicationWithFirstDocument.data.documentos.length, 1)
+assert.equal(applicationWithFirstDocument.data.status, APPLICATION_STATUS.SUBMITTED)
+assert.equal(applicationWithFirstDocument.data.historico.length, 1)
+
+const applicationWithRequiredDocuments = await repositories.applications.enviarDocumento(
+  application.data.id,
+  {
+    tipo: 'historico_escolar',
+    arquivo: { uri: 'memory://historico.pdf', name: 'historico.pdf', type: 'application/pdf' },
+  },
+)
+assert.equal(applicationWithRequiredDocuments.ok, true)
+assert.equal(applicationWithRequiredDocuments.data.documentos.length, 2)
+assert.equal(applicationWithRequiredDocuments.data.status, APPLICATION_STATUS.DOCUMENTS_SENT)
+assert.equal(applicationWithRequiredDocuments.data.historico.length, 2)
+assert.equal(applicationWithRequiredDocuments.data.historico.at(-1).responsavelId, 'usuario-atleta-menor')
+
+const underReview = await repositories.applications.atualizarStatusDaCandidatura(
+  application.data.id,
+  APPLICATION_STATUS.UNDER_REVIEW,
+  'usuario-instituicao',
+)
+assert.equal(underReview.ok, true)
+assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.DOCUMENTS_SENT)
+assert.equal(underReview.data.historico.at(-1).statusNovo, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.match(underReview.data.historico.at(-1).descricao, /documentos_enviados.*em_analise/)
+
+const approved = await repositories.applications.atualizarStatusDaCandidatura(
+  application.data.id,
+  APPLICATION_STATUS.APPROVED,
+  'usuario-instituicao',
+)
+assert.equal(approved.ok, true)
+assert.equal(approved.data.historico.length, 4)
+assert.equal(approved.data.historico.at(-1).status, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.ok(Date.parse(approved.data.historico.at(-1).data))
 
 const signupRepositories = createMemoryRepositories()
 let observedSession = null

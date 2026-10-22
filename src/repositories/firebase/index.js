@@ -1066,13 +1066,39 @@ export function createFirebaseRepositories() {
           }
 
           const application = normalizeDocument(snapshot)
+          const opportunitySnapshot = await transaction.get(doc(database, OPPORTUNITIES_COLLECTION, application.oportunidadeId))
+          const requiredDocuments = opportunitySnapshot.exists()
+            ? (opportunitySnapshot.data().documentosNecessarios ?? [])
+            : []
           const document = {
             ...uploadedDocument.data,
             enviadoEm: uploadedDocument.data.enviadoEm ?? updatedAt,
           }
           const documentos = [...(application.documentos ?? []), document]
-          const updated = { ...application, documentos, atualizadoEm: updatedAt }
-          transaction.update(applicationReference, { documentos, atualizadoEm: updatedAt })
+          const allRequiredDocumentsSent = requiredDocuments.length > 0
+            && requiredDocuments.every((type) => documentos.some((item) => item.tipo === type))
+          const nextStatus = application.status === APPLICATION_STATUS.SUBMITTED && allRequiredDocumentsSent
+            ? APPLICATION_STATUS.DOCUMENTS_SENT
+            : application.status
+          const event = nextStatus !== application.status
+            ? {
+              id: doc(collection(database, 'eventosCandidatura')).id,
+              status: nextStatus,
+              statusAnterior: application.status,
+              statusNovo: nextStatus,
+              descricao: `${application.status} → ${nextStatus}`,
+              data: updatedAt,
+              responsavelId: auth.currentUser?.uid,
+            }
+            : null
+          const historico = event ? [...(application.historico ?? []), event] : application.historico ?? []
+          const updated = { ...application, documentos, status: nextStatus, historico, atualizadoEm: updatedAt }
+          transaction.update(applicationReference, {
+            documentos,
+            status: nextStatus,
+            historico,
+            atualizadoEm: updatedAt,
+          })
           return success(updated)
         })
       } catch (error) {

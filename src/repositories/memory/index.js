@@ -580,6 +580,23 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
 
       application.documentos.push({ ...uploadedDocument.data, enviadoEm: uploadedDocument.data.enviadoEm ?? now() })
       application.atualizadoEm = now()
+      const opportunity = findOpportunity(application.oportunidadeId)
+      const requiredDocuments = opportunity?.documentosNecessarios ?? []
+      const allRequiredDocumentsSent = requiredDocuments.length > 0
+        && requiredDocuments.every((type) => application.documentos.some((item) => item.tipo === type))
+      if (application.status === APPLICATION_STATUS.SUBMITTED && allRequiredDocumentsSent) {
+        const previousStatus = application.status
+        application.status = APPLICATION_STATUS.DOCUMENTS_SENT
+        application.historico.push({
+          id: nextId('evento'),
+          status: application.status,
+          statusAnterior: previousStatus,
+          statusNovo: application.status,
+          descricao: `${previousStatus} → ${application.status}`,
+          data: application.atualizadoEm,
+          responsavelId: currentUserId,
+        })
+      }
       return success(application)
     },
     listarHistoricoDaCandidatura: async (id) => {

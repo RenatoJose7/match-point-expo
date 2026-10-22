@@ -5,7 +5,7 @@ import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { Button } from '../components/ui/Button'
 import { assets } from '../theme/assets'
-import { USER_TYPES } from '../domain/contracts.js'
+import { APPLICATION_STATUS, USER_TYPES } from '../domain/contracts.js'
 import { styles } from '../theme/styles'
 
 function formatDate(value) {
@@ -272,6 +272,7 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
                 </View>
               )
             }) : <Text style={localStyles.state}>Esta oportunidade não exige documentos adicionais.</Text>}
+            {application.status === APPLICATION_STATUS.DOCUMENTS_SENT ? <Text accessibilityRole="alert" style={localStyles.success}>Todos os documentos exigidos foram enviados. Sua candidatura seguirá para análise.</Text> : null}
             {!!error && <Text accessibilityRole="alert" style={localStyles.error}>{error}</Text>}
             <Button wide onPress={() => go('applications')}>Acompanhar candidatura</Button>
           </View>
