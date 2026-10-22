@@ -551,11 +551,18 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
 
       return success(candidateSnapshot.perfilPublico)
     },
-    atualizarStatusDaCandidatura: async (id, nextStatus, responsibleId = currentUserId) => {
+    atualizarStatusDaCandidatura: async (id, nextStatus) => {
+      const user = currentSession()
+      if (!user) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
       const application = findApplication(id)
       if (!application) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')
       if (!canTransitionApplicationStatus(application.status, nextStatus)) {
         return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
+      }
+      const opportunity = findOpportunity(application.oportunidadeId)
+      const partner = state.partners.find((item) => item.usuarioId === user.id)
+      if (!partner || opportunity?.criadorId !== partner.id) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o parceiro responsável pode atualizar este status.')
       }
       const previousStatus = application.status
       application.status = nextStatus
@@ -567,13 +574,19 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         statusNovo: nextStatus,
         descricao: `${previousStatus} → ${nextStatus}`,
         data: application.atualizadoEm,
-        responsavelId: responsibleId,
+        responsavelId: user.id,
       })
       return success(application)
     },
     enviarDocumento: async (id, documentData) => {
+      const user = currentSession()
+      if (!user) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
       const application = findApplication(id)
       if (!application) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')
+      const athlete = findAthlete(application.atletaId)
+      if (!athlete || athlete.usuarioId !== user.id) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o atleta responsável pode enviar documentos.')
+      }
 
       const uploadedDocument = await storage.enviarArquivoCandidatura(id, documentData)
       if (!uploadedDocument.ok) return uploadedDocument
@@ -594,7 +607,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
           statusNovo: application.status,
           descricao: `${previousStatus} → ${application.status}`,
           data: application.atualizadoEm,
-          responsavelId: currentUserId,
+          responsavelId: user.id,
         })
       }
       return success(application)

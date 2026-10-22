@@ -355,6 +355,7 @@ em_analise → rejeitada
 ```
 
 `aprovada` e `rejeitada` são estados finais durante o P0. Toda transição registra data, responsável, estado anterior e novo estado. Uma transição fora dessa lista deve falhar sem alterar os dados.
+O responsável do evento é sempre extraído da sessão autenticada: não é aceito como dado enviado pela tela.
 
 ## Respostas padronizadas
 

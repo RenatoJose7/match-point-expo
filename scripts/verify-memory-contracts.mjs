@@ -138,7 +138,6 @@ assert.equal(athleteProfileAccess.codigo, REPOSITORY_ERROR_CODES.FORBIDDEN)
 const invalidTransition = await repositories.applications.atualizarStatusDaCandidatura(
   application.data.id,
   APPLICATION_STATUS.APPROVED,
-  'usuario-instituicao',
 )
 assert.equal(invalidTransition.ok, false)
 assert.equal(invalidTransition.codigo, REPOSITORY_ERROR_CODES.INVALID_TRANSITION)
@@ -183,10 +182,10 @@ assert.equal(applicationWithRequiredDocuments.data.status, APPLICATION_STATUS.DO
 assert.equal(applicationWithRequiredDocuments.data.historico.length, 2)
 assert.equal(applicationWithRequiredDocuments.data.historico.at(-1).responsavelId, 'usuario-atleta-menor')
 
+await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
 const underReview = await repositories.applications.atualizarStatusDaCandidatura(
   application.data.id,
   APPLICATION_STATUS.UNDER_REVIEW,
-  'usuario-instituicao',
 )
 assert.equal(underReview.ok, true)
 assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
@@ -198,7 +197,6 @@ assert.match(underReview.data.historico.at(-1).descricao, /documentos_enviados.*
 const approved = await repositories.applications.atualizarStatusDaCandidatura(
   application.data.id,
   APPLICATION_STATUS.APPROVED,
-  'usuario-instituicao',
 )
 assert.equal(approved.ok, true)
 assert.equal(approved.data.historico.length, 4)
