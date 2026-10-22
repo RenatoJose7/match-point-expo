@@ -140,6 +140,43 @@ service cloud.firestore {
       ];
     }
 
+    function validApplicationTransition(previousStatus, nextStatus) {
+      return (previousStatus == 'inscrita' && nextStatus == 'em_analise')
+        || (previousStatus == 'documentos_enviados' && nextStatus == 'em_analise')
+        || (previousStatus == 'em_analise' && nextStatus in ['aprovada', 'rejeitada']);
+    }
+
+    function hasValidStatusHistoryAppend() {
+      let previousHistory = resource.data.historico;
+      let nextHistory = request.resource.data.historico;
+      let nextEvent = nextHistory[previousHistory.size()];
+      return nextHistory is list
+        && nextHistory.size() == previousHistory.size() + 1
+        && nextEvent is map
+        && nextEvent.keys().hasOnly([
+          'id',
+          'status',
+          'statusAnterior',
+          'statusNovo',
+          'descricao',
+          'data',
+          'responsavelId'
+        ])
+        && nextEvent.keys().hasAll([
+          'id',
+          'status',
+          'statusAnterior',
+          'statusNovo',
+          'descricao',
+          'data',
+          'responsavelId'
+        ])
+        && nextEvent.status == request.resource.data.status
+        && nextEvent.statusAnterior == resource.data.status
+        && nextEvent.statusNovo == request.resource.data.status
+        && nextEvent.responsavelId == request.auth.uid;
+    }
+
     match /usuarios/{userId} {
       allow create: if isOwnUser(userId)
         && request.resource.data.id == userId
@@ -334,6 +371,11 @@ service cloud.firestore {
             ownsApplicationOpportunity(resource.data)
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'historico', 'atualizadoEm'])
+            && validApplicationTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && hasValidStatusHistoryAppend()
           )
         );
       allow delete: if false;

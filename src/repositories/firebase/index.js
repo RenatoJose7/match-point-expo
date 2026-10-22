@@ -1004,7 +1004,11 @@ export function createFirebaseRepositories() {
         return mapFirebaseError(error)
       }
     },
-    atualizarStatusDaCandidatura: async (id, nextStatus, responsibleId = auth.currentUser?.uid ?? null) => {
+    atualizarStatusDaCandidatura: async (id, nextStatus) => {
+      if (!auth.currentUser) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
+      }
+
       const applicationReference = doc(database, APPLICATIONS_COLLECTION, id)
       const updatedAt = now()
 
@@ -1027,7 +1031,7 @@ export function createFirebaseRepositories() {
             statusNovo: nextStatus,
             descricao: `${application.status} → ${nextStatus}`,
             data: updatedAt,
-            responsavelId: responsibleId,
+            responsavelId: auth.currentUser.uid,
           }
           const historico = [...(application.historico ?? []), event]
           const updated = {

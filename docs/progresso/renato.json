@@ -5,11 +5,11 @@
       "id": "RF02",
       "titulo": "Direcionamento por perfil",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando a tela inicial do responsável da área da Maria para concluir o direcionamento do tipo responsavel.",
-      "atualizadoEm": "2026-10-16T18:07:11.503Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:17:36.740Z"
     },
     {
       "id": "RF12",
@@ -45,11 +45,11 @@
       "id": "RF22",
       "titulo": "Histórico das alterações",
       "prioridade": "P0",
-      "status": "em_revisao",
+      "status": "em_andamento",
       "pr": "#26",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:07:22.576Z"
+      "atualizadoEm": "2026-10-22T00:17:37.115Z"
     }
   ]
 }

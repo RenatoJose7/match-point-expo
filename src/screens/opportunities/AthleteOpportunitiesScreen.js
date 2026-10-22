@@ -115,7 +115,7 @@ export function AthleteOpportunitiesScreen(props) {
         ) : null}
 
         {!loading && !error && visibleOpportunities.map(opportunity => (
-          <Pressable key={opportunity.id} onPress={() => go('matchScore')} style={styles.listCard}>
+          <Pressable key={opportunity.id} onPress={() => go('matchScore', { opportunityId: opportunity.id })} style={styles.listCard}>
             <Image source={assets.arenaSuzy} style={styles.listThumb} />
             <View style={styles.listCopy}>
               <Text style={styles.listName}>{opportunity.titulo}</Text>

@@ -153,7 +153,8 @@ function Feedback({ status, children }) {
 }
 
 function isOptionalField(field) {
-  return field.toLowerCase().includes('(opcional)')
+  const normalized = field.toLowerCase()
+  return normalized.includes('(opcional)') || normalized.includes('(apenas menores)')
 }
 
 export function SignupForm({ config, go, back, repositories }) {
@@ -200,6 +201,7 @@ export function SignupForm({ config, go, back, repositories }) {
     const documentField = fields.find(field => /cpf|cnpj/i.test(field))
     const locationField = fields.find(field => field.toLowerCase().includes('localiza'))
     const relationshipField = fields.find(field => field.toLowerCase().includes('parentesco'))
+    const guardianCodeField = fields.find(field => field.toLowerCase().includes('código do responsável'))
     const email = values[emailField]?.trim() ?? ''
     const password = values[passwordField] ?? ''
     const passwordConfirmation = values[confirmationField] ?? ''
@@ -262,10 +264,10 @@ export function SignupForm({ config, go, back, repositories }) {
       return
     }
 
-    if (isAthlete && minor) {
+    if (isAthlete && minor && !values[guardianCodeField]?.trim()) {
       setFeedback({
         status: 'error',
-        message: 'Para proteger atletas menores, a criação da conta aguarda o vínculo confirmado do responsável legal.',
+        message: 'Informe o código ativo gerado pelo responsável legal para concluir o cadastro.',
       })
       return
     }
@@ -279,7 +281,11 @@ export function SignupForm({ config, go, back, repositories }) {
     setLoading(true)
 
     const profile = userType === USER_TYPES.ATHLETE
-      ? { dataNascimento: birthDate, modalidade: '' }
+      ? {
+          dataNascimento: birthDate,
+          modalidade: '',
+          ...(minor ? { codigoResponsavel: values[guardianCodeField]?.trim() } : {}),
+        }
       : userType === USER_TYPES.GUARDIAN
         ? {
             parentesco: values[relationshipField]?.trim() ?? '',
@@ -307,7 +313,7 @@ export function SignupForm({ config, go, back, repositories }) {
       }
 
       const message = userType === USER_TYPES.GUARDIAN
-        ? 'Conta de responsável criada. O vínculo com o atleta será concluído quando o fluxo estiver disponível.'
+        ? 'Conta de responsável criada. Gere um código para vincular o atleta menor de idade.'
         : 'Conta criada com sucesso. Abrindo seu espaço...'
       setFeedback({ status: 'success', message })
     } catch (error) {

@@ -25,31 +25,31 @@
       "id": "RF05",
       "titulo": "Identificação de menor",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando contrato e operação de convite/código e vínculo do responsável no repositório; sem isso não é possível ativar o fluxo de menor de forma segura.",
-      "atualizadoEm": "2026-10-15T18:18:27.405Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:20:07.960Z"
     },
     {
       "id": "RF06",
       "titulo": "Vínculo do responsável",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:20:08.392Z"
     },
     {
       "id": "RF07",
       "titulo": "Responsável administra atleta",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:20:08.835Z"
     },
     {
       "id": "RF24",

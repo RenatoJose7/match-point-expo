@@ -6,6 +6,7 @@ import {
   calculateAge,
   isMinor,
 } from '../src/domain/contracts.js'
+import { getHomeRouteForUser } from '../src/core/session.js'
 import { createMemoryRepositories } from '../src/repositories/memory/index.js'
 
 const repositories = createMemoryRepositories()
@@ -13,6 +14,7 @@ const repositories = createMemoryRepositories()
 assert.equal(calculateAge('2000-10-10', new Date('2026-10-09T12:00:00Z')), 25)
 assert.equal(calculateAge('2000-10-09', new Date('2026-10-09T12:00:00Z')), 26)
 assert.equal(isMinor('2011-08-20', new Date('2026-10-09T12:00:00Z')), true)
+assert.equal(getHomeRouteForUser({ tipo: USER_TYPES.GUARDIAN }), 'homeResponsible')
 
 const login = await repositories.authentication.entrar('atleta.menor@matchpoint.example', 'demo-local')
 assert.equal(login.ok, true)
