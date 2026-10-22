@@ -55,11 +55,11 @@
       "id": "RF17",
       "titulo": "Status e histórico do atleta",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo pelo usuário autenticado e vínculo entre candidatura e oportunidade",
-      "atualizadoEm": "2026-10-15T19:21:43.059Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:23:11.167Z"
     },
     {
       "id": "RF23",
