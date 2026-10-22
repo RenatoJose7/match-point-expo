@@ -18,6 +18,10 @@ service cloud.firestore {
       return signedIn() && userType() in ['treinador', 'instituicao'];
     }
 
+    function isAdmin() {
+      return signedIn() && userType() == 'administrador';
+    }
+
     function ownsAthlete(athleteId) {
       return signedIn()
         && get(/databases/$(database)/documents/atletas/$(athleteId)).data.usuarioId == request.auth.uid;
@@ -33,6 +37,15 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.usuarioId == request.auth.uid;
     }
 
+    function verifiedPartner(partnerId) {
+      return ownsPartner(partnerId)
+        && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
+    }
+
+    function partnerIsVerified(partnerId) {
+      return get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
+    }
+
     function ownsOpportunity(opportunityId) {
       return signedIn()
         && ownsPartner(
@@ -46,6 +59,12 @@ service cloud.firestore {
 
     function ownsApplicationOpportunity(application) {
       return ownsOpportunity(application.oportunidadeId);
+    }
+
+    function canNotifyApplicationAthlete(applicationId, userId) {
+      let application = get(/databases/$(database)/documents/candidaturas/$(applicationId)).data;
+      let athlete = get(/databases/$(database)/documents/atletas/$(application.atletaId)).data;
+      return ownsApplicationOpportunity(application) && athlete.usuarioId == userId;
     }
 
     function candidateApplicationExists(opportunityId, athleteId, applicationId) {
@@ -140,6 +159,43 @@ service cloud.firestore {
       ];
     }
 
+    function validApplicationTransition(previousStatus, nextStatus) {
+      return (previousStatus == 'inscrita' && nextStatus in ['documentos_enviados', 'em_analise'])
+        || (previousStatus == 'documentos_enviados' && nextStatus == 'em_analise')
+        || (previousStatus == 'em_analise' && nextStatus in ['aprovada', 'rejeitada']);
+    }
+
+    function hasValidStatusHistoryAppend() {
+      let previousHistory = resource.data.historico;
+      let nextHistory = request.resource.data.historico;
+      let nextEvent = nextHistory[previousHistory.size()];
+      return nextHistory is list
+        && nextHistory.size() == previousHistory.size() + 1
+        && nextEvent is map
+        && nextEvent.keys().hasOnly([
+          'id',
+          'status',
+          'statusAnterior',
+          'statusNovo',
+          'descricao',
+          'data',
+          'responsavelId'
+        ])
+        && nextEvent.keys().hasAll([
+          'id',
+          'status',
+          'statusAnterior',
+          'statusNovo',
+          'descricao',
+          'data',
+          'responsavelId'
+        ])
+        && nextEvent.status == request.resource.data.status
+        && nextEvent.statusAnterior == resource.data.status
+        && nextEvent.statusNovo == request.resource.data.status
+        && nextEvent.responsavelId == request.auth.uid;
+    }
+
     match /usuarios/{userId} {
       allow create: if isOwnUser(userId)
         && request.resource.data.id == userId
@@ -174,13 +230,15 @@ service cloud.firestore {
         && (
           resource.data.usuarioId == request.auth.uid
           || guardianCanAccessAthlete(resource.data)
+          || isAdmin()
         )
         && request.resource.data.id == resource.data.id
         && request.resource.data.usuarioId == resource.data.usuarioId
         && request.resource.data.get('responsavelId', null)
           == resource.data.get('responsavelId', null)
         && request.resource.data.get('vinculoResponsavelId', null)
-          == resource.data.get('vinculoResponsavelId', null);
+          == resource.data.get('vinculoResponsavelId', null)
+        && ( !isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']) );
       allow delete: if false;
     }
 
@@ -191,10 +249,11 @@ service cloud.firestore {
         && request.resource.data.tipo in ['treinador', 'instituicao'];
       allow read: if signedIn();
       allow update: if signedIn()
-        && resource.data.usuarioId == request.auth.uid
+        && (resource.data.usuarioId == request.auth.uid || isAdmin())
         && request.resource.data.id == resource.data.id
         && request.resource.data.usuarioId == resource.data.usuarioId
-        && request.resource.data.tipo == resource.data.tipo;
+        && request.resource.data.tipo == resource.data.tipo
+        && (!isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']));
       allow delete: if false;
     }
 
@@ -261,11 +320,19 @@ service cloud.firestore {
       allow read: if signedIn();
       allow create: if signedIn()
         && request.resource.data.id == opportunityId
-        && ownsPartner(request.resource.data.criadorId);
+        && ownsPartner(request.resource.data.criadorId)
+        && (
+          request.resource.data.status != 'ativa'
+          || verifiedPartner(request.resource.data.criadorId)
+        );
       allow update: if signedIn()
         && ownsPartner(resource.data.criadorId)
         && request.resource.data.id == resource.data.id
-        && request.resource.data.criadorId == resource.data.criadorId;
+        && request.resource.data.criadorId == resource.data.criadorId
+        && (
+          request.resource.data.status != 'ativa'
+          || verifiedPartner(resource.data.criadorId)
+        );
       allow delete: if false;
     }
 
@@ -327,13 +394,33 @@ service cloud.firestore {
         && (
           (
             ownsApplicationAthlete(resource.data)
-            && request.resource.data.diff(resource.data).affectedKeys()
-              .hasOnly(['documentos', 'atualizadoEm'])
+            && (
+              (
+                request.resource.data.status == resource.data.status
+                && request.resource.data.historico == resource.data.historico
+                && request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['documentos', 'atualizadoEm'])
+              )
+              || (
+                request.resource.data.diff(resource.data).affectedKeys()
+                  .hasOnly(['documentos', 'status', 'historico', 'atualizadoEm'])
+                && validApplicationTransition(
+                  resource.data.status,
+                  request.resource.data.status
+                )
+                && hasValidStatusHistoryAppend()
+              )
+            )
           )
           || (
             ownsApplicationOpportunity(resource.data)
             && request.resource.data.diff(resource.data).affectedKeys()
               .hasOnly(['status', 'historico', 'atualizadoEm'])
+            && validApplicationTransition(
+              resource.data.status,
+              request.resource.data.status
+            )
+            && hasValidStatusHistoryAppend()
           )
         );
       allow delete: if false;
@@ -346,6 +433,88 @@ service cloud.firestore {
         && ownsAthlete(request.resource.data.atletaId)
         && request.resource.data.candidaturaId is string
         && request.resource.data.oportunidadeId is string;
+      allow update, delete: if false;
+    }
+
+    match /notificacoes/{notificationId} {
+      allow get, list: if signedIn() && resource.data.usuarioId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.id == notificationId
+        && request.resource.data.usuarioId is string
+        && request.resource.data.candidaturaId is string
+        && request.resource.data.oportunidadeId is string
+        && request.resource.data.titulo is string
+        && request.resource.data.mensagem is string
+        && request.resource.data.lida == false
+        && canNotifyApplicationAthlete(request.resource.data.candidaturaId, request.resource.data.usuarioId);
+      allow update: if signedIn()
+        && resource.data.usuarioId == request.auth.uid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'lidaEm'])
+        && request.resource.data.lida == true;
+      allow delete: if false;
+    }
+
+    match /solicitacoesAvaliacao/{requestId} {
+      allow get, list: if signedIn()
+        && (ownsPartner(resource.data.instituicaoId) || ownsPartner(resource.data.treinadorId));
+      allow create: if signedIn()
+        && request.resource.data.id == requestId
+        && request.resource.data.status == 'pendente'
+        && verifiedPartner(request.resource.data.instituicaoId)
+        && partnerIsVerified(request.resource.data.treinadorId)
+        && get(/databases/$(database)/documents/parceiros/$(request.resource.data.treinadorId)).data.tipo == 'treinador'
+        && exists(/databases/$(database)/documents/atletas/$(request.resource.data.atletaId));
+      allow update: if signedIn()
+        && ownsPartner(resource.data.treinadorId)
+        && resource.data.status == 'pendente'
+        && request.resource.data.status == 'concluida'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'avaliacaoId', 'atualizadoEm']);
+      allow delete: if false;
+    }
+
+    match /avaliacoesTecnicas/{evaluationId} {
+      allow get, list: if signedIn()
+        && (ownsPartner(resource.data.instituicaoId) || ownsPartner(resource.data.treinadorId));
+      allow create: if signedIn()
+        && request.resource.data.id == evaluationId
+        && verifiedPartner(request.resource.data.treinadorId)
+        && request.resource.data.notaTecnica is number
+        && request.resource.data.notaFisica is number
+        && request.resource.data.notaTatica is number
+        && request.resource.data.notaTecnica >= 1 && request.resource.data.notaTecnica <= 5
+        && request.resource.data.notaFisica >= 1 && request.resource.data.notaFisica <= 5
+        && request.resource.data.notaTatica >= 1 && request.resource.data.notaTatica <= 5
+        && request.resource.data.parecer is string;
+      allow update, delete: if false;
+    }
+
+    match /relatos/{reportId} {
+      allow create: if signedIn() && request.resource.data.id == reportId
+        && request.resource.data.autorId == request.auth.uid
+        && request.resource.data.mensagem is string
+        && request.resource.data.status == 'aberto';
+      allow get, list: if signedIn() && (resource.data.autorId == request.auth.uid || isAdmin());
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    match /recursos/{resourceId} {
+      allow read: if signedIn();
+      allow create, update: if isAdmin() && request.resource.data.id == resourceId;
+      allow delete: if false;
+    }
+
+    match /apoios/{supportId} {
+      allow create: if signedIn() && request.resource.data.id == supportId
+        && verifiedPartner(request.resource.data.instituicaoId)
+        && get(/databases/$(database)/documents/parceiros/$(request.resource.data.instituicaoId)).data.tipo == 'instituicao'
+        && request.resource.data.descricao is string;
+      allow get, list: if signedIn() && (ownsPartner(resource.data.instituicaoId) || ownsAthlete(resource.data.atletaId));
+      allow update, delete: if false;
+    }
+
+    match /auditoriasMatch/{auditId} {
+      allow create, get, list: if isAdmin();
       allow update, delete: if false;
     }
 

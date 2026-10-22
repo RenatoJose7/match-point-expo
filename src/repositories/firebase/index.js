@@ -1,9 +1,11 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  GoogleAuthProvider,
   onAuthStateChanged,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
+  signInWithCredential,
   signOut,
 } from 'firebase/auth'
 import {
@@ -42,6 +44,13 @@ const OPPORTUNITIES_COLLECTION = 'oportunidades'
 const APPLICATIONS_COLLECTION = 'candidaturas'
 const APPLICATION_KEYS_COLLECTION = 'chavesCandidatura'
 const PUBLIC_CANDIDATE_PROFILES_SUBCOLLECTION = 'perfisCandidatos'
+const NOTIFICATIONS_COLLECTION = 'notificacoes'
+const EVALUATION_REQUESTS_COLLECTION = 'solicitacoesAvaliacao'
+const TECHNICAL_EVALUATIONS_COLLECTION = 'avaliacoesTecnicas'
+const REPORTS_COLLECTION = 'relatos'
+const RESOURCES_COLLECTION = 'recursos'
+const SUPPORTS_COLLECTION = 'apoios'
+const MATCH_AUDITS_COLLECTION = 'auditoriasMatch'
 
 function success(data) {
   return { ok: true, data }
@@ -304,6 +313,17 @@ export function createFirebaseRepositories() {
     }
   }
 
+  const getPartnerById = async (id) => {
+    try {
+      const snapshot = await getDoc(doc(database, PARTNERS_COLLECTION, id))
+      return snapshot.exists()
+        ? success(normalizeDocument(snapshot))
+        : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil parceiro não encontrado.')
+    } catch (error) {
+      return mapFirebaseError(error)
+    }
+  }
+
   const getGuardianByUserId = async (userId) => {
     try {
       const snapshots = await getDocs(query(
@@ -478,6 +498,79 @@ export function createFirebaseRepositories() {
       }
     },
 
+    entrarComGoogle: async (idToken) => {
+      if (!idToken) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível validar a resposta do Google.')
+      try {
+        const credential = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))
+        const existingUser = await getUserById(credential.user.uid)
+        if (existingUser.ok) return existingUser
+        if (existingUser.codigo !== REPOSITORY_ERROR_CODES.NOT_FOUND) return existingUser
+        return success({
+          id: credential.user.uid,
+          email: credential.user.email ?? '',
+          nome: credential.user.displayName ?? '',
+          fotoUrl: credential.user.photoURL ?? null,
+          cadastroPendente: true,
+        })
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+
+    concluirCadastroGoogle: async (type, initialData = {}) => {
+      const firebaseUser = auth.currentUser
+      if (!firebaseUser || !Object.values(USER_TYPES).includes(type)) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre com Google antes de concluir o cadastro.')
+      }
+
+      const createdAt = now()
+      const profileResult = buildRegistrationProfile(type, firebaseUser.uid, initialData, createdAt)
+      if (!profileResult.ok) return profileResult
+      const userReference = doc(database, USERS_COLLECTION, firebaseUser.uid)
+      const user = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email ?? initialData.email ?? '',
+        tipo: type,
+        nome: initialData.nome?.trim() || firebaseUser.displayName || '',
+        telefone: initialData.telefone?.trim() || null,
+        fotoUrl: firebaseUser.photoURL ?? null,
+        criadoEm: createdAt,
+        atualizadoEm: createdAt,
+      }
+
+      try {
+        const minorRegistration = type === USER_TYPES.ATHLETE
+          && isMinor(profileResult.data?.data?.dataNascimento)
+        if (minorRegistration) {
+          const linkCode = normalizeLinkCode(initialData.perfil?.codigoResponsavel)
+          const invitationReference = doc(database, GUARDIAN_INVITES_COLLECTION, linkCode)
+          const athleteReference = doc(database, ATHLETES_COLLECTION, firebaseUser.uid)
+          const result = await runTransaction(database, async (transaction) => {
+            const invitationSnapshot = await transaction.get(invitationReference)
+            if (!invitationSnapshot.exists() || !isActiveGuardianInvite(normalizeDocument(invitationSnapshot), createdAt)) {
+              return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Código de responsável inválido, expirado ou já utilizado.')
+            }
+            const invitation = normalizeDocument(invitationSnapshot)
+            transaction.set(userReference, user)
+            transaction.set(athleteReference, { ...profileResult.data.data, responsavelId: invitation.responsavelId, vinculoResponsavelId: linkCode })
+            transaction.update(doc(database, GUARDIANS_COLLECTION, invitation.responsavelId), { atletasVinculadosIds: arrayUnion(firebaseUser.uid), atualizadoEm: createdAt })
+            transaction.update(invitationReference, { status: 'utilizado', utilizadoPorAtletaId: firebaseUser.uid, utilizadoEm: createdAt })
+            return success(user)
+          })
+          if (result.ok) sessionObservers.forEach((callback) => callback(user))
+          return result
+        }
+        const batch = writeBatch(database)
+        batch.set(userReference, user)
+        if (profileResult.data) batch.set(doc(database, profileResult.data.collection, firebaseUser.uid), profileResult.data.data)
+        await batch.commit()
+        sessionObservers.forEach((callback) => callback(user))
+        return success(user)
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+
     sair: async () => {
       try {
         await signOut(auth)
@@ -617,6 +710,17 @@ export function createFirebaseRepositories() {
       }
     },
     obterPerfilParceiroPorUsuario: getPartnerByUserId,
+    listarParceiros: async (filters = {}) => {
+      try {
+        const snapshots = await getDocs(collection(database, PARTNERS_COLLECTION))
+        return success(snapshots.docs.map(normalizeDocument).filter((partner) => (
+          (!filters.tipo || partner.tipo === filters.tipo)
+          && (!filters.verificado || partner.verificado === true)
+        )))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
     atualizarPerfilParceiro: async (id, data) => {
       try {
         await updateDoc(doc(database, PARTNERS_COLLECTION, id), { ...data, id })
@@ -721,11 +825,19 @@ export function createFirebaseRepositories() {
     },
     obterOportunidade: getOpportunityById,
     criarOportunidade: async (data) => {
+      const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
+      if (status === OPPORTUNITY_STATUS.ACTIVE) {
+        const partner = await getPartnerById(data.criadorId)
+        if (!partner.ok) return partner
+        if (!partner.data.verificado) {
+          return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
+        }
+      }
       const createdAt = now()
       const opportunity = {
         id: newId(database, OPPORTUNITIES_COLLECTION),
         ...data,
-        status: data.status ?? OPPORTUNITY_STATUS.DRAFT,
+        status,
         criadoEm: createdAt,
         atualizadoEm: createdAt,
       }
@@ -738,6 +850,16 @@ export function createFirebaseRepositories() {
     },
     atualizarOportunidade: async (id, data) => {
       try {
+        const current = await getOpportunityById(id)
+        if (!current.ok) return current
+        const status = data.status ?? current.data.status
+        if (status === OPPORTUNITY_STATUS.ACTIVE) {
+          const partner = await getPartnerById(current.data.criadorId)
+          if (!partner.ok) return partner
+          if (!partner.data.verificado) {
+            return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
+          }
+        }
         await updateDoc(doc(database, OPPORTUNITIES_COLLECTION, id), {
           ...data,
           id,
@@ -1004,7 +1126,11 @@ export function createFirebaseRepositories() {
         return mapFirebaseError(error)
       }
     },
-    atualizarStatusDaCandidatura: async (id, nextStatus, responsibleId = auth.currentUser?.uid ?? null) => {
+    atualizarStatusDaCandidatura: async (id, nextStatus) => {
+      if (!auth.currentUser) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
+      }
+
       const applicationReference = doc(database, APPLICATIONS_COLLECTION, id)
       const updatedAt = now()
 
@@ -1019,6 +1145,9 @@ export function createFirebaseRepositories() {
           if (!canTransitionApplicationStatus(application.status, nextStatus)) {
             return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
           }
+          const athleteSnapshot = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)
+            ? await transaction.get(doc(database, ATHLETES_COLLECTION, application.atletaId))
+            : null
 
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
@@ -1027,7 +1156,7 @@ export function createFirebaseRepositories() {
             statusNovo: nextStatus,
             descricao: `${application.status} → ${nextStatus}`,
             data: updatedAt,
-            responsavelId: responsibleId,
+            responsavelId: auth.currentUser.uid,
           }
           const historico = [...(application.historico ?? []), event]
           const updated = {
@@ -1042,6 +1171,21 @@ export function createFirebaseRepositories() {
             historico: updated.historico,
             atualizadoEm: updated.atualizadoEm,
           })
+          if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
+            if (athleteSnapshot?.exists()) {
+              const notificationReference = doc(collection(database, NOTIFICATIONS_COLLECTION))
+              transaction.set(notificationReference, {
+                id: notificationReference.id,
+                usuarioId: athleteSnapshot.data().usuarioId,
+                candidaturaId: application.id,
+                oportunidadeId: application.oportunidadeId,
+                titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
+                mensagem: nextStatus === APPLICATION_STATUS.APPROVED ? 'Sua candidatura foi aprovada pela instituição.' : 'Sua candidatura recebeu uma atualização da instituição.',
+                lida: false,
+                criadoEm: updatedAt,
+              })
+            }
+          }
           return success(updated)
         })
       } catch (error) {
@@ -1062,13 +1206,39 @@ export function createFirebaseRepositories() {
           }
 
           const application = normalizeDocument(snapshot)
+          const opportunitySnapshot = await transaction.get(doc(database, OPPORTUNITIES_COLLECTION, application.oportunidadeId))
+          const requiredDocuments = opportunitySnapshot.exists()
+            ? (opportunitySnapshot.data().documentosNecessarios ?? [])
+            : []
           const document = {
             ...uploadedDocument.data,
             enviadoEm: uploadedDocument.data.enviadoEm ?? updatedAt,
           }
           const documentos = [...(application.documentos ?? []), document]
-          const updated = { ...application, documentos, atualizadoEm: updatedAt }
-          transaction.update(applicationReference, { documentos, atualizadoEm: updatedAt })
+          const allRequiredDocumentsSent = requiredDocuments.length > 0
+            && requiredDocuments.every((type) => documentos.some((item) => item.tipo === type))
+          const nextStatus = application.status === APPLICATION_STATUS.SUBMITTED && allRequiredDocumentsSent
+            ? APPLICATION_STATUS.DOCUMENTS_SENT
+            : application.status
+          const event = nextStatus !== application.status
+            ? {
+              id: doc(collection(database, 'eventosCandidatura')).id,
+              status: nextStatus,
+              statusAnterior: application.status,
+              statusNovo: nextStatus,
+              descricao: `${application.status} → ${nextStatus}`,
+              data: updatedAt,
+              responsavelId: auth.currentUser?.uid,
+            }
+            : null
+          const historico = event ? [...(application.historico ?? []), event] : application.historico ?? []
+          const updated = { ...application, documentos, status: nextStatus, historico, atualizadoEm: updatedAt }
+          transaction.update(applicationReference, {
+            documentos,
+            status: nextStatus,
+            historico,
+            atualizadoEm: updatedAt,
+          })
           return success(updated)
         })
       } catch (error) {
@@ -1108,5 +1278,100 @@ export function createFirebaseRepositories() {
     },
   }
 
-  return { authentication, users, opportunities, applications, match, storage: storageRepository }
+  const notifications = {
+    listarNotificacoesDoUsuario: async (userId) => {
+      if (!auth.currentUser || auth.currentUser.uid !== userId) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas notificações.')
+      }
+      try {
+        const snapshots = await getDocs(query(
+          collection(database, NOTIFICATIONS_COLLECTION),
+          where('usuarioId', '==', userId),
+        ))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+    marcarComoLida: async (id) => {
+      try {
+        const reference = doc(database, NOTIFICATIONS_COLLECTION, id)
+        await updateDoc(reference, { lida: true, lidaEm: now() })
+        const snapshot = await getDoc(reference)
+        return snapshot.exists()
+          ? success(normalizeDocument(snapshot))
+          : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Notificação não encontrada.')
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+  }
+
+  const evaluations = {
+    listarSolicitacoesDoTreinador: async (trainerId) => {
+      const trainer = await getPartnerByUserId(auth.currentUser?.uid)
+      if (!trainer.ok || trainer.data.id !== trainerId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
+      try {
+        const snapshots = await getDocs(query(collection(database, EVALUATION_REQUESTS_COLLECTION), where('treinadorId', '==', trainerId)))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) { return mapFirebaseError(error) }
+    },
+    solicitarAvaliacao: async (data) => {
+      const institution = await getPartnerByUserId(auth.currentUser?.uid)
+      const trainer = await getPartnerById(data.treinadorId)
+      if (!institution.ok || institution.data.id !== data.instituicaoId || institution.data.tipo !== USER_TYPES.INSTITUTION) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
+      if (!institution.data.verificado || !trainer.ok || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado.')
+      try {
+        const requestReference = doc(collection(database, EVALUATION_REQUESTS_COLLECTION))
+        const request = { id: requestReference.id, ...data, status: 'pendente', criadoEm: now(), atualizadoEm: now() }
+        await setDoc(requestReference, request)
+        return success(request)
+      } catch (error) { return mapFirebaseError(error) }
+    },
+    registrarAvaliacao: async (data) => {
+      const trainer = await getPartnerByUserId(auth.currentUser?.uid)
+      const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
+      if (!trainer.ok || trainer.data.id !== data.treinadorId || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador designado pode registrar a avaliação.')
+      if (scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')
+      const requestReference = doc(database, EVALUATION_REQUESTS_COLLECTION, data.solicitacaoId)
+      const evaluationReference = doc(collection(database, TECHNICAL_EVALUATIONS_COLLECTION))
+      try {
+        return await runTransaction(database, async (transaction) => {
+          const snapshot = await transaction.get(requestReference)
+          if (!snapshot.exists()) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Solicitação de avaliação não encontrada.')
+          const request = normalizeDocument(snapshot)
+          if (request.treinadorId !== trainer.data.id || request.status !== 'pendente') return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta solicitação não está disponível para avaliação.')
+          const evaluation = { id: evaluationReference.id, ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+          transaction.set(evaluationReference, evaluation)
+          transaction.update(requestReference, { status: 'concluida', avaliacaoId: evaluation.id, atualizadoEm: evaluation.criadoEm })
+          return success(evaluation)
+        })
+      } catch (error) { return mapFirebaseError(error) }
+    },
+  }
+
+  const reports = {
+    enviarRelato: async (data) => {
+      if (!auth.currentUser || !String(data.mensagem ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Descreva o relato antes de enviar.')
+      try { const reference = doc(collection(database, REPORTS_COLLECTION)); const item = { id: reference.id, autorId: auth.currentUser.uid, alvoTipo: data.alvoTipo ?? 'plataforma', alvoId: data.alvoId ?? null, mensagem: data.mensagem.trim(), status: 'aberto', criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+    },
+    listarMeusRelatos: async () => { if (!auth.currentUser) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.'); try { const snapshots = await getDocs(query(collection(database, REPORTS_COLLECTION), where('autorId', '==', auth.currentUser.uid))); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+  }
+  const support = {
+    registrarApoio: async (data) => {
+      const institution = await getPartnerByUserId(auth.currentUser?.uid)
+      if (!institution.ok || institution.data.id !== data.instituicaoId || !institution.data.verificado || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
+      try { const reference = doc(collection(database, SUPPORTS_COLLECTION)); const item = { id: reference.id, ...data, descricao: data.descricao.trim(), criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+    },
+  }
+  const administration = {
+    listarRecursos: async () => { try { const snapshots = await getDocs(collection(database, RESOURCES_COLLECTION)); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+    salvarRecurso: async (data) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN || !String(data.titulo ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode gerenciar recursos.'); try { const reference = doc(database, RESOURCES_COLLECTION, data.id ?? newId(database, RESOURCES_COLLECTION)); const item = { id: reference.id, ...data, titulo: data.titulo.trim(), ativo: data.ativo !== false, atualizadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) } },
+    listarRelatos: async () => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar relatos.'); try { const snapshots = await getDocs(collection(database, REPORTS_COLLECTION)); return success(snapshots.docs.map(normalizeDocument)) } catch (error) { return mapFirebaseError(error) } },
+    listarContasParceiras: async () => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar contas.'); return users.listarParceiros() },
+    decidirConta: async (data) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN || !['aprovada', 'corrigida', 'rejeitada', 'suspensa'].includes(data.decisao)) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Decisão administrativa inválida.'); try { const collectionName = data.tipo === 'parceiro' ? PARTNERS_COLLECTION : ATHLETES_COLLECTION; await updateDoc(doc(database, collectionName, data.id), { statusAdministrativo: data.decisao, atualizadoEm: now() }); return data.tipo === 'parceiro' ? getPartnerById(data.id) : getAthleteById(data.id) } catch (error) { return mapFirebaseError(error) } },
+    auditarMatchScore: async (athleteId, opportunityId) => { const user = await getUserById(auth.currentUser?.uid); if (!user.ok || user.data.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode auditar o Match Score.'); const score = await match.calcularMatchScore(athleteId, opportunityId); if (!score.ok) return score; try { const reference = doc(collection(database, MATCH_AUDITS_COLLECTION)); const audit = { id: reference.id, atletaId: athleteId, oportunidadeId: opportunityId, resultado: score.data, criterios: score.data.criterios, versao: score.data.versaoDoCalculo, criadoEm: now() }; await setDoc(reference, audit); return success(audit) } catch (error) { return mapFirebaseError(error) } },
+  }
+
+  return { authentication, users, opportunities, applications, notifications, evaluations, reports, support, administration, match, storage: storageRepository }
 }

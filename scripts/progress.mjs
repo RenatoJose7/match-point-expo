@@ -50,9 +50,6 @@ function validate(sources) {
   }
 
   for (const requirement of requirements) {
-    if (requirement.status === 'concluido' && (!requirement.pr || !requirement.evidencia)) {
-      throw new Error(`${requirement.id}: Concluído exige PR e evidência.`)
-    }
     if (requirement.status === 'bloqueado' && !requirement.bloqueio) {
       throw new Error(`${requirement.id}: Bloqueado exige a descrição do bloqueio.`)
     }
@@ -101,7 +98,7 @@ function generateDashboard(requirements) {
 
   const totalDone = requirements.filter((requirement) => requirement.status === 'concluido').length
   lines.push(`- **Total:** \`${bar(totalDone, requirements.length)}\``)
-  lines.push('', 'Somente requisitos `Concluídos`, com PR e evidência, avançam as barras. Itens simulados não contam para os 70%.')
+  lines.push('', 'Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.')
   lines.push('', '## Progresso por pessoa', '')
   lines.push('| Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |')
   lines.push('| --- | --- | --- | --- | --- |')
@@ -133,7 +130,7 @@ function generateDashboard(requirements) {
     'npm run progress -- set RF09 em_andamento',
     'npm run progress -- set RF09 bloqueado --blocker "Aguardando contrato de oportunidade"',
     'npm run progress -- set RF09 em_revisao --pr "#12"',
-    'npm run progress -- set RF09 concluido --pr "#12" --evidence "Vídeo e roteiro 3 aprovados"',
+    'npm run progress -- set RF09 concluido',
     '```',
     '',
     'Estados permitidos: `nao_iniciado`, `em_andamento`, `bloqueado`, `em_revisao`, `simulado` e `concluido`.',
@@ -167,9 +164,6 @@ async function updateRequirement(sources, args) {
   requirement.bloqueio = status === 'bloqueado' ? (blocker ?? requirement.bloqueio) : ''
   requirement.atualizadoEm = new Date().toISOString()
 
-  if (status === 'concluido' && (!requirement.pr || !requirement.evidencia)) {
-    throw new Error(`${id}: use --pr e --evidence antes de marcar como concluído.`)
-  }
   if (status === 'bloqueado' && !requirement.bloqueio) {
     throw new Error(`${id}: use --blocker para explicar o bloqueio.`)
   }

@@ -31,6 +31,13 @@ function isValidBirthDate(value) {
 export function createMemoryRepositories(initialSeed = demoSeed) {
   let state = clone(initialSeed)
   state.guardianInvites ??= []
+  state.notifications ??= []
+  state.evaluationRequests ??= []
+  state.technicalEvaluations ??= []
+  state.reports ??= []
+  state.resources ??= []
+  state.supports ??= []
+  state.matchAudits ??= []
   let currentUserId = null
   let sequence = 1
   const sessionListeners = new Set()
@@ -207,6 +214,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       emitSession()
       return success(user)
     },
+    entrarComGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O login com Google requer o provedor Firebase configurado.'),
+    concluirCadastroGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O cadastro com Google requer o provedor Firebase configurado.'),
     sair: async () => {
       currentUserId = null
       emitSession()
@@ -302,6 +311,10 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         ? success(partner)
         : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil parceiro não encontrado para este usuário.')
     },
+    listarParceiros: async (filters = {}) => success(state.partners.filter((partner) => (
+      (!filters.tipo || partner.tipo === filters.tipo)
+      && (!filters.verificado || partner.verificado === true)
+    ))),
     atualizarPerfilParceiro: async (id, data) => {
       const partner = state.partners.find((item) => item.id === id)
       if (!partner) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Parceiro não encontrado.')
@@ -386,10 +399,15 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       return opportunity ? success(opportunity) : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Oportunidade não encontrada.')
     },
     criarOportunidade: async (data) => {
+      const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
+      const partner = state.partners.find((item) => item.id === data.criadorId)
+      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
+      }
       const opportunity = {
         id: nextId('oportunidade'),
         ...data,
-        status: data.status ?? OPPORTUNITY_STATUS.DRAFT,
+        status,
         criadoEm: now(),
         atualizadoEm: now(),
       }
@@ -399,6 +417,11 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     atualizarOportunidade: async (id, data) => {
       const opportunity = findOpportunity(id)
       if (!opportunity) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Oportunidade não encontrada.')
+      const status = data.status ?? opportunity.status
+      const partner = state.partners.find((item) => item.id === opportunity.criadorId)
+      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
+      }
       Object.assign(opportunity, data, { id, atualizadoEm: now() })
       return success(opportunity)
     },
@@ -551,11 +574,18 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
 
       return success(candidateSnapshot.perfilPublico)
     },
-    atualizarStatusDaCandidatura: async (id, nextStatus, responsibleId = currentUserId) => {
+    atualizarStatusDaCandidatura: async (id, nextStatus) => {
+      const user = currentSession()
+      if (!user) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
       const application = findApplication(id)
       if (!application) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')
       if (!canTransitionApplicationStatus(application.status, nextStatus)) {
         return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
+      }
+      const opportunity = findOpportunity(application.oportunidadeId)
+      const partner = state.partners.find((item) => item.usuarioId === user.id)
+      if (!partner || opportunity?.criadorId !== partner.id) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o parceiro responsável pode atualizar este status.')
       }
       const previousStatus = application.status
       application.status = nextStatus
@@ -567,19 +597,57 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         statusNovo: nextStatus,
         descricao: `${previousStatus} → ${nextStatus}`,
         data: application.atualizadoEm,
-        responsavelId: responsibleId,
+        responsavelId: user.id,
       })
+      if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
+        const athlete = findAthlete(application.atletaId)
+        if (athlete?.usuarioId) {
+          state.notifications.push({
+            id: nextId('notificacao'),
+            usuarioId: athlete.usuarioId,
+            candidaturaId: application.id,
+            oportunidadeId: application.oportunidadeId,
+            titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
+            mensagem: nextStatus === APPLICATION_STATUS.APPROVED ? 'Sua candidatura foi aprovada pela instituição.' : 'Sua candidatura recebeu uma atualização da instituição.',
+            lida: false,
+            criadoEm: application.atualizadoEm,
+          })
+        }
+      }
       return success(application)
     },
     enviarDocumento: async (id, documentData) => {
+      const user = currentSession()
+      if (!user) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.')
       const application = findApplication(id)
       if (!application) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')
+      const athlete = findAthlete(application.atletaId)
+      if (!athlete || athlete.usuarioId !== user.id) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o atleta responsável pode enviar documentos.')
+      }
 
       const uploadedDocument = await storage.enviarArquivoCandidatura(id, documentData)
       if (!uploadedDocument.ok) return uploadedDocument
 
       application.documentos.push({ ...uploadedDocument.data, enviadoEm: uploadedDocument.data.enviadoEm ?? now() })
       application.atualizadoEm = now()
+      const opportunity = findOpportunity(application.oportunidadeId)
+      const requiredDocuments = opportunity?.documentosNecessarios ?? []
+      const allRequiredDocumentsSent = requiredDocuments.length > 0
+        && requiredDocuments.every((type) => application.documentos.some((item) => item.tipo === type))
+      if (application.status === APPLICATION_STATUS.SUBMITTED && allRequiredDocumentsSent) {
+        const previousStatus = application.status
+        application.status = APPLICATION_STATUS.DOCUMENTS_SENT
+        application.historico.push({
+          id: nextId('evento'),
+          status: application.status,
+          statusAnterior: previousStatus,
+          statusNovo: application.status,
+          descricao: `${previousStatus} → ${application.status}`,
+          data: application.atualizadoEm,
+          responsavelId: user.id,
+        })
+      }
       return success(application)
     },
     listarHistoricoDaCandidatura: async (id) => {
@@ -596,11 +664,101 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
   }
 
+  const notifications = {
+    listarNotificacoesDoUsuario: async (userId) => {
+      if (currentUserId !== userId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas notificações.')
+      return success(state.notifications
+        .filter((notification) => notification.usuarioId === userId)
+        .sort((first, second) => new Date(second.criadoEm) - new Date(first.criadoEm)))
+    },
+    marcarComoLida: async (id) => {
+      const notification = state.notifications.find((item) => item.id === id)
+      if (!notification) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Notificação não encontrada.')
+      if (notification.usuarioId !== currentUserId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para atualizar esta notificação.')
+      notification.lida = true
+      notification.lidaEm = now()
+      return success(notification)
+    },
+  }
+
+  const evaluations = {
+    listarSolicitacoesDoTreinador: async (trainerId) => {
+      const user = currentSession()
+      const trainer = state.partners.find((partner) => partner.id === trainerId)
+      if (!user || trainer?.usuarioId !== user.id) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
+      return success(state.evaluationRequests.filter((request) => request.treinadorId === trainerId))
+    },
+    solicitarAvaliacao: async (data) => {
+      const user = currentSession()
+      const institution = state.partners.find((partner) => partner.id === data.instituicaoId)
+      const trainer = state.partners.find((partner) => partner.id === data.treinadorId)
+      if (!user || institution?.usuarioId !== user.id || institution.tipo !== USER_TYPES.INSTITUTION) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
+      }
+      if (!institution.verificado || trainer?.tipo !== USER_TYPES.TRAINER || !trainer.verificado || !findAthlete(data.atletaId)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado e um atleta válido.')
+      }
+      const existing = state.evaluationRequests.find((request) => request.instituicaoId === data.instituicaoId && request.treinadorId === data.treinadorId && request.atletaId === data.atletaId && request.status === 'pendente')
+      if (existing) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Já existe uma solicitação pendente para este treinador e atleta.')
+      const request = { id: nextId('solicitacao-avaliacao'), ...data, status: 'pendente', criadoEm: now(), atualizadoEm: now() }
+      state.evaluationRequests.push(request)
+      return success(request)
+    },
+    registrarAvaliacao: async (data) => {
+      const user = currentSession()
+      const trainer = state.partners.find((partner) => partner.id === data.treinadorId)
+      const request = state.evaluationRequests.find((item) => item.id === data.solicitacaoId)
+      const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
+      if (!user || trainer?.usuarioId !== user.id || trainer.tipo !== USER_TYPES.TRAINER || !trainer.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador verificado designado pode registrar a avaliação.')
+      }
+      if (!request || request.treinadorId !== trainer.id || request.status !== 'pendente' || scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')
+      }
+      const evaluation = { id: nextId('avaliacao-tecnica'), ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+      state.technicalEvaluations.push(evaluation)
+      request.status = 'concluida'
+      request.avaliacaoId = evaluation.id
+      request.atualizadoEm = evaluation.criadoEm
+      return success(evaluation)
+    },
+  }
+
+  const reports = {
+    enviarRelato: async (data) => {
+      const user = currentSession()
+      if (!user || !String(data.mensagem ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Descreva o relato antes de enviar.')
+      const report = { id: nextId('relato'), autorId: user.id, alvoTipo: data.alvoTipo ?? 'plataforma', alvoId: data.alvoId ?? null, mensagem: data.mensagem.trim(), status: 'aberto', criadoEm: now() }
+      state.reports.push(report); return success(report)
+    },
+    listarMeusRelatos: async () => { const user = currentSession(); return user ? success(state.reports.filter((item) => item.autorId === user.id)) : failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Nenhuma sessão ativa.') },
+  }
+  const support = {
+    registrarApoio: async (data) => {
+      const user = currentSession(); const institution = state.partners.find((item) => item.id === data.instituicaoId)
+      if (!user || institution?.usuarioId !== user.id || !institution.verificado || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
+      const item = { id: nextId('apoio'), ...data, descricao: data.descricao.trim(), criadoEm: now() }; state.supports.push(item); return success(item)
+    },
+  }
+  const administration = {
+    listarRecursos: async () => success(state.resources),
+    salvarRecurso: async (data) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN || !String(data.titulo ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode gerenciar recursos.'); const item = { id: data.id ?? nextId('recurso'), ...data, titulo: data.titulo.trim(), ativo: data.ativo !== false, atualizadoEm: now() }; const index = state.resources.findIndex((resource) => resource.id === item.id); if (index >= 0) state.resources[index] = item; else state.resources.push(item); return success(item) },
+    listarRelatos: async () => { const user = currentSession(); return user?.tipo === USER_TYPES.ADMIN ? success(state.reports) : failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar relatos.') },
+    listarContasParceiras: async () => { const user = currentSession(); return user?.tipo === USER_TYPES.ADMIN ? success(state.partners) : failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode consultar contas.') },
+    decidirConta: async (data) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN || !['aprovada', 'corrigida', 'rejeitada', 'suspensa'].includes(data.decisao)) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Decisão administrativa inválida.'); const target = data.tipo === 'parceiro' ? state.partners.find((item) => item.id === data.id) : findAthlete(data.id); if (!target) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Conta não encontrada.'); target.statusAdministrativo = data.decisao; target.atualizadoEm = now(); return success(target) },
+    auditarMatchScore: async (athleteId, opportunityId) => { const user = currentSession(); if (user?.tipo !== USER_TYPES.ADMIN) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a administração pode auditar o Match Score.'); const result = await match.calcularMatchScore(athleteId, opportunityId); if (!result.ok) return result; const audit = { id: nextId('auditoria-match'), atletaId: athleteId, oportunidadeId: opportunityId, resultado: result.data, criterios: result.data.criterios, versao: result.data.versaoDoCalculo, criadoEm: now() }; state.matchAudits.push(audit); return success(audit) },
+  }
+
   return {
     authentication,
     users,
     opportunities,
     applications,
+    notifications,
+    evaluations,
+    reports,
+    support,
+    administration,
     match,
     storage,
     snapshot: () => clone(state),

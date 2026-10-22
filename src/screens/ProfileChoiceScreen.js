@@ -10,7 +10,7 @@ const profiles = [
   ['Sou uma ', 'instituição', 'Quero investir em atletas, fortalecer\nminha marca e acompanhar os\nresultados da parceria.'],
 ]
 
-export function ProfileChoiceScreen({ go, back }) {
+export function ProfileChoiceScreen({ go, back, routeParams = {} }) {
   const destinations = ['signupAthlete', 'signupTrainer', 'signupInstitution']
 
   return (
@@ -25,7 +25,7 @@ export function ProfileChoiceScreen({ go, back }) {
           <Text style={styles.choiceBrand}>Match Point?</Text>
           <View style={styles.profileList}>
             {profiles.map(([prefix, accent, copy], index) => (
-              <Pressable key={accent} onPress={() => go(destinations[index])} style={({ pressed }) => [styles.profileCard, pressed && styles.pressed]}>
+              <Pressable key={accent} onPress={() => go(destinations[index], routeParams)} style={({ pressed }) => [styles.profileCard, pressed && styles.pressed]}>
                 <Text style={styles.profileTitle}>{prefix}<Text style={styles.profileAccent}>{accent}</Text></Text>
                 <Text style={styles.profileCopy}>{copy}</Text>
               </Pressable>

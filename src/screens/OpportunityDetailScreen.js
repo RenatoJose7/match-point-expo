@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Image, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BackButton } from '../components/ui/BackButton'
@@ -8,13 +8,38 @@ import { assets } from '../theme/assets'
 import { BLUE } from '../theme/colors'
 import { styles } from '../theme/styles'
 
-const facts = [
-  ['school-outline', 'Categoria', 'Universitário'],
-  ['git-network-outline', 'Vagas', '3'],
-  ['briefcase-outline', 'Benefício', 'Bolsa integral'],
-]
+export function OpportunityDetailScreen({ go, back, repositories, routeParams = {} }) {
+  const opportunityId = routeParams.opportunityId
+  const [opportunity, setOpportunity] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState('')
+  const [retryToken, setRetryToken] = useState(0)
 
-export function OpportunityDetailScreen({ go, back }) {
+  useEffect(() => {
+    let active = true
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        if (!opportunityId) throw new Error('Escolha uma oportunidade antes de consultar os detalhes.')
+        const result = await repositories.opportunities.obterOportunidade(opportunityId)
+        if (!result.ok) throw new Error(result.mensagem || 'Oportunidade não encontrada.')
+        if (active) setOpportunity(result.data)
+      } catch (loadError) {
+        if (active) setError(loadError.message || 'Não foi possível carregar a oportunidade.')
+      } finally {
+        if (active) setLoading(false)
+      }
+    }
+    load()
+    return () => { active = false }
+  }, [opportunityId, repositories, retryToken])
+
+  const facts = opportunity ? [
+    ['school-outline', 'Categoria', opportunity.categoria || 'Não informada'],
+    ['briefcase-outline', 'Benefício', opportunity.beneficio || 'Não informado'],
+    ['location-outline', 'Localização', opportunity.localizacao || 'Não informada'],
+  ] : []
   return (
     <View style={styles.flowScreen}>
       <View style={styles.flowHeader}>
@@ -23,16 +48,19 @@ export function OpportunityDetailScreen({ go, back }) {
       </View>
 
       <ScrollView style={styles.opportunityDetailScroll} contentContainerStyle={styles.opportunityDetailContent} showsVerticalScrollIndicator={false}>
+        {loading ? <Text style={styles.opportunityBodyCopy}>Carregando oportunidade...</Text> : null}
+        {!loading && error ? <View style={styles.flowAction}><Text accessibilityRole="alert" style={styles.opportunityBodyCopy}>{error}</Text><Button wide onPress={() => setRetryToken((value) => value + 1)}>Tentar novamente</Button></View> : null}
+        {!loading && opportunity ? <>
         <Image source={assets.arenaSuzy} style={styles.opportunityHero} resizeMode="cover" />
         <View style={styles.opportunityIntro}>
           <View style={styles.opportunityHeadingRow}>
             <View>
-              <Text style={styles.opportunityDetailTitle}>Bolsa de Estudos</Text>
-              <Text style={styles.opportunityDetailSubtitle}>Tênis - Sub 18</Text>
+              <Text style={styles.opportunityDetailTitle}>{opportunity.titulo}</Text>
+              <Text style={styles.opportunityDetailSubtitle}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
             </View>
             <View style={styles.opportunityScore}>
               <Text style={styles.opportunityScoreLabel}>Match{`\n`}Score</Text>
-              <Text style={styles.opportunityScoreValue}>94%</Text>
+              <Text style={styles.opportunityScoreValue}>{routeParams.matchScore ?? '—'}%</Text>
             </View>
           </View>
 
@@ -40,15 +68,15 @@ export function OpportunityDetailScreen({ go, back }) {
             <Ionicons name="home" size={25} color={BLUE} />
             <View>
               <Text style={styles.opportunityFactLabel}>Instituição</Text>
-              <Text style={styles.institutionName}>Arena Suzy - Sub 18</Text>
-              <Text style={styles.institutionName}>Suzano - SP</Text>
+              <Text style={styles.institutionName}>{opportunity.instituicao || 'Instituição parceira'}</Text>
+              <Text style={styles.institutionName}>{opportunity.localizacao || 'Localização não informada'}</Text>
             </View>
           </View>
         </View>
 
         <View style={styles.opportunityAboutCard}>
           <Text style={styles.opportunitySectionTitle}>Sobre a oportunidade</Text>
-          <Text style={styles.opportunityBodyCopy}>Programa de bolsa para jovens atletas com destaque esportivo e bom desempenho acadêmico. A oportunidade oferece estrutura completa para o desenvolvimento dentro e fora das quadras.</Text>
+          <Text style={styles.opportunityBodyCopy}>{opportunity.descricao || 'Sem descrição disponível.'}</Text>
         </View>
 
         <View style={styles.opportunityFactsCard}>
@@ -65,13 +93,16 @@ export function OpportunityDetailScreen({ go, back }) {
 
         <View style={styles.requirementsBlock}>
           <Text style={styles.opportunitySectionTitle}>Requisitos</Text>
-          <Text style={styles.opportunityBodyCopy}>• Idade entre 17 e 19 anos{`\n`}• Ranking nacional Top 200{`\n`}• Média escolar mínima 7,0</Text>
-          <Text style={styles.deadline}>Inscrições até 20/05/2025</Text>
+          <Text style={styles.opportunityBodyCopy}>{(opportunity.requisitos ?? []).length ? opportunity.requisitos.map((item) => `• ${item}`).join('\n') : 'Nenhum requisito informado.'}</Text>
+          <Text style={styles.opportunitySectionTitle}>Documentos necessários</Text>
+          <Text style={styles.opportunityBodyCopy}>{(opportunity.documentosNecessarios ?? []).length ? opportunity.documentosNecessarios.map((item) => `• ${item}`).join('\n') : 'Nenhum documento exigido.'}</Text>
+          <Text style={styles.deadline}>{opportunity.fimInscricoes ? `Inscrições até ${new Date(opportunity.fimInscricoes).toLocaleDateString('pt-BR')}` : 'Prazo não informado'}</Text>
         </View>
 
         <View style={styles.flowAction}>
-          <Button wide onPress={() => go('applicationInfo')}>Quero me candidatar</Button>
+          <Button wide onPress={() => go('applicationInfo', { oportunidadeId: opportunityId })}>Quero me candidatar</Button>
         </View>
+        </> : null}
       </ScrollView>
       <BottomNav go={go} active="opportunities" />
     </View>

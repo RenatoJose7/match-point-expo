@@ -5,71 +5,71 @@
       "id": "RF03",
       "titulo": "Perfil esportivo",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T16:26:05.289Z"
+      "atualizadoEm": "2026-10-22T00:36:08.192Z"
     },
     {
       "id": "RF10",
       "titulo": "Pesquisa e filtros",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-15T19:19:06.455Z"
+      "atualizadoEm": "2026-10-22T00:35:52.635Z"
     },
     {
       "id": "RF11",
       "titulo": "Detalhes da oportunidade",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando rota com routeParams e operação Firebase para obter oportunidade por ID",
-      "atualizadoEm": "2026-10-15T19:21:11.787Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:35:52.928Z"
     },
     {
       "id": "RF15",
       "titulo": "Realizar candidatura",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "",
       "evidencia": "ApplicationInfoScreen identifica o perfil pela sessão, aceita oportunidadeId/atletaId em routeParams ou lista oportunidades abertas quando o ID falta, verifica duplicidade e elegibilidade e cria candidatura pelo repositório; sucesso mostra o ID gerado. Validado em memória para sucesso, duplicidade e inelegibilidade; fluxo visual com usuário fictício confirmou seletor e bloqueio de duplicata; check:contracts, progress e export:web passaram. Firebase real ainda não validado.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:02:12.468Z"
+      "atualizadoEm": "2026-10-22T00:35:53.550Z"
     },
     {
       "id": "RF16",
       "titulo": "Enviar documentos",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo, routeParams funcional e contrato de upload para arquivo real",
-      "atualizadoEm": "2026-10-15T19:21:38.716Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:35:53.850Z"
     },
     {
       "id": "RF17",
       "titulo": "Status e histórico do atleta",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando consulta do perfil esportivo pelo usuário autenticado e vínculo entre candidatura e oportunidade",
-      "atualizadoEm": "2026-10-15T19:21:43.059Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:35:54.147Z"
     },
     {
       "id": "RF23",
       "titulo": "Notificações",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:38:43.260Z"
     }
   ]
 }

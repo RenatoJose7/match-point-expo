@@ -238,6 +238,9 @@ export function AthleteProfileScreen(props) {
 
           {!!notice && <Text accessibilityRole="alert" style={localStyles.successText}>{notice}</Text>}
           <Button wide onPress={() => setEditing(true)}>Editar perfil</Button>
+          <Pressable accessibilityRole="button" onPress={() => go('operations')} style={localStyles.secondaryAction}>
+            <Text style={localStyles.secondaryActionText}>Enviar relato ou sugestão</Text>
+          </Pressable>
         </ScrollView>
       )}
 

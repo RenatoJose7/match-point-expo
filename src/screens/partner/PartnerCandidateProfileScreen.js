@@ -29,8 +29,12 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   const opportunityId = routeParams.opportunityId
   const athleteId = routeParams.athleteId
   const [profile, setProfile] = useState(null)
+  const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [pendingDecision, setPendingDecision] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
 
   useEffect(() => {
@@ -45,9 +49,18 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
           throw new Error('Não foi possível identificar a oportunidade e o candidato.')
         }
         await getOwnedOpportunity(repositories, partner.id, opportunityId)
-        const result = await repositories.applications.obterPerfilPublicoCandidato(opportunityId, athleteId)
-        if (!result.ok) throw new Error(result.mensagem || 'O perfil público do candidato não está disponível.')
-        if (active) setProfile(result.data)
+        const [profileResult, applicationsResult] = await Promise.all([
+          repositories.applications.obterPerfilPublicoCandidato(opportunityId, athleteId),
+          repositories.applications.listarCandidatosDaOportunidade(opportunityId),
+        ])
+        if (!profileResult.ok) throw new Error(profileResult.mensagem || 'O perfil público do candidato não está disponível.')
+        if (!applicationsResult.ok) throw new Error(applicationsResult.mensagem || 'Não foi possível carregar a candidatura.')
+        const candidateApplication = applicationsResult.data.find((item) => item.atletaId === athleteId)
+        if (!candidateApplication) throw new Error('A candidatura deste atleta não foi encontrada nesta oportunidade.')
+        if (active) {
+          setProfile(profileResult.data)
+          setApplication(candidateApplication)
+        }
       })
       .catch((loadError) => {
         if (active) setError(loadError.message || 'Não foi possível carregar o perfil do candidato.')
@@ -62,6 +75,28 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   const visibleFields = profileFields.filter((field) => (
     profile?.[field.key] !== undefined && profile[field.key] !== null && profile[field.key] !== ''
   ))
+
+  const updateStatus = async (nextStatus) => {
+    if (!application || saving) return
+    setSaving(true)
+    setError('')
+    setNotice('')
+    try {
+      const result = await repositories.applications.atualizarStatusDaCandidatura(application.id, nextStatus)
+      if (!result.ok) throw new Error(result.mensagem || 'Não foi possível atualizar a candidatura.')
+      setApplication(result.data)
+      setPendingDecision(null)
+      setNotice(nextStatus === 'em_analise'
+        ? 'Candidatura encaminhada para análise.'
+        : nextStatus === 'aprovada'
+          ? 'Candidatura aprovada. O atleta poderá acompanhar a decisão no histórico.'
+          : 'Candidatura rejeitada. O atleta poderá acompanhar a decisão no histórico.')
+    } catch (updateError) {
+      setError(updateError.message || 'Não foi possível atualizar a candidatura.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <View style={partnerStyles.page}>
@@ -126,6 +161,77 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             <Ionicons name="shield-checkmark-outline" size={17} color={partnerColors.greenDark} />
             <Text style={styles.privacyText}>Este retrato contém apenas informações esportivas compartilhadas na candidatura.</Text>
           </View>
+
+          {role === 'institution' ? (
+            <View style={styles.decisionCard}>
+              <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
+              <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador verificado antes da decisão.</Text>
+              <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
+                <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
+              </Pressable>
+              <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId })} style={partnerStyles.secondaryButton}>
+                <Text style={partnerStyles.secondaryButtonText}>Registrar apoio concedido</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {notice ? <FeedbackMessage tone="success">{notice}</FeedbackMessage> : null}
+          {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
+
+          {application?.status === 'inscrita' || application?.status === 'documentos_enviados' ? (
+            <View style={styles.decisionCard}>
+              <Text style={partnerStyles.sectionTitle}>Próximo passo</Text>
+              <Text style={styles.decisionCopy}>Confirme que este perfil será avaliado pela sua organização.</Text>
+              <Pressable
+                accessibilityRole="button"
+                disabled={saving}
+                onPress={() => updateStatus('em_analise')}
+                style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}
+              >
+                <Text style={partnerStyles.primaryButtonText}>{saving ? 'Atualizando...' : 'Enviar para análise'}</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
+          {application?.status === 'em_analise' ? (
+            <View style={styles.decisionCard}>
+              <Text style={partnerStyles.sectionTitle}>Decisão institucional</Text>
+              <Text style={styles.decisionCopy}>A decisão encerra esta candidatura e é registrada no histórico do atleta.</Text>
+              {pendingDecision ? (
+                <View style={styles.confirmation}>
+                  <Text style={styles.confirmationText}>Confirmar candidatura {pendingDecision === 'aprovada' ? 'aprovada' : 'rejeitada'}?</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={saving}
+                    onPress={() => updateStatus(pendingDecision)}
+                    style={[partnerStyles.primaryButton, pendingDecision === 'rejeitada' && styles.rejectButton, saving && partnerStyles.primaryButtonDisabled]}
+                  >
+                    <Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Confirmar decisão'}</Text>
+                  </Pressable>
+                  <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPendingDecision(null)} style={partnerStyles.secondaryButton}>
+                    <Text style={partnerStyles.secondaryButtonText}>Cancelar</Text>
+                  </Pressable>
+                </View>
+              ) : (
+                <View style={styles.decisionActions}>
+                  <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPendingDecision('aprovada')} style={partnerStyles.primaryButton}>
+                    <Text style={partnerStyles.primaryButtonText}>Aprovar candidatura</Text>
+                  </Pressable>
+                  <Pressable accessibilityRole="button" disabled={saving} onPress={() => setPendingDecision('rejeitada')} style={[partnerStyles.secondaryButton, styles.rejectOutline]}>
+                    <Text style={styles.rejectText}>Rejeitar candidatura</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
+          ) : null}
+
+          {application?.status === 'aprovada' || application?.status === 'rejeitada' ? (
+            <View style={[styles.finalStatus, application.status === 'aprovada' ? styles.approved : styles.rejected]}>
+              <Text style={[styles.finalStatusText, application.status === 'aprovada' ? styles.approvedText : styles.rejectedText]}>
+                Candidatura {application.status === 'aprovada' ? 'aprovada' : 'rejeitada'} e registrada no histórico.
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
       ) : null}
       <BottomNav go={go} role={role} active="opportunities" />
@@ -153,4 +259,18 @@ const styles = StyleSheet.create({
   fieldValue: { color: partnerColors.ink, fontSize: 12, lineHeight: 17, fontFamily: 'Poppins_600SemiBold' },
   privacyNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 8, backgroundColor: partnerColors.greenLight },
   privacyText: { flex: 1, color: partnerColors.greenDark, fontSize: 10, lineHeight: 16, fontFamily: 'Poppins_400Regular' },
+  decisionCard: { gap: 10, padding: 14, borderRadius: 8, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border },
+  decisionCopy: { color: partnerColors.muted, fontSize: 11, lineHeight: 17, fontFamily: 'Poppins_400Regular' },
+  decisionActions: { gap: 8 },
+  confirmation: { gap: 8, padding: 12, borderRadius: 7, backgroundColor: partnerColors.amberLight },
+  confirmationText: { color: partnerColors.ink, fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
+  rejectButton: { backgroundColor: partnerColors.red },
+  rejectOutline: { borderColor: '#efc7c1' },
+  rejectText: { color: partnerColors.red, fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
+  finalStatus: { padding: 13, borderRadius: 8 },
+  finalStatusText: { fontSize: 12, lineHeight: 18, fontFamily: 'Poppins_500Medium' },
+  approved: { backgroundColor: partnerColors.greenLight },
+  approvedText: { color: partnerColors.greenDark },
+  rejected: { backgroundColor: partnerColors.redLight },
+  rejectedText: { color: partnerColors.red },
 })

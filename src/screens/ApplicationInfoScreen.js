@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import * as DocumentPicker from 'expo-document-picker'
 import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { Button } from '../components/ui/Button'
 import { assets } from '../theme/assets'
-import { USER_TYPES } from '../domain/contracts.js'
+import { APPLICATION_STATUS, USER_TYPES } from '../domain/contracts.js'
 import { styles } from '../theme/styles'
 
 function formatDate(value) {
@@ -24,6 +25,7 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
   const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [retryToken, setRetryToken] = useState(0)
   const currentOpportunityId = oportunidadeId || selectedOpportunityId
@@ -95,11 +97,21 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
           setError(eligibilityResult.mensagem || 'Não foi possível verificar sua elegibilidade.')
           return
         }
+        let existingApplication = null
+        if (duplicateResult.data) {
+          const applicationsResult = await repositories.applications.listarCandidaturasDoAtleta(athleteResult.data.id)
+          if (!applicationsResult.ok) {
+            setError(applicationsResult.mensagem || 'Não foi possível carregar sua candidatura existente.')
+            return
+          }
+          existingApplication = applicationsResult.data.find((item) => item.oportunidadeId === currentOpportunityId) ?? null
+        }
 
         setOpportunity(opportunityResult.data)
         setAvailableOpportunities([])
         setAlreadyApplied(duplicateResult.data)
         setEligibility(eligibilityResult.data)
+        setApplication(existingApplication)
       } catch {
         if (active) setError('Não foi possível preparar a candidatura. Tente novamente.')
       } finally {
@@ -140,6 +152,34 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
       setError('Não foi possível enviar sua candidatura. Tente novamente.')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const uploadDocument = async (documentType) => {
+    if (!application || uploading) return
+    setUploading(true)
+    setError('')
+    try {
+      const selection = await DocumentPicker.getDocumentAsync({
+        copyToCacheDirectory: true,
+        multiple: false,
+        type: '*/*',
+      })
+      if (selection.canceled) return
+      const asset = selection.assets?.[0]
+      if (!asset) throw new Error('Nenhum arquivo foi selecionado.')
+      const result = await repositories.applications.enviarDocumento(application.id, {
+        tipo: documentType,
+        nome: asset.name,
+        tipoMime: asset.mimeType,
+        arquivo: { uri: asset.uri, name: asset.name, type: asset.mimeType },
+      })
+      if (!result.ok) throw new Error(result.mensagem || 'Não foi possível enviar o documento.')
+      setApplication(result.data)
+    } catch (uploadError) {
+      setError(uploadError.message || 'Não foi possível enviar o documento.')
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -224,10 +264,27 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
         ) : null}
         {!loading && application ? (
           <View style={localStyles.successBlock}>
-            <Text style={styles.applicationFormTitle}>Candidatura enviada</Text>
-            <Text style={localStyles.success}>Sua candidatura para {opportunity.titulo} foi registrada.</Text>
+            <Text style={styles.applicationFormTitle}>{alreadyApplied ? 'Candidatura em andamento' : 'Candidatura enviada'}</Text>
+            <Text style={localStyles.success}>{alreadyApplied ? `Continue o envio dos documentos da sua candidatura para ${opportunity.titulo}.` : `Sua candidatura para ${opportunity.titulo} foi registrada.`}</Text>
             <Text style={localStyles.state}>Número da candidatura: {application.id}</Text>
-            <Button wide onPress={() => go('opportunitiesAthlete')}>Voltar para oportunidades</Button>
+            <Text style={styles.applicationFormSection}>Documentos necessários</Text>
+            {(opportunity.documentosNecessarios ?? []).length ? opportunity.documentosNecessarios.map((documentType) => {
+              const sentDocument = application.documentos?.find((document) => document.tipo === documentType)
+              return (
+                <View key={documentType} style={localStyles.documentRow}>
+                  <View style={localStyles.documentCopy}>
+                    <Text style={localStyles.value}>{documentType.replaceAll('_', ' ')}</Text>
+                    <Text style={sentDocument ? localStyles.success : localStyles.label}>{sentDocument ? `Enviado: ${sentDocument.nome}` : 'Pendente'}</Text>
+                  </View>
+                  <Button disabled={uploading || Boolean(sentDocument)} onPress={() => uploadDocument(documentType)}>
+                    {sentDocument ? 'Enviado' : uploading ? 'Enviando...' : 'Anexar'}
+                  </Button>
+                </View>
+              )
+            }) : <Text style={localStyles.state}>Esta oportunidade não exige documentos adicionais.</Text>}
+            {application.status === APPLICATION_STATUS.DOCUMENTS_SENT ? <Text accessibilityRole="alert" style={localStyles.success}>Todos os documentos exigidos foram enviados. Sua candidatura seguirá para análise.</Text> : null}
+            {!!error && <Text accessibilityRole="alert" style={localStyles.error}>{error}</Text>}
+            <Button wide onPress={() => go('applications')}>Acompanhar candidatura</Button>
           </View>
         ) : null}
       </ScrollView>
@@ -247,4 +304,6 @@ const localStyles = StyleSheet.create({
   reason: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
   successBlock: { flex: 1, justifyContent: 'center', gap: 10, paddingVertical: 50 },
   opportunityPickerCard: { gap: 4, marginTop: 8, padding: 12, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },
+  documentRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 8, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },
+  documentCopy: { flex: 1, gap: 3 },
 })

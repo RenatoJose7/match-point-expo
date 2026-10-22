@@ -153,17 +153,24 @@ function Feedback({ status, children }) {
 }
 
 function isOptionalField(field) {
-  return field.toLowerCase().includes('(opcional)')
+  const normalized = field.toLowerCase()
+  return normalized.includes('(opcional)') || normalized.includes('(apenas menores)')
 }
 
-export function SignupForm({ config, go, back, repositories }) {
+export function SignupForm({ config, go, back, repositories, routeParams = {} }) {
   const { accent, background, fields, isAthlete = false, userType } = config
-  const [values, setValues] = useState({})
+  const googleSignup = Boolean(routeParams.googleSignup)
+  const nameField = fields.find(field => field.toLowerCase().includes('nome'))
+  const [values, setValues] = useState(() => (
+    googleSignup && nameField && routeParams.nome ? { [nameField]: routeParams.nome } : {}
+  ))
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
   const [selectedDdd, setSelectedDdd] = useState('')
   const [dddPickerVisible, setDddPickerVisible] = useState(false)
+  const emailField = fields.find(field => field.toLowerCase().includes('email'))
+  const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
   const birthDateField = fields.find(field => field === 'Data de nascimento')
   const birthDateInput = birthDateField ? values[birthDateField] ?? '' : ''
   const birthDate = isAthlete ? parseBirthDate(birthDateInput) : null
@@ -193,18 +200,17 @@ export function SignupForm({ config, go, back, repositories }) {
   const register = async () => {
     if (loading) return
 
-    const emailField = fields.find(field => field.toLowerCase().includes('email'))
-    const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
-    const nameField = fields.find(field => field.toLowerCase().includes('nome'))
     const phoneField = fields.find(field => field.toLowerCase().includes('telefone'))
     const documentField = fields.find(field => /cpf|cnpj/i.test(field))
     const locationField = fields.find(field => field.toLowerCase().includes('localiza'))
     const relationshipField = fields.find(field => field.toLowerCase().includes('parentesco'))
-    const email = values[emailField]?.trim() ?? ''
+    const guardianCodeField = fields.find(field => field.toLowerCase().includes('código do responsável'))
+    const email = googleSignup ? routeParams.email ?? '' : values[emailField]?.trim() ?? ''
     const password = values[passwordField] ?? ''
     const passwordConfirmation = values[confirmationField] ?? ''
 
     const missingField = fields.find((field) => {
+      if (googleSignup && (field === emailField || field === passwordField || field === confirmationField)) return false
       if (isOptionalField(field) || field === confirmationField) return false
       return !String(values[field] ?? '').trim()
     })
@@ -219,12 +225,12 @@ export function SignupForm({ config, go, back, repositories }) {
       return
     }
 
-    if (!password || password !== passwordConfirmation) {
+    if (!googleSignup && (!password || password !== passwordConfirmation)) {
       setFeedback({ status: 'error', message: 'As senhas são obrigatórias e precisam ser iguais.' })
       return
     }
 
-    if (!hasStrongPassword) {
+    if (!googleSignup && !hasStrongPassword) {
       setFeedback({
         status: 'error',
         message: 'Use pelo menos 8 caracteres e inclua uma letra maiúscula, uma minúscula, um número e um símbolo (como !).',
@@ -262,10 +268,10 @@ export function SignupForm({ config, go, back, repositories }) {
       return
     }
 
-    if (isAthlete && minor) {
+    if (isAthlete && minor && !values[guardianCodeField]?.trim()) {
       setFeedback({
         status: 'error',
-        message: 'Para proteger atletas menores, a criação da conta aguarda o vínculo confirmado do responsável legal.',
+        message: 'Informe o código ativo gerado pelo responsável legal para concluir o cadastro.',
       })
       return
     }
@@ -279,7 +285,11 @@ export function SignupForm({ config, go, back, repositories }) {
     setLoading(true)
 
     const profile = userType === USER_TYPES.ATHLETE
-      ? { dataNascimento: birthDate, modalidade: '' }
+      ? {
+          dataNascimento: birthDate,
+          modalidade: '',
+          ...(minor ? { codigoResponsavel: values[guardianCodeField]?.trim() } : {}),
+        }
       : userType === USER_TYPES.GUARDIAN
         ? {
             parentesco: values[relationshipField]?.trim() ?? '',
@@ -295,11 +305,14 @@ export function SignupForm({ config, go, back, repositories }) {
           }
 
     try {
-      const result = await repositories.authentication.cadastrar(email, password, userType, {
-        nome: values[nameField]?.trim() ?? '',
+      const registrationData = {
+        nome: values[nameField]?.trim() || routeParams.nome || '',
         telefone: phoneDigits ? formatPhone(selectedDdd, phoneValue) : undefined,
         perfil: profile,
-      })
+      }
+      const result = googleSignup
+        ? await repositories.authentication.concluirCadastroGoogle(userType, registrationData)
+        : await repositories.authentication.cadastrar(email, password, userType, registrationData)
 
       if (!result.ok) {
         setFeedback({ status: 'error', message: result.mensagem })
@@ -307,7 +320,7 @@ export function SignupForm({ config, go, back, repositories }) {
       }
 
       const message = userType === USER_TYPES.GUARDIAN
-        ? 'Conta de responsável criada. O vínculo com o atleta será concluído quando o fluxo estiver disponível.'
+        ? 'Conta de responsável criada. Gere um código para vincular o atleta menor de idade.'
         : 'Conta criada com sucesso. Abrindo seu espaço...'
       setFeedback({ status: 'success', message })
     } catch (error) {
@@ -328,7 +341,7 @@ export function SignupForm({ config, go, back, repositories }) {
         <View style={[styles.signupWrap, { flexShrink: 0 }]}>
           <Text style={styles.signupTitle}>Cadastro<Text style={styles.signupAccent}>{accent}</Text></Text>
           <View style={styles.signupFields}>
-            {fields.map(field => {
+            {fields.filter((field) => !(googleSignup && (field === emailField || field === passwordField || field === confirmationField))).map(field => {
               const isBirthDate = field === birthDateField
               const normalizedField = field.toLowerCase()
               const isPassword = normalizedField.includes('senha')

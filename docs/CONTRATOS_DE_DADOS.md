@@ -111,6 +111,59 @@ localizacao?
 verificado
 ```
 
+### Solicitação de avaliação técnica (P1)
+
+```text
+id
+instituicaoId
+treinadorId
+atletaId
+oportunidadeId?
+candidaturaId?
+status: pendente | concluida
+avaliacaoId?
+criadoEm
+atualizadoEm
+```
+
+Somente uma instituição verificada pode solicitar a avaliação de um atleta a um
+treinador verificado. A solicitação não revela dados pessoais além do contexto
+da candidatura autorizada.
+
+### Avaliação técnica (P1)
+
+```text
+id
+solicitacaoId
+treinadorId
+instituicaoId
+atletaId
+notaTecnica: 1..5
+notaFisica: 1..5
+notaTatica: 1..5
+parecer
+recomendacao
+criadoEm
+```
+
+O treinador indicado registra uma única avaliação estruturada para cada
+solicitação pendente; o resultado fica visível apenas à instituição solicitante
+e ao próprio treinador.
+
+### Operações P2
+
+```text
+Relato: id, autorId, alvoTipo, alvoId?, mensagem, status, criadoEm
+Recurso: id, titulo, tipo, ativo, atualizadoEm
+Apoio: id, instituicaoId, atletaId, oportunidadeId?, descricao, criadoEm
+Auditoria Match: id, atletaId, oportunidadeId, resultado, criterios, versao, criadoEm
+```
+
+Relatos podem ser enviados e acompanhados pelo autor. Recursos, decisões de
+conta e auditorias são exclusivos da administração. Instituições verificadas
+registram apoios concedidos; a auditoria guarda a versão e os critérios usados
+no Match Score para permitir conferência posterior.
+
 ### Oportunidade
 
 ```text
@@ -208,6 +261,8 @@ avaliadoEm
 ```text
 cadastrar(email, senha, tipo, dadosIniciais)
 entrar(email, senha)
+entrarComGoogle(idToken)
+concluirCadastroGoogle(tipo, dadosIniciais)
 sair()
 recuperarSenha(email)
 obterSessaoAtual()
@@ -228,6 +283,10 @@ O cadastro grava o usuário e seu perfil inicial de forma atômica, usando o mes
 ID nos dois registros. A sessão só é publicada depois que ambos forem salvos.
 Atletas menores não podem concluir esse cadastro antes da confirmação do
 vínculo do responsável legal.
+
+No login social, uma conta já vinculada entra diretamente. Para uma conta Google
+sem perfil MatchPoint, `entrarComGoogle` retorna `cadastroPendente`; a interface
+coleta o tipo de perfil e chama `concluirCadastroGoogle` sem criar uma senha.
 
 ### Usuários e perfis
 
@@ -330,7 +389,10 @@ operação retorna os metadados sem o conteúdo bruto e inclui `id`, `nome` e
 
 `applications.enviarDocumento(candidaturaId, documento)` é o fluxo completo:
 faz o upload quando necessário e associa o resultado à candidatura. Também
-aceita os metadados já retornados por `storage.enviarArquivoCandidatura`.
+aceita os metadados já retornados por `storage.enviarArquivoCandidatura`. Quando
+todos os documentos exigidos pela oportunidade forem anexados, a candidatura
+avança de `inscrita` para `documentos_enviados` e registra o evento com o
+atleta autenticado como responsável.
 
 ### Match Score
 
@@ -352,6 +414,7 @@ em_analise → rejeitada
 ```
 
 `aprovada` e `rejeitada` são estados finais durante o P0. Toda transição registra data, responsável, estado anterior e novo estado. Uma transição fora dessa lista deve falhar sem alterar os dados.
+O responsável do evento é sempre extraído da sessão autenticada: não é aceito como dado enviado pela tela.
 
 ## Respostas padronizadas
 
@@ -408,3 +471,16 @@ Antes da implementação do Firebase, a equipe deve aprovar:
 - necessidade de perfil administrativo.
 
 Os itens administrativos, avaliações técnicas e notificações permanecem fora do contrato congelado P0 e serão acrescentados de forma compatível na próxima versão.
+
+## Extensão P1 — Notificações
+
+```text
+notifications.listarNotificacoesDoUsuario(usuarioId)
+notifications.marcarComoLida(notificacaoId)
+```
+
+Cada notificação contém `id`, `usuarioId`, `titulo`, `mensagem`, `lida`,
+`criadoEm` e, quando vier de uma candidatura, `candidaturaId` e
+`oportunidadeId`. Decisões finais de aprovação ou rejeição criam uma
+notificação para o atleta. Somente o próprio usuário pode listar ou marcar
+como lidas as suas notificações.
