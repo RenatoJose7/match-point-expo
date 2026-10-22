@@ -97,11 +97,21 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
           setError(eligibilityResult.mensagem || 'Não foi possível verificar sua elegibilidade.')
           return
         }
+        let existingApplication = null
+        if (duplicateResult.data) {
+          const applicationsResult = await repositories.applications.listarCandidaturasDoAtleta(athleteResult.data.id)
+          if (!applicationsResult.ok) {
+            setError(applicationsResult.mensagem || 'Não foi possível carregar sua candidatura existente.')
+            return
+          }
+          existingApplication = applicationsResult.data.find((item) => item.oportunidadeId === currentOpportunityId) ?? null
+        }
 
         setOpportunity(opportunityResult.data)
         setAvailableOpportunities([])
         setAlreadyApplied(duplicateResult.data)
         setEligibility(eligibilityResult.data)
+        setApplication(existingApplication)
       } catch {
         if (active) setError('Não foi possível preparar a candidatura. Tente novamente.')
       } finally {
@@ -254,8 +264,8 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
         ) : null}
         {!loading && application ? (
           <View style={localStyles.successBlock}>
-            <Text style={styles.applicationFormTitle}>Candidatura enviada</Text>
-            <Text style={localStyles.success}>Sua candidatura para {opportunity.titulo} foi registrada.</Text>
+            <Text style={styles.applicationFormTitle}>{alreadyApplied ? 'Candidatura em andamento' : 'Candidatura enviada'}</Text>
+            <Text style={localStyles.success}>{alreadyApplied ? `Continue o envio dos documentos da sua candidatura para ${opportunity.titulo}.` : `Sua candidatura para ${opportunity.titulo} foi registrada.`}</Text>
             <Text style={localStyles.state}>Número da candidatura: {application.id}</Text>
             <Text style={styles.applicationFormSection}>Documentos necessários</Text>
             {(opportunity.documentosNecessarios ?? []).length ? opportunity.documentosNecessarios.map((documentType) => {
