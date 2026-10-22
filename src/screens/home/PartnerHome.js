@@ -11,8 +11,8 @@ import { styles } from '../../theme/styles'
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true }) {
   const Banner = bannerPressable ? Pressable : View
   const opportunitiesTarget = role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
-  const createTarget = role === 'trainer' ? 'criarOportunidadeInicioTecnico' : 'opportunitiesCreated'
-  const bannerTarget = role === 'trainer' ? 'criarOportunidadeInicioTecnico' : 'women'
+  const createTarget = 'partnerOpportunityForm'
+  const bannerTarget = role === 'trainer' ? 'partnerOpportunityForm' : 'women'
 
   if (role === 'trainer') {
     return (
@@ -58,7 +58,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </View>
 
-          <Pressable onPress={() => go('candidates')} style={styles.trainerCandidatesCard}>
+          <Pressable onPress={() => go(opportunitiesTarget)} style={styles.trainerCandidatesCard}>
             <View style={styles.trainerCardHeading}>
               <View style={styles.trainerCardIcon}><Ionicons name="people" size={20} color={BLUE} /></View>
               <Text style={styles.trainerCardTitle}>Candidatos</Text>
@@ -116,7 +116,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </Pressable>
           </View>
         </View>
-        <Pressable onPress={() => go('candidates')} style={[styles.whiteCard, styles.trainerCard]}>
+        <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard]}>
           <View style={styles.cardHeading}><StatIcon>♟</StatIcon><Text style={styles.cardScript}>Candidatos</Text><Text style={styles.seeAllRight}>Ver mais</Text></View>
           <View style={styles.trainerStats}>
             <Text style={styles.smallBlue}>Candidatos{`\n`}recebidos{`\n`}<Text style={styles.bigNumber}>{candidateCount}</Text></Text>
