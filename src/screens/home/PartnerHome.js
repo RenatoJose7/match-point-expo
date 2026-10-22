@@ -83,6 +83,15 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </Pressable>
 
+          <Pressable onPress={() => go('technicalEvaluations')} style={styles.trainerCandidatesCard}>
+            <View style={styles.trainerCardHeading}>
+              <View style={styles.trainerCardIcon}><Ionicons name="clipboard" size={20} color={BLUE} /></View>
+              <Text style={styles.trainerCardTitle}>Avaliações técnicas</Text>
+              <Text style={styles.trainerSeeAll}>Ver demandas</Text>
+            </View>
+            <Text style={styles.trainerCandidateCaption}>Registre pareceres estruturados enviados por instituições verificadas.</Text>
+          </Pressable>
+
           <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={styles.trainerTalentBanner}>
             <Text style={styles.trainerBannerTitle}>Transforme talentos</Text>
             <Text style={styles.trainerBannerCopy}>Acompanhe, avalie e{`\n`}descubra o próximo{`\n`}destaque do esporte.</Text>

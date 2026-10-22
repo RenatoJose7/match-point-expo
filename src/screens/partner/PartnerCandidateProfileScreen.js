@@ -162,6 +162,16 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             <Text style={styles.privacyText}>Este retrato contém apenas informações esportivas compartilhadas na candidatura.</Text>
           </View>
 
+          {role === 'institution' ? (
+            <View style={styles.decisionCard}>
+              <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
+              <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador verificado antes da decisão.</Text>
+              <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
+                <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
+              </Pressable>
+            </View>
+          ) : null}
+
           {notice ? <FeedbackMessage tone="success">{notice}</FeedbackMessage> : null}
           {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
 

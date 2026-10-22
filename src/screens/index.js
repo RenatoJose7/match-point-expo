@@ -20,6 +20,7 @@ export { PartnerOpportunityDetailScreen } from './partner/PartnerOpportunityDeta
 export { PartnerOpportunityFormScreen } from './partner/PartnerOpportunityFormScreen'
 export { PartnerOpportunityCandidatesScreen } from './partner/PartnerOpportunityCandidatesScreen'
 export { PartnerCandidateProfileScreen } from './partner/PartnerCandidateProfileScreen'
+export { TechnicalEvaluationsScreen } from './partner/TechnicalEvaluationsScreen'
 export { AthleteOpportunitiesScreen } from './opportunities/AthleteOpportunitiesScreen'
 export { TrainerOpportunitiesScreen } from './opportunities/TrainerOpportunitiesScreen'
 export { InstitutionOpportunitiesScreen } from './opportunities/InstitutionOpportunitiesScreen'

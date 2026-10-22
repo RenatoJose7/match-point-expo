@@ -111,6 +111,45 @@ localizacao?
 verificado
 ```
 
+### Solicitação de avaliação técnica (P1)
+
+```text
+id
+instituicaoId
+treinadorId
+atletaId
+oportunidadeId?
+candidaturaId?
+status: pendente | concluida
+avaliacaoId?
+criadoEm
+atualizadoEm
+```
+
+Somente uma instituição verificada pode solicitar a avaliação de um atleta a um
+treinador verificado. A solicitação não revela dados pessoais além do contexto
+da candidatura autorizada.
+
+### Avaliação técnica (P1)
+
+```text
+id
+solicitacaoId
+treinadorId
+instituicaoId
+atletaId
+notaTecnica: 1..5
+notaFisica: 1..5
+notaTatica: 1..5
+parecer
+recomendacao
+criadoEm
+```
+
+O treinador indicado registra uma única avaliação estruturada para cada
+solicitação pendente; o resultado fica visível apenas à instituição solicitante
+e ao próprio treinador.
+
 ### Oportunidade
 
 ```text

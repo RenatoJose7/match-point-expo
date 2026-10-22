@@ -113,6 +113,31 @@ const newApplicantProfile = await repositories.applications.obterPerfilPublicoCa
 assert.equal(newApplicantProfile.ok, true)
 assert.equal(newApplicantProfile.data.nome, 'Atleta Demo Menor')
 
+const evaluationRequest = await repositories.evaluations.solicitarAvaliacao({
+  instituicaoId: 'instituicao-demo',
+  treinadorId: 'treinador-demo',
+  atletaId: 'atleta-menor',
+  oportunidadeId: 'oportunidade-bolsa-tenis',
+  candidaturaId: application.data.id,
+})
+assert.equal(evaluationRequest.ok, true)
+await repositories.authentication.entrar('treinador@matchpoint.example', 'demo-local')
+const pendingEvaluations = await repositories.evaluations.listarSolicitacoesDoTreinador('treinador-demo')
+assert.equal(pendingEvaluations.ok, true)
+assert.equal(pendingEvaluations.data.some((item) => item.id === evaluationRequest.data.id), true)
+const technicalEvaluation = await repositories.evaluations.registrarAvaliacao({
+  solicitacaoId: evaluationRequest.data.id,
+  treinadorId: 'treinador-demo',
+  notaTecnica: 5,
+  notaFisica: 4,
+  notaTatica: 4,
+  parecer: 'Atleta apresenta evolução consistente e boa leitura de jogo.',
+  recomendacao: 'recomendar',
+})
+assert.equal(technicalEvaluation.ok, true)
+assert.equal(repositories.snapshot().evaluationRequests.find((item) => item.id === evaluationRequest.data.id).status, 'concluida')
+await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
+
 const nonApplicantProfile = await repositories.applications.obterPerfilPublicoCandidato(
   'oportunidade-futebol-incompativel',
   'atleta-adulto',

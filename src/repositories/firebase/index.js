@@ -43,6 +43,8 @@ const APPLICATIONS_COLLECTION = 'candidaturas'
 const APPLICATION_KEYS_COLLECTION = 'chavesCandidatura'
 const PUBLIC_CANDIDATE_PROFILES_SUBCOLLECTION = 'perfisCandidatos'
 const NOTIFICATIONS_COLLECTION = 'notificacoes'
+const EVALUATION_REQUESTS_COLLECTION = 'solicitacoesAvaliacao'
+const TECHNICAL_EVALUATIONS_COLLECTION = 'avaliacoesTecnicas'
 
 function success(data) {
   return { ok: true, data }
@@ -629,6 +631,17 @@ export function createFirebaseRepositories() {
       }
     },
     obterPerfilParceiroPorUsuario: getPartnerByUserId,
+    listarParceiros: async (filters = {}) => {
+      try {
+        const snapshots = await getDocs(collection(database, PARTNERS_COLLECTION))
+        return success(snapshots.docs.map(normalizeDocument).filter((partner) => (
+          (!filters.tipo || partner.tipo === filters.tipo)
+          && (!filters.verificado || partner.verificado === true)
+        )))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
     atualizarPerfilParceiro: async (id, data) => {
       try {
         await updateDoc(doc(database, PARTNERS_COLLECTION, id), { ...data, id })
@@ -1215,5 +1228,48 @@ export function createFirebaseRepositories() {
     },
   }
 
-  return { authentication, users, opportunities, applications, notifications, match, storage: storageRepository }
+  const evaluations = {
+    listarSolicitacoesDoTreinador: async (trainerId) => {
+      const trainer = await getPartnerByUserId(auth.currentUser?.uid)
+      if (!trainer.ok || trainer.data.id !== trainerId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
+      try {
+        const snapshots = await getDocs(query(collection(database, EVALUATION_REQUESTS_COLLECTION), where('treinadorId', '==', trainerId)))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) { return mapFirebaseError(error) }
+    },
+    solicitarAvaliacao: async (data) => {
+      const institution = await getPartnerByUserId(auth.currentUser?.uid)
+      const trainer = await getPartnerById(data.treinadorId)
+      if (!institution.ok || institution.data.id !== data.instituicaoId || institution.data.tipo !== USER_TYPES.INSTITUTION) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
+      if (!institution.data.verificado || !trainer.ok || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado.')
+      try {
+        const requestReference = doc(collection(database, EVALUATION_REQUESTS_COLLECTION))
+        const request = { id: requestReference.id, ...data, status: 'pendente', criadoEm: now(), atualizadoEm: now() }
+        await setDoc(requestReference, request)
+        return success(request)
+      } catch (error) { return mapFirebaseError(error) }
+    },
+    registrarAvaliacao: async (data) => {
+      const trainer = await getPartnerByUserId(auth.currentUser?.uid)
+      const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
+      if (!trainer.ok || trainer.data.id !== data.treinadorId || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador designado pode registrar a avaliação.')
+      if (scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')
+      const requestReference = doc(database, EVALUATION_REQUESTS_COLLECTION, data.solicitacaoId)
+      const evaluationReference = doc(collection(database, TECHNICAL_EVALUATIONS_COLLECTION))
+      try {
+        return await runTransaction(database, async (transaction) => {
+          const snapshot = await transaction.get(requestReference)
+          if (!snapshot.exists()) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Solicitação de avaliação não encontrada.')
+          const request = normalizeDocument(snapshot)
+          if (request.treinadorId !== trainer.data.id || request.status !== 'pendente') return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta solicitação não está disponível para avaliação.')
+          const evaluation = { id: evaluationReference.id, ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+          transaction.set(evaluationReference, evaluation)
+          transaction.update(requestReference, { status: 'concluida', avaliacaoId: evaluation.id, atualizadoEm: evaluation.criadoEm })
+          return success(evaluation)
+        })
+      } catch (error) { return mapFirebaseError(error) }
+    },
+  }
+
+  return { authentication, users, opportunities, applications, notifications, evaluations, match, storage: storageRepository }
 }

@@ -35,21 +35,21 @@
       "id": "RF19",
       "titulo": "Avaliação técnica",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:49:38.030Z"
     },
     {
       "id": "RF20",
       "titulo": "Solicitar avaliação",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:49:38.629Z"
     },
     {
       "id": "RF21",

@@ -38,6 +38,10 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
     }
 
+    function partnerIsVerified(partnerId) {
+      return get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
+    }
+
     function ownsOpportunity(opportunityId) {
       return signedIn()
         && ownsPartner(
@@ -441,6 +445,40 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'lidaEm'])
         && request.resource.data.lida == true;
       allow delete: if false;
+    }
+
+    match /solicitacoesAvaliacao/{requestId} {
+      allow get, list: if signedIn()
+        && (ownsPartner(resource.data.instituicaoId) || ownsPartner(resource.data.treinadorId));
+      allow create: if signedIn()
+        && request.resource.data.id == requestId
+        && request.resource.data.status == 'pendente'
+        && verifiedPartner(request.resource.data.instituicaoId)
+        && partnerIsVerified(request.resource.data.treinadorId)
+        && get(/databases/$(database)/documents/parceiros/$(request.resource.data.treinadorId)).data.tipo == 'treinador'
+        && exists(/databases/$(database)/documents/atletas/$(request.resource.data.atletaId));
+      allow update: if signedIn()
+        && ownsPartner(resource.data.treinadorId)
+        && resource.data.status == 'pendente'
+        && request.resource.data.status == 'concluida'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'avaliacaoId', 'atualizadoEm']);
+      allow delete: if false;
+    }
+
+    match /avaliacoesTecnicas/{evaluationId} {
+      allow get, list: if signedIn()
+        && (ownsPartner(resource.data.instituicaoId) || ownsPartner(resource.data.treinadorId));
+      allow create: if signedIn()
+        && request.resource.data.id == evaluationId
+        && verifiedPartner(request.resource.data.treinadorId)
+        && request.resource.data.notaTecnica is number
+        && request.resource.data.notaFisica is number
+        && request.resource.data.notaTatica is number
+        && request.resource.data.notaTecnica >= 1 && request.resource.data.notaTecnica <= 5
+        && request.resource.data.notaFisica >= 1 && request.resource.data.notaFisica <= 5
+        && request.resource.data.notaTatica >= 1 && request.resource.data.notaTatica <= 5
+        && request.resource.data.parecer is string;
+      allow update, delete: if false;
     }
 
     match /{document=**} {

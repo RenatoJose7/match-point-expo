@@ -32,6 +32,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
   let state = clone(initialSeed)
   state.guardianInvites ??= []
   state.notifications ??= []
+  state.evaluationRequests ??= []
+  state.technicalEvaluations ??= []
   let currentUserId = null
   let sequence = 1
   const sessionListeners = new Set()
@@ -303,6 +305,10 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         ? success(partner)
         : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil parceiro não encontrado para este usuário.')
     },
+    listarParceiros: async (filters = {}) => success(state.partners.filter((partner) => (
+      (!filters.tipo || partner.tipo === filters.tipo)
+      && (!filters.verificado || partner.verificado === true)
+    ))),
     atualizarPerfilParceiro: async (id, data) => {
       const partner = state.partners.find((item) => item.id === id)
       if (!partner) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Parceiro não encontrado.')
@@ -669,12 +675,56 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
   }
 
+  const evaluations = {
+    listarSolicitacoesDoTreinador: async (trainerId) => {
+      const user = currentSession()
+      const trainer = state.partners.find((partner) => partner.id === trainerId)
+      if (!user || trainer?.usuarioId !== user.id) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
+      return success(state.evaluationRequests.filter((request) => request.treinadorId === trainerId))
+    },
+    solicitarAvaliacao: async (data) => {
+      const user = currentSession()
+      const institution = state.partners.find((partner) => partner.id === data.instituicaoId)
+      const trainer = state.partners.find((partner) => partner.id === data.treinadorId)
+      if (!user || institution?.usuarioId !== user.id || institution.tipo !== USER_TYPES.INSTITUTION) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
+      }
+      if (!institution.verificado || trainer?.tipo !== USER_TYPES.TRAINER || !trainer.verificado || !findAthlete(data.atletaId)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado e um atleta válido.')
+      }
+      const existing = state.evaluationRequests.find((request) => request.instituicaoId === data.instituicaoId && request.treinadorId === data.treinadorId && request.atletaId === data.atletaId && request.status === 'pendente')
+      if (existing) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Já existe uma solicitação pendente para este treinador e atleta.')
+      const request = { id: nextId('solicitacao-avaliacao'), ...data, status: 'pendente', criadoEm: now(), atualizadoEm: now() }
+      state.evaluationRequests.push(request)
+      return success(request)
+    },
+    registrarAvaliacao: async (data) => {
+      const user = currentSession()
+      const trainer = state.partners.find((partner) => partner.id === data.treinadorId)
+      const request = state.evaluationRequests.find((item) => item.id === data.solicitacaoId)
+      const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
+      if (!user || trainer?.usuarioId !== user.id || trainer.tipo !== USER_TYPES.TRAINER || !trainer.verificado) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador verificado designado pode registrar a avaliação.')
+      }
+      if (!request || request.treinadorId !== trainer.id || request.status !== 'pendente' || scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')
+      }
+      const evaluation = { id: nextId('avaliacao-tecnica'), ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+      state.technicalEvaluations.push(evaluation)
+      request.status = 'concluida'
+      request.avaliacaoId = evaluation.id
+      request.atualizadoEm = evaluation.criadoEm
+      return success(evaluation)
+    },
+  }
+
   return {
     authentication,
     users,
     opportunities,
     applications,
     notifications,
+    evaluations,
     match,
     storage,
     snapshot: () => clone(state),

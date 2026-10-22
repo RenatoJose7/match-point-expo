@@ -2,14 +2,14 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-10-22T00:38:43.260Z
+Última atualização registrada: 2026-10-22T00:49:38.629Z
 
 ## Barras de progresso
 
 - **P0:** `████████████████████ 100% (21/21)`
-- **P1:** `██████████░░░░░░░░░░ 50% (2/4)`
+- **P1:** `████████████████████ 100% (4/4)`
 - **P2:** `░░░░░░░░░░░░░░░░░░░░ 0% (0/5)`
-- **Total:** `███████████████░░░░░ 77% (23/30)`
+- **Total:** `█████████████████░░░ 83% (25/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
 
@@ -19,7 +19,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | --- | --- | --- | --- | --- |
 | Maria | 7/7 | 7/7 | 0 | 0 |
 | Marcelo | 6/6 | 7/7 | 0 | 0 |
-| Laura | 3/3 | 4/6 | 0 | 0 |
+| Laura | 3/3 | 6/6 | 0 | 0 |
 | Renato | 5/5 | 5/5 | 0 | 0 |
 
 ## Requisitos
@@ -44,8 +44,8 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF16 — Enviar documentos | P0 | Marcelo | Concluído | — | — |
 | RF17 — Status e histórico do atleta | P0 | Marcelo | Concluído | — | — |
 | RF18 — Visualizar candidatos | P0 | Laura | Concluído | #35 | Lista e retrato público do candidato em revisão; integração das rotas centrais pendente com Renato. |
-| RF19 — Avaliação técnica | P1 | Laura | Não iniciado | — | — |
-| RF20 — Solicitar avaliação | P1 | Laura | Não iniciado | — | — |
+| RF19 — Avaliação técnica | P1 | Laura | Concluído | — | — |
+| RF20 — Solicitar avaliação | P1 | Laura | Concluído | — | — |
 | RF21 — Decisão institucional | P0 | Laura | Concluído | — | — |
 | RF22 — Histórico das alterações | P0 | Renato | Concluído | #26 | — |
 | RF23 — Notificações | P1 | Marcelo | Concluído | — | — |
