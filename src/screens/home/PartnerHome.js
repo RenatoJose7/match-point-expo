@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
@@ -8,16 +8,37 @@ import { assets } from '../../theme/assets'
 import { BLUE } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 
-export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true }) {
+export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
+  const [summary, setSummary] = useState({ activeCount, candidateCount })
+  const [displayName, setDisplayName] = useState(name)
   const Banner = bannerPressable ? Pressable : View
   const opportunitiesTarget = role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
   const createTarget = 'partnerOpportunityForm'
   const bannerTarget = role === 'trainer' ? 'partnerOpportunityForm' : 'women'
 
+  useEffect(() => {
+    let active = true
+    Promise.resolve().then(async () => {
+      const partnerResult = await repositories.users.obterPerfilParceiroPorUsuario(session?.id)
+      if (!partnerResult.ok) return
+      const opportunitiesResult = await repositories.opportunities.listarOportunidadesDoParceiro(partnerResult.data.id)
+      if (!opportunitiesResult.ok || !active) return
+      const opportunities = opportunitiesResult.data
+      const candidates = await Promise.all(opportunities.map(async (item) => repositories.applications.listarCandidatosDaOportunidade(item.id)))
+      if (!active) return
+      setDisplayName(partnerResult.data.nomeExibicao || name)
+      setSummary({
+        activeCount: opportunities.filter((item) => item.status === 'ativa').length,
+        candidateCount: candidates.reduce((total, result) => total + (result.ok ? result.data.length : 0), 0),
+      })
+    })
+    return () => { active = false }
+  }, [repositories, session?.id, name])
+
   if (role === 'trainer') {
     return (
       <View style={styles.trainerHomeScreen}>
-        <Header initials={initials} name={name} subtitle="Bem-vindo de volta" go={go} trainer />
+        <Header initials={initials} name={displayName} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
         <ScrollView contentContainerStyle={styles.trainerHomeScroll} showsVerticalScrollIndicator={false}>
           <View style={styles.trainerOpportunityCard}>
             <View style={styles.trainerCardHeading}>
@@ -31,24 +52,24 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             <View style={styles.trainerOpportunityBody}>
               <View style={styles.trainerCountBlock}>
                 <Text style={styles.trainerCountLabel}>Oportunidades{`\n`}ativas</Text>
-                <Text style={styles.trainerCountValue}>{activeCount}</Text>
+                <Text style={styles.trainerCountValue}>{summary.activeCount}</Text>
               </View>
               <View style={styles.trainerCardDivider} />
               <View style={styles.trainerStatusList}>
                 <View style={styles.trainerStatusRow}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotGreen]} />
-                  <Text style={styles.trainerStatusNumber}>02</Text>
+                  <Text style={styles.trainerStatusNumber}>{summary.activeCount}</Text>
                   <Text style={styles.trainerStatusLabel}>Divulgadas</Text>
                 </View>
                 <View style={styles.trainerStatusRow}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue]} />
-                  <Text style={styles.trainerStatusNumber}>01</Text>
+                  <Text style={styles.trainerStatusNumber}>{summary.candidateCount}</Text>
                   <Text style={styles.trainerStatusLabel}>Em análise</Text>
                 </View>
                 <View style={styles.trainerStatusRow}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange]} />
-                  <Text style={styles.trainerStatusNumber}>01</Text>
-                  <Text style={styles.trainerStatusLabel}>Aguardando inscrições</Text>
+                  <Text style={styles.trainerStatusNumber}>—</Text>
+                  <Text style={styles.trainerStatusLabel}>Sem dados adicionais</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.trainerCreateShortcut}>
@@ -67,7 +88,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             <View style={styles.trainerCandidatesBody}>
               <View>
                 <Text style={styles.trainerCountLabel}>Candidatos{`\n`}recebidos</Text>
-                <Text style={styles.trainerCountValue}>{candidateCount}</Text>
+                <Text style={styles.trainerCountValue}>{summary.candidateCount}</Text>
               </View>
               <View style={styles.trainerCandidatePreview}>
                 <View style={styles.trainerCandidateFaces}>
@@ -75,7 +96,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
                     <Image key={index} source={photo} style={[styles.trainerCandidateFace, index > 0 && styles.trainerCandidateFaceOverlap]} />
                   ))}
                   <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
-                    <Text style={styles.trainerCandidateMoreText}>+9</Text>
+                    <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount}</Text>
                   </View>
                 </View>
                 <Text style={styles.trainerCandidateCaption}>Novos candidatos aguardando análise</Text>
@@ -106,7 +127,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
 
   return (
     <View style={styles.home}>
-      <Header initials={initials} name={name} subtitle="Bem-vindo de volta" go={go} trainer />
+      <Header initials={initials} name={displayName} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
       <ScrollView contentContainerStyle={styles.homeScroll}>
         <View style={[styles.whiteCard, styles.trainerCard]}>
           <View style={styles.cardHeading}>
@@ -117,8 +138,8 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </Pressable>
           </View>
           <View style={styles.trainerStats}>
-            <Text style={styles.smallBlue}>Oportunidades{`\n`}ativas{`\n`}<Text style={styles.bigNumber}>{activeCount}</Text></Text>
-            <Text style={styles.smallBlue}>●　<Text style={styles.statNumber}>{role === 'institution' ? '19' : '02'}</Text> Divulgadas{`\n`}●　<Text style={styles.statNumber}>{role === 'institution' ? '22' : '01'}</Text> Em análise{`\n`}●　<Text style={styles.statNumber}>{role === 'institution' ? '0' : '01'}</Text> Aguardando inscrições</Text>
+            <Text style={styles.smallBlue}>Oportunidades{`\n`}ativas{`\n`}<Text style={styles.bigNumber}>{summary.activeCount}</Text></Text>
+            <Text style={styles.smallBlue}>●　<Text style={styles.statNumber}>{summary.activeCount}</Text> Divulgadas{`\n`}●　<Text style={styles.statNumber}>{summary.candidateCount}</Text> Candidatos{`\n`}●　<Text style={styles.statNumber}>—</Text> Dados adicionais</Text>
             <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.createOpportunityShortcut}>
               <Text style={styles.createOpportunityShortcutPlus}>+</Text>
               <Text style={styles.createOpportunityShortcutLabel}>Criar</Text>
@@ -128,8 +149,8 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
         <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard]}>
           <View style={styles.cardHeading}><StatIcon>♟</StatIcon><Text style={styles.cardScript}>Candidatos</Text><Text style={styles.seeAllRight}>Ver mais</Text></View>
           <View style={styles.trainerStats}>
-            <Text style={styles.smallBlue}>Candidatos{`\n`}recebidos{`\n`}<Text style={styles.bigNumber}>{candidateCount}</Text></Text>
-            <Text style={styles.candidateFaces}>● ● ●　<Text style={styles.muted}>+9</Text>{`\n`}<Text style={styles.tiny}>Novos candidatos aguardando análise</Text></Text>
+            <Text style={styles.smallBlue}>Candidatos{`\n`}recebidos{`\n`}<Text style={styles.bigNumber}>{summary.candidateCount}</Text></Text>
+            <Text style={styles.candidateFaces}>● ● ●　<Text style={styles.muted}>+{summary.candidateCount}</Text>{`\n`}<Text style={styles.tiny}>Candidatos nas oportunidades da conta</Text></Text>
           </View>
         </Pressable>
         <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.heroBanner, styles.trainerBanner]}>

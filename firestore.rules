@@ -230,13 +230,15 @@ service cloud.firestore {
         && (
           resource.data.usuarioId == request.auth.uid
           || guardianCanAccessAthlete(resource.data)
+          || isAdmin()
         )
         && request.resource.data.id == resource.data.id
         && request.resource.data.usuarioId == resource.data.usuarioId
         && request.resource.data.get('responsavelId', null)
           == resource.data.get('responsavelId', null)
         && request.resource.data.get('vinculoResponsavelId', null)
-          == resource.data.get('vinculoResponsavelId', null);
+          == resource.data.get('vinculoResponsavelId', null)
+        && ( !isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']) );
       allow delete: if false;
     }
 
@@ -247,10 +249,11 @@ service cloud.firestore {
         && request.resource.data.tipo in ['treinador', 'instituicao'];
       allow read: if signedIn();
       allow update: if signedIn()
-        && resource.data.usuarioId == request.auth.uid
+        && (resource.data.usuarioId == request.auth.uid || isAdmin())
         && request.resource.data.id == resource.data.id
         && request.resource.data.usuarioId == resource.data.usuarioId
-        && request.resource.data.tipo == resource.data.tipo;
+        && request.resource.data.tipo == resource.data.tipo
+        && (!isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']));
       allow delete: if false;
     }
 
