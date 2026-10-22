@@ -111,7 +111,15 @@ export function AthleteOpportunitiesScreen(props) {
         {loading && <Text style={localStyles.stateMessage}>Carregando oportunidades...</Text>}
         {!loading && error ? <Text accessibilityRole="alert" style={localStyles.errorMessage}>{error}</Text> : null}
         {!loading && !error && visibleOpportunities.length === 0 ? (
-          <Text style={localStyles.stateMessage}>Nenhuma oportunidade encontrada com esses filtros.</Text>
+          <View style={localStyles.emptyState}>
+            <Text style={localStyles.emptyTitle}>{opportunities.length === 0 ? 'Ainda não há oportunidades ativas' : 'Nenhuma oportunidade encontrada'}</Text>
+            <Text style={localStyles.stateMessage}>{opportunities.length === 0 ? 'Volte mais tarde para descobrir novas oportunidades.' : 'Ajuste ou limpe os filtros para ampliar a busca.'}</Text>
+            {opportunities.length > 0 ? (
+              <Pressable accessibilityRole="button" onPress={() => { setSearch(''); setModality(''); setCategory(''); setLocation(''); setStatus('ativa'); setOpenDeadlineOnly(false) }}>
+                <Text style={localStyles.clearFilters}>Limpar filtros</Text>
+              </Pressable>
+            ) : null}
+          </View>
         ) : null}
 
         {!loading && !error && visibleOpportunities.map(opportunity => (
@@ -163,5 +171,8 @@ const localStyles = StyleSheet.create({
   deadlineFilterActive: { borderColor: BLUE, backgroundColor: '#e8f2f8' },
   deadlineFilterText: { color: '#425761', fontFamily: 'Poppins_500Medium', fontSize: 12 },
   stateMessage: { color: '#425761', fontFamily: 'Poppins_400Regular', paddingVertical: 18, textAlign: 'center' },
+  emptyState: { alignItems: 'center', paddingVertical: 18 },
+  emptyTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 15, textAlign: 'center' },
+  clearFilters: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   errorMessage: { color: '#9b2c2c', fontFamily: 'Poppins_500Medium', paddingVertical: 18, textAlign: 'center' },
 })

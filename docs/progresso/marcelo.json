@@ -25,11 +25,11 @@
       "id": "RF11",
       "titulo": "Detalhes da oportunidade",
       "prioridade": "P0",
-      "status": "bloqueado",
+      "status": "em_andamento",
       "pr": "",
       "evidencia": "",
-      "bloqueio": "Aguardando rota com routeParams e operação Firebase para obter oportunidade por ID",
-      "atualizadoEm": "2026-10-15T19:21:11.787Z"
+      "bloqueio": "",
+      "atualizadoEm": "2026-10-22T00:26:19.590Z"
     },
     {
       "id": "RF15",
