@@ -210,7 +210,7 @@ service cloud.firestore {
       allow update: if isOwnUser(userId)
         && request.resource.data.id == resource.data.id
         && request.resource.data.tipo == resource.data.tipo;
-      allow delete: if false;
+      allow delete: if isOwnUser(userId);
     }
 
     match /atletas/{athleteId} {
@@ -239,7 +239,7 @@ service cloud.firestore {
         && request.resource.data.get('vinculoResponsavelId', null)
           == resource.data.get('vinculoResponsavelId', null)
         && ( !isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']) );
-      allow delete: if false;
+      allow delete: if signedIn() && resource.data.usuarioId == request.auth.uid;
     }
 
     match /parceiros/{partnerId} {
@@ -254,7 +254,7 @@ service cloud.firestore {
         && request.resource.data.usuarioId == resource.data.usuarioId
         && request.resource.data.tipo == resource.data.tipo
         && (!isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']));
-      allow delete: if false;
+      allow delete: if signedIn() && resource.data.usuarioId == request.auth.uid;
     }
 
     match /responsaveis/{guardianId} {
@@ -285,7 +285,9 @@ service cloud.firestore {
               .hasAny([request.auth.uid])
           )
         );
-      allow delete: if false;
+      allow delete: if signedIn()
+        && resource.data.usuarioId == request.auth.uid
+        && resource.data.atletasVinculadosIds.size() == 0;
     }
 
     match /convitesResponsavel/{linkCode} {
@@ -451,7 +453,7 @@ service cloud.firestore {
         && resource.data.usuarioId == request.auth.uid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['lida', 'lidaEm'])
         && request.resource.data.lida == true;
-      allow delete: if false;
+      allow delete: if signedIn() && resource.data.usuarioId == request.auth.uid;
     }
 
     match /solicitacoesAvaliacao/{requestId} {

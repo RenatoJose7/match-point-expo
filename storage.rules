@@ -49,6 +49,19 @@ service firebase.storage {
         );
     }
 
+    function validProfilePhoto() {
+      return request.resource.size <= 5 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /perfis/{userId}/{fileName} {
+      allow read: if signedIn();
+      allow create, update: if signedIn()
+        && request.auth.uid == userId
+        && validProfilePhoto();
+      allow delete: if signedIn() && request.auth.uid == userId;
+    }
+
     match /candidaturas/{applicationId}/{fileName=**} {
       allow read: if signedIn()
         && (

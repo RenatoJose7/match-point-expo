@@ -1,6 +1,6 @@
 import React from 'react'
-import { OpportunitiesList } from './OpportunitiesList'
+import { PartnerOpportunitiesScreen } from '../partner/PartnerOpportunitiesScreen'
 
 export function CreatedOpportunitiesScreen(props) {
-  return <OpportunitiesList {...props} role="institution" created />
+  return <PartnerOpportunitiesScreen {...props} created />
 }

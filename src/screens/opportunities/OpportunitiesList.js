@@ -29,6 +29,7 @@ export function OpportunitiesList({ role, go, back, created = false }) {
             key={item[0]}
             item={item}
             athlete={athlete}
+            index={index}
             delay={70 + index * 55}
             onPress={() => go(athlete ? 'matchScore' : 'candidates')}
           />

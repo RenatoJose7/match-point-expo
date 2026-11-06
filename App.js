@@ -3,6 +3,7 @@ import { View, useWindowDimensions } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { useFonts } from 'expo-font'
 import { ScreenTransition } from './src/components/motion'
+import { LoadingScreen } from './src/components/ui/LoadingScreen'
 import { getHomeRouteForUser } from './src/core/session'
 import { createRepositories } from './src/repositories'
 import {
@@ -238,7 +239,11 @@ export default function App() {
   }
 
   if ((!fontsLoaded && !fontError) || !sessionResolved) {
-    return <View style={[styles.full, { backgroundColor: '#0b542d' }]} />
+    return (
+      <View style={[styles.appFrame, { width: frameWidth, height: frameHeight }]}>
+        <LoadingScreen />
+      </View>
+    )
   }
 
   const CurrentScreen = ROUTES[screen] || OpeningScreen

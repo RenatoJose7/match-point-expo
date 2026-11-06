@@ -34,10 +34,10 @@ export function RecoveryEmailScreen({ go, back, repositories }) {
     <Shell background={assets.recovery1} back={back} logo>
       <View style={[styles.card, styles.recoveryCard, styles.recoveryOne]}>
         <Text style={styles.title}>Recuperar <Text style={styles.greenTitle}>senha</Text></Text>
-        <Text style={styles.recoveryCopy}>Insira o endereço de e-mail usado ao{`\n`}registrar a conta. Você receberá um link{`\n`}de redefinição.</Text>
+        <Text style={styles.recoveryCopy}>Insira o endereço de e-mail usado ao{'\n'}registrar a conta. Você receberá um link{'\n'}de redefinição.</Text>
         <View style={styles.fieldTop} />
         <Field placeholder="Seu@gmail.com" value={email} onChangeText={(value) => { setEmail(value); setError('') }} keyboardType="email-address" />
-        {error ? <Text accessibilityRole="alert" style={{ color: '#7a271a', fontFamily: 'Poppins_500Medium', fontSize: 12, textAlign: 'center' }}>{error}</Text> : null}
+        {error ? <Text accessibilityRole="alert" style={{ color: '#7a271a', fontFamily: 'Poppins_500Medium', fontSize: 13, textAlign: 'center' }}>{error}</Text> : null}
         <Button disabled={loading} onPress={requestReset}>{loading ? 'Enviando...' : 'Confirmar'}</Button>
       </View>
     </Shell>
