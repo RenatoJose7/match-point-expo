@@ -7,9 +7,9 @@
       "prioridade": "P0",
       "status": "concluido",
       "pr": "",
-      "evidencia": "",
+      "evidencia": "Perfis de atleta, treinador e instituição receberam seleção e upload de foto (imagem até 5 MB), persistência em fotoUrl e exportação web aprovada.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:36:08.192Z"
+      "atualizadoEm": "2026-11-05T17:30:11.310Z"
     },
     {
       "id": "RF10",
@@ -17,9 +17,9 @@
       "prioridade": "P0",
       "status": "concluido",
       "pr": "",
-      "evidencia": "",
+      "evidencia": "Busca pelo cabeçalho, classes no topo, filtros no funil e Match Score compacto ordenado por compatibilidade; toda a tela usa Poppins; contratos e exportação web aprovados.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:52.635Z"
+      "atualizadoEm": "2026-11-06T14:43:44.389Z"
     },
     {
       "id": "RF11",
@@ -29,7 +29,7 @@
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:52.928Z"
+      "atualizadoEm": "2026-11-06T18:18:38.214Z"
     },
     {
       "id": "RF15",
@@ -49,7 +49,7 @@
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:53.850Z"
+      "atualizadoEm": "2026-11-06T18:18:39.322Z"
     },
     {
       "id": "RF17",
@@ -59,7 +59,7 @@
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:54.147Z"
+      "atualizadoEm": "2026-11-06T18:18:40.888Z"
     },
     {
       "id": "RF23",
@@ -67,9 +67,9 @@
       "prioridade": "P1",
       "status": "concluido",
       "pr": "",
-      "evidencia": "",
+      "evidencia": "Botão de notificações restaurado no cabeçalho de atleta, treinador e instituição, preservando a saída das contas parceiras; exportação web aprovada.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:38:43.260Z"
+      "atualizadoEm": "2026-11-06T14:35:27.885Z"
     }
   ]
 }

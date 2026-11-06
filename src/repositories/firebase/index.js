@@ -1,8 +1,10 @@
 import {
   createUserWithEmailAndPassword,
   deleteUser,
+  EmailAuthProvider,
   GoogleAuthProvider,
   onAuthStateChanged,
+  reauthenticateWithCredential,
   sendPasswordResetEmail,
   signInWithEmailAndPassword,
   signInWithCredential,
@@ -21,7 +23,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore'
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
 import {
   APPLICATION_STATUS,
   OPPORTUNITY_STATUS,
@@ -73,7 +75,7 @@ function mapFirebaseError(error) {
     }
 
     if (code === 'auth/email-already-in-use') {
-      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Este e-mail já possui uma conta.')
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Cadastro já existente. Este e-mail já está registrado no Match Point.')
     }
 
     if (code === 'auth/weak-password') {
@@ -239,17 +241,24 @@ function evaluateEligibility(athlete, opportunity, evaluatedAt = now()) {
 
 function calculateMatchScore(eligibility, calculatedAt = now()) {
   const criteria = eligibility.criterios
-  const matched = criteria.filter((criterion) => criterion.atendido).length
-  const total = criteria.length
+  const weightedCriteria = criteria.map((criterion) => {
+    const weight = Number(criterion.peso)
+    const percentual = criterion.atendido
+      ? 100
+      : Math.max(0, Math.min(100, Number(criterion.percentualQuandoNaoAtendido) || 0))
+    return { criterion, percentual, weight: Number.isFinite(weight) && weight > 0 ? weight : 1 }
+  })
+  const totalWeight = weightedCriteria.reduce((total, item) => total + item.weight, 0)
+  const totalScore = weightedCriteria.reduce((total, item) => total + (item.percentual * item.weight), 0)
 
   return {
-    percentualTotal: total === 0 ? 100 : Math.round((matched / total) * 100),
-    criterios: criteria.map((criterion) => ({
+    percentualTotal: totalWeight === 0 ? 100 : Math.round(totalScore / totalWeight),
+    criterios: weightedCriteria.map(({ criterion, percentual }) => ({
       nome: criterion.nome,
-      percentual: criterion.atendido ? 100 : 0,
+      percentual,
     })),
     calculadoEm: calculatedAt,
-    versaoDoCalculo: 'p0-firebase-v1',
+    versaoDoCalculo: 'p0-firebase-v2',
   }
 }
 
@@ -503,7 +512,9 @@ export function createFirebaseRepositories() {
       try {
         const credential = await signInWithCredential(auth, GoogleAuthProvider.credential(idToken))
         const existingUser = await getUserById(credential.user.uid)
-        if (existingUser.ok) return existingUser
+        if (existingUser.ok) {
+          return success({ ...existingUser.data, cadastroExistente: true })
+        }
         if (existingUser.codigo !== REPOSITORY_ERROR_CODES.NOT_FOUND) return existingUser
         return success({
           id: credential.user.uid,
@@ -567,6 +578,104 @@ export function createFirebaseRepositories() {
         sessionObservers.forEach((callback) => callback(user))
         return success(user)
       } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
+
+    excluirConta: async ({ idToken, password } = {}) => {
+      const firebaseUser = auth.currentUser
+      if (!firebaseUser) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre novamente antes de excluir a conta.')
+      }
+
+      let reauthenticated = false
+      if (idToken || password) {
+        try {
+          const credential = idToken
+            ? GoogleAuthProvider.credential(idToken)
+            : EmailAuthProvider.credential(firebaseUser.email, password)
+          await reauthenticateWithCredential(firebaseUser, credential)
+          reauthenticated = true
+        } catch (error) {
+          return mapFirebaseError(error)
+        }
+      }
+
+      const lastSignInAt = new Date(firebaseUser.metadata.lastSignInTime ?? 0).getTime()
+      if (!reauthenticated && (!Number.isFinite(lastSignInAt) || Date.now() - lastSignInAt > 5 * 60 * 1000)) {
+        return failure(
+          REPOSITORY_ERROR_CODES.UNAUTHENTICATED,
+          'Confirme sua identidade com a senha atual ou com o Google antes de excluir a conta.',
+          { requerReautenticacao: true },
+        )
+      }
+
+      const userResult = await getUserById(firebaseUser.uid)
+      if (!userResult.ok) return userResult
+
+      try {
+        let profileReference = null
+        if (userResult.data.tipo === USER_TYPES.ATHLETE) {
+          const athlete = await getAthleteByUserId(firebaseUser.uid)
+          if (athlete.ok) {
+            const applicationsSnapshot = await getDocs(query(
+              collection(database, APPLICATIONS_COLLECTION),
+              where('atletaId', '==', athlete.data.id),
+            ))
+            if (!applicationsSnapshot.empty) {
+              return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não é possível excluir a conta enquanto existirem candidaturas. Entre em contato com o suporte.')
+            }
+            profileReference = doc(database, ATHLETES_COLLECTION, athlete.data.id)
+          }
+        } else if ([USER_TYPES.TRAINER, USER_TYPES.INSTITUTION].includes(userResult.data.tipo)) {
+          const partner = await getPartnerByUserId(firebaseUser.uid)
+          if (partner.ok) {
+            const opportunitiesSnapshot = await getDocs(query(
+              collection(database, OPPORTUNITIES_COLLECTION),
+              where('criadorId', '==', partner.data.id),
+            ))
+            if (!opportunitiesSnapshot.empty) {
+              return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não é possível excluir a conta enquanto existirem oportunidades publicadas ou salvas.')
+            }
+            profileReference = doc(database, PARTNERS_COLLECTION, partner.data.id)
+          }
+        } else if (userResult.data.tipo === USER_TYPES.GUARDIAN) {
+          const guardian = await getGuardianByUserId(firebaseUser.uid)
+          if (guardian.ok) {
+            if (guardian.data.atletasVinculadosIds?.length) {
+              return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Remova os vínculos com atletas antes de excluir a conta do responsável.')
+            }
+            profileReference = doc(database, GUARDIANS_COLLECTION, guardian.data.id)
+          }
+        } else {
+          return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta conta não pode ser excluída por este fluxo.')
+        }
+
+        const notificationsSnapshot = await getDocs(query(
+          collection(database, NOTIFICATIONS_COLLECTION),
+          where('usuarioId', '==', firebaseUser.uid),
+        ))
+        const batch = writeBatch(database)
+        notificationsSnapshot.docs.forEach((snapshot) => batch.delete(snapshot.ref))
+        if (profileReference) batch.delete(profileReference)
+        batch.delete(doc(database, USERS_COLLECTION, firebaseUser.uid))
+
+        if (userResult.data.fotoUrl) {
+          try {
+            await deleteObject(ref(storage, `perfis/${firebaseUser.uid}/foto-perfil`))
+          } catch (photoError) {
+            if (photoError?.code !== 'storage/object-not-found') throw photoError
+          }
+        }
+
+        await batch.commit()
+        await deleteUser(firebaseUser)
+        sessionObservers.forEach((callback) => callback(null))
+        return success({ excluida: true })
+      } catch (error) {
+        if (error?.code === 'auth/requires-recent-login') {
+          return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Confirme sua identidade com a senha atual ou com o Google antes de excluir a conta.')
+        }
         return mapFirebaseError(error)
       }
     },
@@ -944,6 +1053,33 @@ export function createFirebaseRepositories() {
 
   const storageRepository = {
     enviarArquivoCandidatura: uploadApplicationDocument,
+    enviarFotoPerfil: async (source) => {
+      if (!auth.currentUser) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre novamente para atualizar a foto do perfil.')
+      }
+      if (!source) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Selecione uma imagem para o perfil.')
+      }
+
+      try {
+        const file = source.uri
+          ? await (await fetch(source.uri)).blob()
+          : source
+        const contentType = source.mimeType ?? source.type ?? file.type ?? 'image/jpeg'
+        if (!contentType.startsWith('image/')) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O arquivo selecionado precisa ser uma imagem.')
+        }
+        if (file.size > 5 * 1024 * 1024) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'A foto do perfil deve ter no máximo 5 MB.')
+        }
+
+        const storageReference = ref(storage, `perfis/${auth.currentUser.uid}/foto-perfil`)
+        await uploadBytes(storageReference, file, { contentType })
+        return success({ fotoUrl: await getDownloadURL(storageReference) })
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
   }
 
   const applications = {

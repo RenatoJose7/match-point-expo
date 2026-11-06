@@ -22,20 +22,28 @@ assert.equal(login.ok, true)
 
 const activeOpportunities = await repositories.opportunities.listarOportunidades({ status: 'ativa' })
 assert.equal(activeOpportunities.ok, true)
-assert.equal(activeOpportunities.data.length, 2)
+assert.equal(activeOpportunities.data.length, 4)
 
 const eligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(eligible.ok, true)
 assert.equal(eligible.data.elegivel, true)
-assert.equal(eligible.data.criterios.every((criterion) => criterion.atendido), true)
+assert.equal(eligible.data.criterios.filter((criterion) => criterion.obrigatorio).every((criterion) => criterion.atendido), true)
 assert.deepEqual(eligible.data.motivosBloqueio, [])
 
 const compatibleScore = await repositories.match.calcularMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(compatibleScore.ok, true)
-assert.equal(compatibleScore.data.percentualTotal, 100)
-assert.equal(compatibleScore.data.criterios.length, 2)
-assert.equal(compatibleScore.data.criterios.every((criterion) => criterion.percentual === 100), true)
+assert.equal(compatibleScore.data.percentualTotal, 94)
+assert.equal(compatibleScore.data.criterios.length, 3)
+assert.deepEqual(compatibleScore.data.criterios.map((criterion) => criterion.percentual), [100, 100, 70])
 assert.equal(typeof compatibleScore.data.versaoDoCalculo, 'string')
+
+const demoScores = await Promise.all([
+  'oportunidade-bolsa-tenis',
+  'oportunidade-avaliacao-tecnica',
+  'oportunidade-clinica-tenis',
+  'oportunidade-circuito-tenis',
+].map((opportunityId) => repositories.match.calcularMatchScore('atleta-adulto', opportunityId)))
+assert.deepEqual(demoScores.map((result) => result.data.percentualTotal), [94, 88, 85, 80])
 
 const ineligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-futebol-incompativel')
 assert.equal(ineligible.ok, true)
@@ -151,7 +159,7 @@ const accountDecision = await adminRepositories.administration.decidirConta({ ti
 assert.equal(accountDecision.ok, true)
 const matchAudit = await adminRepositories.administration.auditarMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(matchAudit.ok, true)
-assert.equal(matchAudit.data.versao, 'p0-memory-v1')
+assert.equal(matchAudit.data.versao, 'p0-memory-v2')
 
 const nonApplicantProfile = await repositories.applications.obterPerfilPublicoCandidato(
   'oportunidade-futebol-incompativel',
@@ -288,6 +296,57 @@ const updatedAthleteProfile = await signupRepositories.users.atualizarPerfilAtle
 assert.equal(updatedAthleteProfile.ok, true)
 assert.equal(updatedAthleteProfile.data.modalidade, 'Tenis')
 assert.equal(updatedAthleteProfile.data.perfilCompleto, true)
+
+const duplicateAthleteSignup = await signupRepositories.authentication.cadastrar(
+  'novo.atleta@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Duplicado', perfil: { dataNascimento: '2000-10-10' } },
+)
+assert.equal(duplicateAthleteSignup.ok, false)
+assert.match(duplicateAthleteSignup.mensagem, /Cadastro já existente/)
+
+const uploadedProfilePhoto = await signupRepositories.storage.enviarFotoPerfil({
+  uri: 'memory://foto-perfil.jpg',
+  mimeType: 'image/jpeg',
+  size: 1024,
+})
+assert.equal(uploadedProfilePhoto.ok, true)
+const userWithProfilePhoto = await signupRepositories.users.atualizarUsuario(
+  athleteSignup.data.id,
+  { fotoUrl: uploadedProfilePhoto.data.fotoUrl },
+)
+assert.equal(userWithProfilePhoto.ok, true)
+assert.equal(userWithProfilePhoto.data.fotoUrl, 'memory://foto-perfil.jpg')
+
+const blockedDeletionRepositories = createMemoryRepositories()
+await blockedDeletionRepositories.authentication.entrar('atleta.adulto@matchpoint.example', 'demo-local')
+const blockedAccountDeletion = await blockedDeletionRepositories.authentication.excluirConta()
+assert.equal(blockedAccountDeletion.ok, false)
+assert.match(blockedAccountDeletion.mensagem, /candidaturas/)
+
+const accountDeletionRepositories = createMemoryRepositories({
+  users: [],
+  athletes: [],
+  partners: [],
+  guardians: [],
+  guardianInvites: [],
+  opportunities: [],
+  applications: [],
+  notifications: [],
+})
+const deletableAthleteSignup = await accountDeletionRepositories.authentication.cadastrar(
+  'excluir.atleta@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Excluível', perfil: { dataNascimento: '2000-10-10' } },
+)
+assert.equal(deletableAthleteSignup.ok, true)
+const accountDeletion = await accountDeletionRepositories.authentication.excluirConta()
+assert.equal(accountDeletion.ok, true)
+const deletedSession = await accountDeletionRepositories.authentication.obterSessaoAtual()
+assert.equal(deletedSession.ok, true)
+assert.equal(deletedSession.data, null)
 
 const partnerSignup = await signupRepositories.authentication.cadastrar(
   'novo.treinador@matchpoint.example',

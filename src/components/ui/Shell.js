@@ -4,9 +4,13 @@ import { assets } from '../../theme/assets'
 import { styles } from '../../theme/styles'
 import { BackButton } from './BackButton'
 
-export function Shell({ background, children, back, logo = false }) {
+export function Shell({ background, children, back, logo = false, fallbackColor }) {
   return (
-    <ImageBackground source={background} resizeMode="cover" style={styles.full}>
+    <ImageBackground
+      source={background}
+      resizeMode="cover"
+      style={[styles.full, fallbackColor ? { backgroundColor: fallbackColor } : null]}
+    >
       <View style={styles.dim} />
       <SafeAreaView style={styles.safe}>
         {back && <BackButton onPress={back} />}

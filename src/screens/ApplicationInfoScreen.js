@@ -5,7 +5,7 @@ import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { Button } from '../components/ui/Button'
 import { assets } from '../theme/assets'
-import { APPLICATION_STATUS, USER_TYPES } from '../domain/contracts.js'
+import { USER_TYPES } from '../domain/contracts.js'
 import { styles } from '../theme/styles'
 
 function formatDate(value) {
@@ -25,7 +25,7 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
   const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
+  const [uploadingDocument, setUploadingDocument] = useState('')
   const [error, setError] = useState('')
   const [retryToken, setRetryToken] = useState(0)
   const currentOpportunityId = oportunidadeId || selectedOpportunityId
@@ -127,6 +127,9 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
     opportunity.status !== 'ativa'
     || (opportunity.fimInscricoes && new Date(opportunity.fimInscricoes) < new Date())
   )
+  const requiredDocumentTypes = opportunity?.documentosNecessarios ?? []
+  const allDocumentsSent = requiredDocumentTypes.length > 0
+    && requiredDocumentTypes.every(documentType => application?.documentos?.some(document => document.tipo === documentType))
 
   const submitApplication = async () => {
     if (!athlete || !opportunity || saving || alreadyApplied || !eligibility?.elegivel || opportunityClosed) return
@@ -156,8 +159,8 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
   }
 
   const uploadDocument = async (documentType) => {
-    if (!application || uploading) return
-    setUploading(true)
+    if (!application || uploadingDocument) return
+    setUploadingDocument(documentType)
     setError('')
     try {
       const selection = await DocumentPicker.getDocumentAsync({
@@ -179,7 +182,7 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
     } catch (uploadError) {
       setError(uploadError.message || 'Não foi possível enviar o documento.')
     } finally {
-      setUploading(false)
+      setUploadingDocument('')
     }
   }
 
@@ -268,7 +271,7 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
             <Text style={localStyles.success}>{alreadyApplied ? `Continue o envio dos documentos da sua candidatura para ${opportunity.titulo}.` : `Sua candidatura para ${opportunity.titulo} foi registrada.`}</Text>
             <Text style={localStyles.state}>Número da candidatura: {application.id}</Text>
             <Text style={styles.applicationFormSection}>Documentos necessários</Text>
-            {(opportunity.documentosNecessarios ?? []).length ? opportunity.documentosNecessarios.map((documentType) => {
+            {requiredDocumentTypes.length ? requiredDocumentTypes.map((documentType) => {
               const sentDocument = application.documentos?.find((document) => document.tipo === documentType)
               return (
                 <View key={documentType} style={localStyles.documentRow}>
@@ -276,13 +279,13 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
                     <Text style={localStyles.value}>{documentType.replaceAll('_', ' ')}</Text>
                     <Text style={sentDocument ? localStyles.success : localStyles.label}>{sentDocument ? `Enviado: ${sentDocument.nome}` : 'Pendente'}</Text>
                   </View>
-                  <Button disabled={uploading || Boolean(sentDocument)} onPress={() => uploadDocument(documentType)}>
-                    {sentDocument ? 'Enviado' : uploading ? 'Enviando...' : 'Anexar'}
+                  <Button disabled={Boolean(uploadingDocument) || Boolean(sentDocument)} onPress={() => uploadDocument(documentType)}>
+                    {sentDocument ? 'Enviado' : uploadingDocument === documentType ? 'Enviando...' : 'Anexar'}
                   </Button>
                 </View>
               )
             }) : <Text style={localStyles.state}>Esta oportunidade não exige documentos adicionais.</Text>}
-            {application.status === APPLICATION_STATUS.DOCUMENTS_SENT ? <Text accessibilityRole="alert" style={localStyles.success}>Todos os documentos exigidos foram enviados. Sua candidatura seguirá para análise.</Text> : null}
+            {allDocumentsSent ? <Text accessibilityRole="alert" style={localStyles.success}>Todos os documentos exigidos foram enviados. Sua candidatura seguirá para análise.</Text> : null}
             {!!error && <Text accessibilityRole="alert" style={localStyles.error}>{error}</Text>}
             <Button wide onPress={() => go('applications')}>Acompanhar candidatura</Button>
           </View>
@@ -295,13 +298,13 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
 
 const localStyles = StyleSheet.create({
   summaryRow: { borderBottomColor: '#d8e1e3', borderBottomWidth: 1, gap: 3, paddingVertical: 10 },
-  label: { color: '#65777e', fontFamily: 'Poppins_400Regular', fontSize: 12 },
-  value: { color: '#17313c', fontFamily: 'Poppins_500Medium', fontSize: 14 },
+  label: { color: '#65777e', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  value: { color: '#17313c', fontFamily: 'Poppins_500Medium', fontSize: 13 },
   state: { color: '#526770', fontFamily: 'Poppins_400Regular', marginVertical: 12, textAlign: 'center' },
   error: { color: '#b42318', fontFamily: 'Poppins_400Regular', marginVertical: 10, textAlign: 'center' },
   success: { color: '#126b35', fontFamily: 'Poppins_500Medium', marginVertical: 10, textAlign: 'center' },
   feedbackBlock: { gap: 2, marginTop: 8 },
-  reason: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  reason: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13 },
   successBlock: { flex: 1, justifyContent: 'center', gap: 10, paddingVertical: 50 },
   opportunityPickerCard: { gap: 4, marginTop: 8, padding: 12, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },
   documentRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 8, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },

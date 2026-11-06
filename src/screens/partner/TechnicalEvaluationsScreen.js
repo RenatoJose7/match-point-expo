@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { BottomNav } from '../../components/navigation/BottomNav'
+import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { FeedbackMessage, getPartnerProfile, LoadingState, PartnerHeader, partnerColors, partnerStyles } from './partnerOpportunityUi'
 
 const scoreFields = [
@@ -88,7 +89,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
                 <Text style={partnerStyles.sectionTitle}>Atleta {request.atletaId}</Text>
                 <Text style={styles.copy}>Solicitação da instituição · {request.status}</Text>
                 {request.status === 'pendente' ? <>
-                  <View style={styles.scores}>{scoreFields.map(([key, label]) => <View key={key} style={styles.scoreField}><Text style={partnerStyles.fieldLabel}>{label} (1–5)</Text><TextInput value={scores[key]} onChangeText={(value) => setScores((current) => ({ ...current, [key]: value }))} keyboardType="number-pad" maxLength={1} style={partnerStyles.input} /></View>)}</View>
+                  <View style={styles.scores}>{scoreFields.map(([key, label]) => <View key={key} style={styles.scoreField}><Text style={partnerStyles.fieldLabel}>{label} (1–5)</Text><SelectField accessibilityLabel={`Nota de ${label}`} options={SELECT_OPTIONS.notas} value={scores[key]} onChange={(value) => setScores((current) => ({ ...current, [key]: value }))} placeholder="Selecione a nota" /></View>)}</View>
                   <Text style={partnerStyles.fieldLabel}>Parecer técnico</Text>
                   <TextInput value={parecer} onChangeText={setParecer} multiline style={[partnerStyles.input, partnerStyles.multilineInput]} placeholder="Pontos fortes e próximos passos" placeholderTextColor={partnerColors.muted} />
                   <Pressable disabled={saving} onPress={() => submitEvaluation(request)} style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Registrar avaliação'}</Text></Pressable>
@@ -106,5 +107,5 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 28, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 12, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 7, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
+  content: { padding: 20, paddingBottom: 28, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 7, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
 })

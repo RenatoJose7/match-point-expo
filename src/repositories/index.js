@@ -19,6 +19,7 @@ export function createRepositories(options = {}) {
         ...memoryRepositories.users,
         ...firebaseRepositories.users,
       },
+      demo: memoryRepositories,
     }
   }
 

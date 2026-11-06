@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { BackButton } from '../../components/ui/BackButton'
 import { Button } from '../../components/ui/Button'
+import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 
 const fields = [
   ['modalidade', 'Modalidade'],
@@ -11,6 +12,13 @@ const fields = [
   ['tempoDePratica', 'Tempo de prática'],
   ['ranking', 'Ranking'],
 ]
+
+const selectOptionsByKey = {
+  modalidade: SELECT_OPTIONS.modalidades,
+  categoria: SELECT_OPTIONS.categorias,
+  posicao: SELECT_OPTIONS.posicoes,
+  tempoDePratica: SELECT_OPTIONS.tempoDePratica,
+}
 
 export function ResponsibleAthleteProfileScreen({ back, repositories, routeParams = {}, session }) {
   const [athlete, setAthlete] = useState(null)
@@ -88,7 +96,11 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
           {fields.map(([key, label]) => (
             <View key={key} style={styles.field}>
               <Text style={styles.label}>{label}{key === 'modalidade' ? ' *' : ''}</Text>
-              {editing ? <TextInput value={values[key] ?? ''} onChangeText={(value) => setValues((current) => ({ ...current, [key]: value }))} style={styles.input} /> : <Text style={styles.value}>{athlete[key] || 'Não informado'}</Text>}
+              {editing ? (
+                selectOptionsByKey[key] ? (
+                  <SelectField accessibilityLabel={label} options={selectOptionsByKey[key]} value={values[key] ?? ''} onChange={(value) => setValues((current) => ({ ...current, [key]: value }))} placeholder={`Selecione ${label.toLowerCase()}`} />
+                ) : <TextInput value={values[key] ?? ''} onChangeText={(value) => setValues((current) => ({ ...current, [key]: value }))} style={styles.input} />
+              ) : <Text style={styles.value}>{athlete[key] || 'Não informado'}</Text>}
             </View>
           ))}
           {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
@@ -108,16 +120,16 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f5f8f7' },
   header: { gap: 12, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, backgroundColor: '#ffffff' },
-  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 20 },
+  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   content: { gap: 12, padding: 20, paddingBottom: 28 },
-  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 18 },
+  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
   field: { gap: 5 },
-  label: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 12 },
-  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
-  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  label: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   stateText: { color: '#526770', fontFamily: 'Poppins_400Regular' },
-  error: { color: '#8c2721', fontFamily: 'Poppins_500Medium', fontSize: 12, lineHeight: 18 },
-  notice: { color: '#126b35', fontFamily: 'Poppins_500Medium', fontSize: 12 },
+  error: { color: '#8c2721', fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },
+  notice: { color: '#126b35', fontFamily: 'Poppins_500Medium', fontSize: 13 },
   cancel: { color: '#526770', fontFamily: 'Poppins_500Medium', textAlign: 'center', padding: 8 },
 })

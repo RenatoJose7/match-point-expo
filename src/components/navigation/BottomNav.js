@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Pressable, Text, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { USE_NATIVE_DRIVER } from '../motion'
 import { BLUE } from '../../theme/colors'
@@ -37,13 +37,13 @@ function NavButton({ item, isActive, onPress, partner = false }) {
       onPress={onPress}
       onPressIn={() => animateScale(0.92)}
       onPressOut={() => animateScale(1)}
-      style={styles.navItem}
+      style={[styles.navItem, localStyles.item, item.key === 'opportunities' && localStyles.opportunityItem]}
     >
-      <Animated.View style={[styles.navContent, partner && styles.navContentPartner, isActive && styles.navActive, { transform: [{ scale }] }]}>
+      <Animated.View style={[styles.navContent, partner && styles.navContentPartner, localStyles.content, isActive && styles.navActive, { transform: [{ scale }] }]}>
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
-          <Ionicons name={item.icon} size={27} color={BLUE} />
+          <Ionicons name={item.icon} size={22} color={BLUE} />
         </Animated.View>
-        <Text style={styles.navText}>{item.label}</Text>
+        <Text numberOfLines={1} style={[styles.navText, localStyles.label]}>{item.label}</Text>
       </Animated.View>
     </Pressable>
   )
@@ -57,12 +57,12 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
   const items = [
     { key: 'home', label: 'Início', icon: 'home', target: home },
     { key: 'opportunities', label: 'Oportunidades', icon: 'trophy', target: opportunities },
-    ...(role === 'athlete' ? [{ key: 'applications', label: 'Candidatar-se', icon: 'document-text', target: 'applications' }] : []),
+    ...(role === 'athlete' ? [{ key: 'applications', label: 'Inscrições', icon: 'document-text', target: 'applications' }] : []),
     { key: 'profile', label: 'Perfil', icon: 'person', target: profile },
   ]
 
   return (
-    <View style={[styles.bottomNav, partner && styles.bottomNavPartner]}>
+    <View style={[styles.bottomNav, partner && styles.bottomNavPartner, localStyles.nav]}>
       {items.map(item => (
         <NavButton
           key={item.key}
@@ -75,3 +75,11 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
     </View>
   )
 }
+
+const localStyles = StyleSheet.create({
+  nav: { height: 72 },
+  item: { minHeight: 72, minWidth: 0 },
+  opportunityItem: { flex: 1.3 },
+  content: { width: '100%', minHeight: 72, paddingTop: 4, paddingBottom: 4, gap: 1 },
+  label: { alignSelf: 'stretch', fontSize: 13, letterSpacing: -0.35, lineHeight: 16, textAlign: 'center' },
+})

@@ -115,7 +115,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       }
 
       if (state.users.some((user) => user.email.toLowerCase() === email.toLowerCase())) {
-        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Já existe uma conta com este e-mail.')
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Cadastro já existente. Este e-mail já está registrado no Match Point.')
       }
 
       const user = {
@@ -216,6 +216,32 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
     entrarComGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O login com Google requer o provedor Firebase configurado.'),
     concluirCadastroGoogle: async () => failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O cadastro com Google requer o provedor Firebase configurado.'),
+    excluirConta: async () => {
+      const user = currentSession()
+      if (!user) return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre novamente antes de excluir a conta.')
+
+      const athlete = state.athletes.find((item) => item.usuarioId === user.id)
+      const partner = state.partners.find((item) => item.usuarioId === user.id)
+      const guardian = state.guardians.find((item) => item.usuarioId === user.id)
+      if (athlete && state.applications.some((item) => item.atletaId === athlete.id)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não é possível excluir a conta enquanto existirem candidaturas. Entre em contato com o suporte.')
+      }
+      if (partner && state.opportunities.some((item) => item.criadorId === partner.id)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não é possível excluir a conta enquanto existirem oportunidades publicadas ou salvas.')
+      }
+      if (guardian?.atletasVinculadosIds?.length) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Remova os vínculos com atletas antes de excluir a conta do responsável.')
+      }
+
+      state.notifications = state.notifications.filter((item) => item.usuarioId !== user.id)
+      state.athletes = state.athletes.filter((item) => item.usuarioId !== user.id)
+      state.partners = state.partners.filter((item) => item.usuarioId !== user.id)
+      state.guardians = state.guardians.filter((item) => item.usuarioId !== user.id)
+      state.users = state.users.filter((item) => item.id !== user.id)
+      currentUserId = null
+      emitSession()
+      return success({ excluida: true })
+    },
     sair: async () => {
       currentUserId = null
       emitSession()
@@ -444,19 +470,42 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       const eligibility = evaluateEligibility(athleteId, opportunityId)
       if (!eligibility.ok) return eligibility
       const criteria = eligibility.data.criterios
-      const matched = criteria.filter((criterion) => criterion.atendido).length
-      const total = criteria.length
+      const weightedCriteria = criteria.map((criterion) => {
+        const weight = Number(criterion.peso)
+        const percentual = criterion.atendido
+          ? 100
+          : Math.max(0, Math.min(100, Number(criterion.percentualQuandoNaoAtendido) || 0))
+        return { criterion, percentual, weight: Number.isFinite(weight) && weight > 0 ? weight : 1 }
+      })
+      const totalWeight = weightedCriteria.reduce((total, item) => total + item.weight, 0)
+      const totalScore = weightedCriteria.reduce((total, item) => total + (item.percentual * item.weight), 0)
       return success({
-        percentualTotal: total === 0 ? 100 : Math.round((matched / total) * 100),
-        criterios: criteria.map((criterion) => ({ nome: criterion.nome, percentual: criterion.atendido ? 100 : 0 })),
+        percentualTotal: totalWeight === 0 ? 100 : Math.round(totalScore / totalWeight),
+        criterios: weightedCriteria.map(({ criterion, percentual }) => ({ nome: criterion.nome, percentual })),
         calculadoEm: now(),
-        versaoDoCalculo: 'p0-memory-v1',
+        versaoDoCalculo: 'p0-memory-v2',
       })
     },
     obterMatchScore: async (athleteId, opportunityId) => match.calcularMatchScore(athleteId, opportunityId),
   }
 
   const storage = {
+    enviarFotoPerfil: async (source) => {
+      if (!currentUserId) {
+        return failure(REPOSITORY_ERROR_CODES.UNAUTHENTICATED, 'Entre novamente para atualizar a foto do perfil.')
+      }
+      if (!source) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Selecione uma imagem para o perfil.')
+      }
+      const contentType = source.mimeType ?? source.type ?? ''
+      if (contentType && !contentType.startsWith('image/')) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O arquivo selecionado precisa ser uma imagem.')
+      }
+      if (source.size > 5 * 1024 * 1024) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'A foto do perfil deve ter no máximo 5 MB.')
+      }
+      return success({ fotoUrl: source.uri ?? `memory://perfis/${currentUserId}/foto-perfil` })
+    },
     enviarArquivoCandidatura: async (applicationId, documentData = {}) => {
       if (!findApplication(applicationId)) {
         return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')

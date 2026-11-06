@@ -17,9 +17,9 @@
       "prioridade": "P0",
       "status": "concluido",
       "pr": "#30",
-      "evidencia": "",
+      "evidencia": "Lista de oportunidades do parceiro redesenhada com busca, filtros Ativas/Encerradas/Criadas, contagem real de candidaturas e CTA fixo; contratos e exportação web aprovados.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:52.318Z"
+      "atualizadoEm": "2026-11-05T17:22:02.128Z"
     },
     {
       "id": "RF18",
@@ -29,7 +29,7 @@
       "pr": "#35",
       "evidencia": "Lista e retrato público do candidato em revisão; integração das rotas centrais pendente com Renato.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:54.421Z"
+      "atualizadoEm": "2026-11-05T16:57:14.345Z"
     },
     {
       "id": "RF19",
@@ -39,7 +39,7 @@
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:49:38.030Z"
+      "atualizadoEm": "2026-11-05T17:32:13.754Z"
     },
     {
       "id": "RF20",
@@ -59,7 +59,7 @@
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-22T00:35:54.699Z"
+      "atualizadoEm": "2026-11-05T16:57:17.776Z"
     }
   ]
 }

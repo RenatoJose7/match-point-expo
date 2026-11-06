@@ -265,6 +265,7 @@ entrarComGoogle(idToken)
 concluirCadastroGoogle(tipo, dadosIniciais)
 sair()
 recuperarSenha(email)
+excluirConta({ password?, idToken? })
 obterSessaoAtual()
 observarSessao(callback)
 ```
@@ -287,6 +288,14 @@ vínculo do responsável legal.
 No login social, uma conta já vinculada entra diretamente. Para uma conta Google
 sem perfil MatchPoint, `entrarComGoogle` retorna `cadastroPendente`; a interface
 coleta o tipo de perfil e chama `concluirCadastroGoogle` sem criar uma senha.
+Quando a intenção for cadastro e a conta Google já possuir perfil, a resposta
+inclui `cadastroExistente: true` para a interface informar que o tipo salvo será
+mantido.
+
+`excluirConta()` exige autenticação recente ou reautenticação com senha/Google e remove a autenticação, o documento
+de usuário, o perfil e as notificações da própria conta. A operação é bloqueada
+quando houver candidaturas, oportunidades ou vínculos de responsável que
+precisem ser preservados ou tratados pelo suporte.
 
 ### Usuários e perfis
 
@@ -380,7 +389,12 @@ operação exigem migração aprovada para gerar os retratos correspondentes.
 
 ```text
 storage.enviarArquivoCandidatura(candidaturaId, documento)
+storage.enviarFotoPerfil(arquivo)
 ```
+
+`storage.enviarFotoPerfil` aceita somente imagem de até 5 MB, grava o arquivo na
+pasta privada de escrita do próprio usuário e retorna `{ fotoUrl }`. A URL deve
+ser persistida em `Usuario.fotoUrl` por `atualizarUsuario`.
 
 `documento` aceita `arquivo` (um `File`/`Blob` no navegador ou um objeto com
 `uri`, `name` e `type` no aplicativo), além de `nome`, `tipo` e `tipoMime`. A

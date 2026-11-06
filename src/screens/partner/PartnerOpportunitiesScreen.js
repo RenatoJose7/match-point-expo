@@ -1,247 +1,186 @@
-import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import React, { useEffect, useMemo, useState } from 'react'
+import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
-import {
-  EmptyState,
-  FeedbackMessage,
-  getPartnerProfile,
-  LoadingState,
-  opportunityStatus,
-  partnerColors,
-  partnerStyles,
-} from './partnerOpportunityUi'
+import { assets } from '../../theme/assets'
+import { withGriffithsWeight } from '../../theme/typography'
+import { getOpportunityImage } from '../../theme/opportunityImages'
+import { FeedbackMessage, getPartnerProfile, LoadingState } from './partnerOpportunityUi'
 
-const statusFilters = [
-  { value: 'todas', label: 'Todas' },
+const BLUE = '#10579b'
+const LIME = '#c4ff32'
+
+const createdFilters = [
   { value: 'ativa', label: 'Ativas' },
-  { value: 'rascunho', label: 'Rascunhos' },
   { value: 'encerrada', label: 'Encerradas' },
 ]
 
-function OpportunityCard({ opportunity, onOpen, onEdit }) {
-  const status = opportunityStatus(opportunity.status)
+const browseFilters = [
+  { value: 'ativa', label: 'Ativas' },
+  { value: 'encerrada', label: 'Encerradas' },
+  { value: 'criadas', label: 'Criadas' },
+]
+
+const formatDate = (value) => {
+  if (!value || Number.isNaN(new Date(value).getTime())) return 'Inscrições até 19/08/26'
+  return `Inscrições até ${new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' })}`
+}
+
+function trainerOpportunityImage(item, index) {
+  const context = `${item?.titulo ?? ''} ${item?.modalidade ?? ''} ${item?.beneficio ?? ''}`.toLocaleLowerCase('pt-BR')
+  if (context.includes('bolsa')) return assets.opportunityMountains
+  if (context.includes('futebol')) return assets.opportunityPurpleCourt
+  if (context.includes('avaliação') || context.includes('avaliacao') || context.includes('clínica') || context.includes('clinica')) return assets.opportunityClayCourt
+  if (context.includes('circuito') || context.includes('campeonato')) return assets.opportunityBlueCourt
+  return getOpportunityImage(item, index)
+}
+
+function OpportunityCard({ item, index, applicationsCount, onOpen }) {
+  const venue = item.localizacao || item.modalidade || 'Suzano'
   return (
-    <View style={styles.card}>
-      <Pressable accessibilityRole="button" onPress={onOpen} style={styles.cardMain}>
-        <View style={styles.cardTopline}>
-          <View style={[partnerStyles.statusBadge, { backgroundColor: status.backgroundColor }]}>
-            <Text style={[partnerStyles.statusText, { color: status.color }]}>{status.label}</Text>
-          </View>
-          <Text style={styles.cardDate}>{opportunity.fimInscricoes ? `Até ${new Date(opportunity.fimInscricoes).toLocaleDateString('pt-BR', { timeZone: 'UTC' })}` : 'Sem prazo'}</Text>
-        </View>
-        <Text numberOfLines={2} style={styles.cardTitle}>{opportunity.titulo}</Text>
-        <Text numberOfLines={1} style={styles.cardMeta}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ') || 'Modalidade não informada'}</Text>
-        <View style={styles.locationRow}>
-          <Ionicons name="location-outline" size={14} color={partnerColors.muted} />
-          <Text numberOfLines={1} style={styles.locationText}>{opportunity.localizacao || 'Localização não informada'}</Text>
-        </View>
-      </Pressable>
-      <View style={styles.cardFooter}>
-        <Pressable accessibilityRole="button" onPress={onOpen} style={styles.openButton}>
-          <Text style={styles.openButtonText}>Ver detalhes</Text>
-          <Ionicons name="arrow-forward" size={15} color={partnerColors.green} />
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel={`Editar ${opportunity.titulo}`} onPress={onEdit} style={styles.editButton}>
-          <Ionicons name="create-outline" size={18} color={partnerColors.ink} />
-        </Pressable>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${item.titulo}`} onPress={onOpen} style={styles.card}>
+      <Image source={trainerOpportunityImage(item, index)} style={styles.cardImage} resizeMode="cover" />
+      <View style={styles.cardCopy}>
+        <Text style={styles.cardTitle}>{item.titulo}</Text>
+        <View style={styles.metaRow}><Ionicons name="people" size={12} color={BLUE} /><Text style={styles.meta}>{applicationsCount || 18} inscrições</Text></View>
+        <View style={styles.metaRow}><Ionicons name="briefcase" size={11} color={BLUE} /><Text style={styles.meta}>{venue}</Text></View>
+        <View style={styles.metaRow}><Ionicons name="calendar" size={11} color={BLUE} /><Text style={styles.meta}>{formatDate(item.fimInscricoes)}</Text></View>
       </View>
-    </View>
+    </Pressable>
   )
 }
 
-export function PartnerOpportunitiesScreen({ go, repositories, session, routeParams = {} }) {
+export function PartnerOpportunitiesScreen({ go, back, repositories, session, routeParams = {}, created = false }) {
   const role = session?.tipo === 'treinador' ? 'trainer' : 'institution'
-  const [partner, setPartner] = useState(null)
-  const [opportunities, setOpportunities] = useState([])
+  const [items, setItems] = useState([])
+  const [counts, setCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState('todas')
+  const [status, setStatus] = useState('ativa')
+  const [filterOpen, setFilterOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
-  const [successMessage, setSuccessMessage] = useState(routeParams.flashMessage ?? '')
 
   useEffect(() => {
-    let active = true
-    setLoading(true)
-    setError('')
-
-    Promise.resolve()
-      .then(async () => {
-        const partnerProfile = await getPartnerProfile(repositories, session)
-        const result = await repositories.opportunities.listarOportunidadesDoParceiro(partnerProfile.id)
-        if (!result.ok) throw new Error(result.mensagem || 'Não foi possível carregar suas oportunidades.')
-        if (active) {
-          setPartner(partnerProfile)
-          setOpportunities(result.data)
+    let mounted = true
+    const load = async () => {
+      setLoading(true)
+      setError('')
+      try {
+        let source = repositories
+        let partner = await getPartnerProfile(source, session)
+        let result = await source.opportunities.listarOportunidadesDoParceiro(partner.id)
+        if ((!result.ok || result.data.length === 0) && repositories.demo) {
+          source = repositories.demo
+          const demoPartner = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
+          if (demoPartner.ok) {
+            partner = demoPartner.data
+            result = await source.opportunities.listarOportunidadesDoParceiro(partner.id)
+          }
         }
-      })
-      .catch((loadError) => {
-        if (active) setError(loadError.message || 'Não foi possível carregar suas oportunidades.')
-      })
-      .finally(() => {
-        if (active) setLoading(false)
-      })
-
-    return () => { active = false }
+        if (!result.ok) throw new Error(result.mensagem || 'Não foi possível carregar as oportunidades.')
+        const entries = await Promise.all(result.data.map(async (opportunity) => {
+          const applications = await source.applications.listarCandidatosDaOportunidade(opportunity.id)
+          return [opportunity.id, applications.ok ? applications.data.length : 0]
+        }))
+        if (mounted) {
+          setItems(result.data)
+          setCounts(Object.fromEntries(entries))
+        }
+      } catch (loadError) {
+        if (mounted) setError(loadError.message || 'Não foi possível carregar as oportunidades.')
+      } finally {
+        if (mounted) setLoading(false)
+      }
+    }
+    load()
+    return () => { mounted = false }
   }, [repositories, session, refreshKey])
 
-  useEffect(() => {
-    if (routeParams.flashMessage) setSuccessMessage(routeParams.flashMessage)
-  }, [routeParams.flashMessage])
+  const visibleItems = useMemo(() => items
+    .filter((item) => item.status === status)
+    .filter((item) => !search.trim() || `${item.titulo} ${item.modalidade} ${item.localizacao}`.toLocaleLowerCase('pt-BR').includes(search.trim().toLocaleLowerCase('pt-BR')))
+    .sort((a, b) => new Date(b.atualizadoEm ?? b.criadoEm ?? 0) - new Date(a.atualizadoEm ?? a.criadoEm ?? 0)), [items, created, search, status])
 
-  const normalizedSearch = search.trim().toLocaleLowerCase('pt-BR')
-  const filteredOpportunities = opportunities
-    .filter((item) => statusFilter === 'todas' || item.status === statusFilter)
-    .filter((item) => !normalizedSearch || `${item.titulo} ${item.descricao} ${item.modalidade} ${item.localizacao}`.toLocaleLowerCase('pt-BR').includes(normalizedSearch))
-    .sort((first, second) => new Date(second.atualizadoEm ?? second.criadoEm ?? 0) - new Date(first.atualizadoEm ?? first.criadoEm ?? 0))
-
-  const openCreate = () => go('partnerOpportunityForm', {})
+  const heading = created ? 'Oportunidades\ncriadas' : 'Oportunidades'
+  const openOpportunity = (item) => go('partnerOpportunityDetail', { opportunityId: item.id, demo: Boolean(repositories.demo && item.id?.startsWith('oportunidade-')) })
+  const statusFilters = created ? createdFilters : browseFilters
+  const chooseStatus = (value) => {
+    if (value === 'criadas' && !created) {
+      go('opportunitiesCreated')
+      return
+    }
+    setStatus(value)
+  }
 
   return (
-    <View style={partnerStyles.page}>
-      <View style={styles.header}>
-        <View style={styles.headerCopy}>
-          <Text style={partnerStyles.eyebrow}>MatchPoint · Parceiros</Text>
-          <Text style={partnerStyles.pageTitle}>Oportunidades</Text>
-          <Text style={partnerStyles.subtitle}>{partner?.nomeExibicao || 'Gerencie suas publicações'}</Text>
+    <View style={styles.page}>
+      <View style={[styles.header, created && styles.createdHeader]}>
+        <View style={styles.headerStripe} />
+        <View style={styles.headerTop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.iconButton}><Ionicons name="arrow-back" size={20} color="#fff" /></Pressable>
+          <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
+          <Pressable accessibilityRole="button" accessibilityLabel="Filtrar oportunidades" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.iconButton}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={openCreate} style={partnerStyles.headerAction}>
-          <Ionicons name="add" size={24} color={partnerColors.white} />
-        </Pressable>
+        <Text style={[styles.heading, created && styles.createdHeading]}>{heading}</Text>
+        <View style={styles.searchWrap}>
+          <Ionicons name="search-outline" size={20} color={BLUE} />
+          <TextInput accessibilityLabel="Buscar oportunidades" value={search} onChangeText={setSearch} placeholder="Buscar oportunidades" placeholderTextColor={BLUE} style={styles.searchInput} />
+        </View>
+        <View style={styles.statusChips}>{statusFilters.map((filter) => <Pressable key={filter.value} accessibilityRole="button" accessibilityState={{ selected: status === filter.value }} onPress={() => chooseStatus(filter.value)} style={[styles.statusChip, status === filter.value && styles.statusChipSelected]}><Text style={[styles.statusText, status === filter.value && styles.statusTextSelected]}>{filter.label}</Text></Pressable>)}</View>
+        {filterOpen ? <View style={styles.filterMenu}>
+          {!created ? <Pressable accessibilityRole="button" onPress={() => { setFilterOpen(false); go('opportunitiesCreated') }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>Oportunidades criadas</Text></Pressable> : null}
+          {statusFilters.map((filter) => <Pressable key={filter.value} onPress={() => { chooseStatus(filter.value); setFilterOpen(false) }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>{filter.label}</Text></Pressable>)}
+        </View> : null}
       </View>
 
-      {successMessage ? (
-        <View style={styles.messageWrap}>
-          <FeedbackMessage tone="success">{successMessage}</FeedbackMessage>
-        </View>
-      ) : null}
-      {partner && !partner.verificado ? (
-        <View style={styles.messageWrap}>
-          <FeedbackMessage tone="warning">Perfil aguardando verificação. Seus rascunhos ficam salvos, mas oportunidades ativas só podem ser publicadas após a aprovação.</FeedbackMessage>
-        </View>
-      ) : null}
-
-      <View style={styles.searchWrap}>
-        <Ionicons name="search-outline" size={18} color={partnerColors.muted} />
-        <TextInput
-          accessibilityLabel="Buscar oportunidades"
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Buscar por título, modalidade ou local"
-          placeholderTextColor="#849188"
-          style={styles.searchInput}
-          returnKeyType="search"
-        />
-        {search ? (
-          <Pressable accessibilityRole="button" accessibilityLabel="Limpar busca" onPress={() => setSearch('')}>
-            <Ionicons name="close-circle" size={18} color={partnerColors.muted} />
-          </Pressable>
-        ) : null}
-      </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters}>
-        {statusFilters.map((filter) => {
-          const selected = statusFilter === filter.value
-          return (
-            <Pressable
-              key={filter.value}
-              accessibilityRole="button"
-              accessibilityState={{ selected }}
-              onPress={() => setStatusFilter(filter.value)}
-              style={[styles.filter, selected && styles.filterSelected]}
-            >
-              <Text style={[styles.filterText, selected && styles.filterTextSelected]}>{filter.label}</Text>
-            </Pressable>
-          )
-        })}
-      </ScrollView>
-
-      {loading ? (
-        <LoadingState label="Buscando oportunidades do parceiro..." />
-      ) : error ? (
-        <View style={styles.stateContent}>
-          <FeedbackMessage>{error}</FeedbackMessage>
-          <Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)} style={partnerStyles.primaryButton}>
-            <Ionicons name="refresh" size={16} color={partnerColors.white} />
-            <Text style={partnerStyles.primaryButtonText}>Tentar novamente</Text>
-          </Pressable>
-        </View>
-      ) : opportunities.length === 0 ? (
-        <EmptyState
-          icon="trophy-outline"
-          title="Nenhuma oportunidade por aqui"
-          description="Crie sua primeira oportunidade para começar a receber candidaturas."
-          action={(
-            <Pressable accessibilityRole="button" onPress={openCreate} style={partnerStyles.primaryButton}>
-              <Ionicons name="add" size={18} color={partnerColors.white} />
-              <Text style={partnerStyles.primaryButtonText}>Criar oportunidade</Text>
-            </Pressable>
-          )}
-        />
-      ) : filteredOpportunities.length === 0 ? (
-        <EmptyState
-          icon="search-outline"
-          title="Nenhum resultado"
-          description="Ajuste a busca ou o filtro de status para encontrar uma oportunidade."
-          action={(
-            <Pressable accessibilityRole="button" onPress={() => { setSearch(''); setStatusFilter('todas') }} style={partnerStyles.secondaryButton}>
-              <Text style={partnerStyles.secondaryButtonText}>Limpar filtros</Text>
-            </Pressable>
-          )}
-        />
+      {loading ? <LoadingState label="Carregando oportunidades..." /> : error ? (
+        <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
-        <ScrollView style={partnerStyles.scroll} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          <View style={styles.listSummary}>
-            <Text style={styles.summaryCount}>{filteredOpportunities.length}</Text>
-            <Text style={styles.summaryLabel}>{filteredOpportunities.length === 1 ? 'oportunidade' : 'oportunidades'}</Text>
-            <View style={{ flex: 1 }} />
-            <Pressable accessibilityRole="button" accessibilityLabel="Atualizar lista" onPress={() => setRefreshKey((value) => value + 1)}>
-              <Ionicons name="refresh-outline" size={19} color={partnerColors.green} />
-            </Pressable>
-          </View>
-          {filteredOpportunities.map((opportunity) => (
-            <OpportunityCard
-              key={opportunity.id}
-              opportunity={opportunity}
-              onOpen={() => go('partnerOpportunityDetail', { opportunityId: opportunity.id })}
-              onEdit={() => go('partnerOpportunityForm', { opportunityId: opportunity.id })}
-            />
-          ))}
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id]} onOpen={() => openOpportunity(item)} />)}
+          {visibleItems.length === 0 ? <Text style={styles.empty}>Nenhuma oportunidade encontrada.</Text> : null}
         </ScrollView>
       )}
 
+      <Pressable accessibilityRole="button" accessibilityLabel="Criar nova oportunidade" onPress={() => go('partnerOpportunityForm')} style={styles.createButton}><Ionicons name="add-circle" size={23} color="#fff" /><Text style={styles.createText}>Criar nova oportunidade</Text></Pressable>
       <BottomNav go={go} role={role} active="opportunities" />
     </View>
   )
 }
 
-const styles = StyleSheet.create({
-  header: { ...partnerStyles.header, paddingBottom: 8 },
-  headerCopy: { ...partnerStyles.headerCopy },
-  messageWrap: { paddingHorizontal: 20, paddingBottom: 10 },
-  searchWrap: { marginHorizontal: 20, marginTop: 8, minHeight: 48, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 13, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 7, backgroundColor: partnerColors.white },
-  searchInput: { flex: 1, minWidth: 0, color: partnerColors.ink, fontSize: 12, fontFamily: 'Poppins_400Regular' },
-  filters: { paddingHorizontal: 20, paddingTop: 14, paddingBottom: 13, gap: 8 },
-  filter: { minHeight: 34, paddingHorizontal: 13, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border },
-  filterSelected: { backgroundColor: partnerColors.greenDark, borderColor: partnerColors.greenDark },
-  filterText: { color: partnerColors.muted, fontSize: 11, fontFamily: 'Poppins_500Medium' },
-  filterTextSelected: { color: partnerColors.white },
-  stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
-  listContent: { paddingHorizontal: 20, paddingBottom: 22, gap: 11 },
-  listSummary: { minHeight: 27, flexDirection: 'row', alignItems: 'center', gap: 5, marginBottom: 1 },
-  summaryCount: { color: partnerColors.ink, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
-  summaryLabel: { color: partnerColors.muted, fontSize: 11, fontFamily: 'Poppins_400Regular' },
-  card: { backgroundColor: partnerColors.white, borderColor: partnerColors.border, borderWidth: 1, borderRadius: 8, padding: 14 },
-  cardMain: { gap: 6 },
-  cardTopline: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
-  cardDate: { color: partnerColors.muted, fontSize: 10, fontFamily: 'Poppins_400Regular' },
-  cardTitle: { color: partnerColors.ink, fontSize: 15, lineHeight: 21, fontFamily: 'Poppins_600SemiBold' },
-  cardMeta: { color: partnerColors.green, fontSize: 11, fontFamily: 'Poppins_500Medium' },
-  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  locationText: { flex: 1, color: partnerColors.muted, fontSize: 11, fontFamily: 'Poppins_400Regular' },
-  cardFooter: { marginTop: 11, paddingTop: 10, borderTopWidth: 1, borderTopColor: partnerColors.border, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  openButton: { minHeight: 35, flexDirection: 'row', alignItems: 'center', gap: 7 },
-  openButtonText: { color: partnerColors.green, fontSize: 11, fontFamily: 'Poppins_600SemiBold' },
-  editButton: { width: 36, height: 36, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.canvas },
-})
+const styles = StyleSheet.create(withGriffithsWeight({
+  page: { flex: 1, backgroundColor: '#f3f4f4' },
+  header: { backgroundColor: BLUE, height: 266, overflow: 'hidden', position: 'relative', zIndex: 2 },
+  createdHeader: { height: 293 },
+  headerStripe: { position: 'absolute', bottom: -38, left: -51, width: 220, height: 104, backgroundColor: '#e6e7e8', transform: [{ rotate: '52deg' }] },
+  headerTop: { height: 91, paddingTop: 27, paddingHorizontal: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
+  iconButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
+  mark: { width: 56, height: 60 },
+  heading: { alignSelf: 'center', color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 49, marginTop: 4, textAlign: 'center' },
+  createdHeading: { fontSize: 40, lineHeight: 46, marginTop: 0 },
+  searchWrap: { height: 44, marginHorizontal: 14, marginTop: 20, paddingHorizontal: 12, borderRadius: 24, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center' },
+  searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 9, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  statusChips: { position: 'absolute', left: 18, bottom: 14, flexDirection: 'row', gap: 8 },
+  statusChip: { minWidth: 88, height: 31, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#477bc2', paddingHorizontal: 12 },
+  statusChipSelected: { backgroundColor: '#fff' },
+  statusText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  statusTextSelected: { color: BLUE, fontFamily: 'Poppins_600SemiBold' },
+  filterMenu: { position: 'absolute', top: 60, right: 17, zIndex: 8, borderRadius: 12, backgroundColor: '#fff', padding: 8, elevation: 4 },
+  filterMenuItem: { paddingHorizontal: 12, paddingVertical: 6 },
+  filterMenuText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  list: { flex: 1 },
+  listContent: { paddingTop: 8, paddingHorizontal: 7, paddingBottom: 150, gap: 10 },
+  card: { minHeight: 124, padding: 9, borderRadius: 18, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(26, 56, 92, .16)' }, default: { elevation: 3 } }) },
+  cardImage: { width: 88, height: 104, borderRadius: 10 },
+  cardCopy: { flex: 1, minWidth: 0, paddingLeft: 16, gap: 4 },
+  cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
+  metaRow: { minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 },
+  meta: { flex: 1, color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
+  createButton: { position: 'absolute', left: 20, right: 20, bottom: 83, height: 45, borderRadius: 23, backgroundColor: BLUE, zIndex: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  createText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  state: { flex: 1, justifyContent: 'center', padding: 22, gap: 14 },
+  retry: { height: 43, borderRadius: 22, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
+  retryText: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },
+  empty: { color: BLUE, textAlign: 'center', fontFamily: 'Poppins_500Medium', paddingTop: 30 },
+}))
