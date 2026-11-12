@@ -63,7 +63,7 @@ export function LoginScreen({ go, back, repositories }) {
   }
 
   return (
-    <Shell background={assets.court} back={back}>
+    <Shell background={assets.court} backgroundResizeMode="stretch" back={back}>
       <Image source={assets.logo} style={[styles.loginLogo, localStyles.loginLogo]} resizeMode="contain" />
       <ScrollView
         style={localStyles.scroll}

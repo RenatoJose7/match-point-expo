@@ -4,11 +4,11 @@ import { assets } from '../../theme/assets'
 import { styles } from '../../theme/styles'
 import { BackButton } from './BackButton'
 
-export function Shell({ background, children, back, logo = false, fallbackColor }) {
+export function Shell({ background, backgroundResizeMode = 'cover', children, back, logo = false, fallbackColor }) {
   return (
     <ImageBackground
       source={background}
-      resizeMode="cover"
+      resizeMode={backgroundResizeMode}
       style={[styles.full, fallbackColor ? { backgroundColor: fallbackColor } : null]}
     >
       <View style={styles.dim} />
