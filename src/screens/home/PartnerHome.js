@@ -10,7 +10,12 @@ import { styles } from '../../theme/styles'
 import { withGriffithsWeight } from '../../theme/typography'
 
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
-  const [summary, setSummary] = useState({ activeCount, candidateCount })
+  const [summary, setSummary] = useState({
+    activeCount: role === 'trainer' ? 0 : activeCount,
+    analysisOpportunityCount: 0,
+    closedOpportunityCount: 0,
+    candidateCount: role === 'trainer' ? 0 : candidateCount,
+  })
   const [displayName, setDisplayName] = useState(name)
   const Banner = bannerPressable ? Pressable : View
   const opportunitiesTarget = role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
@@ -30,6 +35,8 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
       setDisplayName(partnerResult.data.nomeExibicao || name)
       setSummary({
         activeCount: opportunities.filter((item) => item.status === 'ativa').length,
+        analysisOpportunityCount: opportunities.filter((item) => item.status === 'em_analise').length,
+        closedOpportunityCount: opportunities.filter((item) => item.status === 'encerrada').length,
         candidateCount: candidates.reduce((total, result) => total + (result.ok ? result.data.length : 0), 0),
       })
     })
@@ -64,13 +71,13 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue]} />
-                  <Text style={styles.trainerStatusNumber}>{summary.candidateCount}</Text>
+                  <Text style={styles.trainerStatusNumber}>{summary.analysisOpportunityCount}</Text>
                   <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Em análise</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange]} />
-                  <Text style={styles.trainerStatusNumber}>—</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Sem dados</Text>
+                  <Text style={styles.trainerStatusNumber}>{summary.closedOpportunityCount}</Text>
+                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Encerradas</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.trainerCreateShortcut}>
@@ -92,15 +99,9 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
                 <Text style={localStyles.countValue}>{summary.candidateCount}</Text>
               </View>
               <View style={styles.trainerCandidatePreview}>
-                <View style={styles.trainerCandidateFaces}>
-                  {[assets.coco, assets.mirra, assets.ariana].map((photo, index) => (
-                    <Image key={index} source={photo} style={[styles.trainerCandidateFace, index > 0 && styles.trainerCandidateFaceOverlap]} />
-                  ))}
-                  <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
-                    <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount}</Text>
-                  </View>
-                </View>
-                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>Novos candidatos aguardando análise</Text>
+                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>
+                  {summary.candidateCount > 0 ? 'Candidatos nas suas oportunidades' : 'Nenhum candidato recebido ainda'}
+                </Text>
               </View>
             </View>
           </Pressable>

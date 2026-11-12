@@ -15,11 +15,11 @@
       "id": "RF09",
       "titulo": "Gerenciar oportunidades",
       "prioridade": "P0",
-      "status": "concluido",
+      "status": "em_andamento",
       "pr": "#30",
-      "evidencia": "Home do treinador revisada em 430x932: divisória contida, indicadores sem quebra, candidatos alinhados e banner sem sobreposição; contratos, painel e exportação web aprovados.",
+      "evidencia": "Resumo do treinador ajustado para contar oportunidades por status e remover candidatos fictícios quando o total real é zero; check:contracts, progress --check e export:web aprovados.",
       "bloqueio": "",
-      "atualizadoEm": "2026-11-12T11:45:24.012Z"
+      "atualizadoEm": "2026-11-12T12:46:00.404Z"
     },
     {
       "id": "RF18",
