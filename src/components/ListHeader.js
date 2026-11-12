@@ -19,7 +19,7 @@ export function ListHeader({
     <View style={[styles.listHeader, localStyles.header]}>
       {headerBackground}
       <BackButton onPress={back} />
-      <Image source={assets.monogram} style={styles.listMark} />
+      <Image source={assets.monogram} style={styles.listMark} resizeMode="contain" />
       <Text style={[styles.listTitle, localStyles.title, titleStyle]}>{title}</Text>
       {onSearchChange ? (
         <View style={[styles.search, localStyles.search]}>

@@ -155,13 +155,13 @@ e ao próprio treinador.
 ```text
 Relato: id, autorId, alvoTipo, alvoId?, mensagem, status, criadoEm
 Recurso: id, titulo, tipo, ativo, atualizadoEm
-Apoio: id, instituicaoId, atletaId, oportunidadeId?, descricao, criadoEm
+Apoio: id, parceiroId, atletaId, oportunidadeId?, descricao, tipo?, valor?, criadoEm
 Auditoria Match: id, atletaId, oportunidadeId, resultado, criterios, versao, criadoEm
 ```
 
 Relatos podem ser enviados e acompanhados pelo autor. Recursos, decisões de
-conta e auditorias são exclusivos da administração. Instituições verificadas
-registram apoios concedidos; a auditoria guarda a versão e os critérios usados
+conta e auditorias são exclusivos da administração. Parceiros verificados
+(treinadores ou instituições) registram apoios concedidos; a auditoria guarda a versão e os critérios usados
 no Match Score para permitir conferência posterior.
 
 ### Oportunidade

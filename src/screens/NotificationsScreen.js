@@ -107,7 +107,7 @@ export function NotificationsScreen({ back, repositories, session }) {
 
 const localStyles = StyleSheet.create({
   screen: { overflow: 'hidden' },
-  mark: { top: 42, width: 51, height: 56 },
+  mark: { top: 18, width: 51, height: 56 },
   heading: { fontSize: 40, lineHeight: 48 },
   subtitle: { lineHeight: 22 },
   scroll: { flex: 1 },

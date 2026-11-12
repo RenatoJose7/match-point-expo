@@ -307,7 +307,7 @@ const localStyles = StyleSheet.create({
   // Header
   header: { height: 273, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -126, bottom: -15, width: 348, height: 70, backgroundColor: '#e4e7e8', transform: [{ rotate: '55deg' }] },
-  headerMark: { width: 108, height: 120, alignSelf: 'center', marginTop: 87 },
+  headerMark: { width: 57, height: 63, alignSelf: 'center', marginTop: 87 },
   headerTextBlock: { paddingHorizontal: 21, paddingTop: 27, paddingBottom: 16 },
   headerTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 25 },
   headerSubtitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 18, marginTop: 2 },

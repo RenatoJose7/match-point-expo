@@ -508,10 +508,14 @@ service cloud.firestore {
 
     match /apoios/{supportId} {
       allow create: if signedIn() && request.resource.data.id == supportId
-        && verifiedPartner(request.resource.data.instituicaoId)
-        && get(/databases/$(database)/documents/parceiros/$(request.resource.data.instituicaoId)).data.tipo == 'instituicao'
+        && request.resource.data.parceiroId is string
+        && verifiedPartner(request.resource.data.parceiroId)
         && request.resource.data.descricao is string;
-      allow get, list: if signedIn() && (ownsPartner(resource.data.instituicaoId) || ownsAthlete(resource.data.atletaId));
+      allow get, list: if signedIn() && (
+        (('parceiroId' in resource.data) && ownsPartner(resource.data.parceiroId))
+        || (('instituicaoId' in resource.data) && ownsPartner(resource.data.instituicaoId))
+        || ownsAthlete(resource.data.atletaId)
+      );
       allow update, delete: if false;
     }
 

@@ -52,7 +52,7 @@ export function ProfileView({ role, go, back, repositories, session }) {
       {/* Header azul */}
       <View style={localStyles.header}>
         <BackButton onPress={back} />
-        <Image source={assets.monogram} style={localStyles.headerMark} />
+        <Image source={assets.monogram} style={localStyles.headerMark} resizeMode="contain" />
         <View style={localStyles.identity}>
           <View style={localStyles.identityText}>
             <Text style={localStyles.name}>{displayName}</Text>

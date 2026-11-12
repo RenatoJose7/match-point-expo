@@ -784,9 +784,9 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
   }
   const support = {
     registrarApoio: async (data) => {
-      const user = currentSession(); const institution = state.partners.find((item) => item.id === data.instituicaoId)
-      if (!user || institution?.usuarioId !== user.id || !institution.verificado || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
-      const item = { id: nextId('apoio'), ...data, descricao: data.descricao.trim(), criadoEm: now() }; state.supports.push(item); return success(item)
+      const user = currentSession(); const partnerId = data.parceiroId ?? data.instituicaoId; const partner = state.partners.find((item) => item.id === partnerId)
+      if (!user || partner?.usuarioId !== user.id || !partner.verificado || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de um parceiro verificado.')
+      const item = { id: nextId('apoio'), ...data, parceiroId: partner.id, descricao: data.descricao.trim(), criadoEm: now() }; state.supports.push(item); return success(item)
     },
   }
   const administration = {
