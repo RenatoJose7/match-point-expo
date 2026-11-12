@@ -5,11 +5,11 @@
       "id": "RF01",
       "titulo": "Cadastro e login",
       "prioridade": "P0",
-      "status": "em_andamento",
+      "status": "concluido",
       "pr": "#29",
       "evidencia": "Reautenticação com senha ou Google adicionada; regras de exclusão do Firestore publicadas no projeto matchpoint-tcc-2026 e validações aprovadas.",
       "bloqueio": "",
-      "atualizadoEm": "2026-11-12T12:11:53.096Z"
+      "atualizadoEm": "2026-11-12T12:13:49.076Z"
     },
     {
       "id": "RF04",
