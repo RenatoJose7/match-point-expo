@@ -2,7 +2,7 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-11-12T12:13:49.076Z
+Última atualização registrada: 2026-11-12T12:51:05.699Z
 
 ## Barras de progresso
 
@@ -54,7 +54,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF26 — Denúncias | P2 | Backlog futuro | Concluído | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Concluído | — | — |
 | RF28 — Moderação | P2 | Backlog futuro | Concluído | — | — |
-| RF29 — Apoios concedidos | P2 | Backlog futuro | Em andamento | — | — |
+| RF29 — Apoios concedidos | P2 | Backlog futuro | Em andamento | — | Formulário de apoio agora usa o atleta do contexto, volta para a rota anterior e usa o monograma nítido; check:contracts, progress --check e export:web aprovados. |
 | RF30 — Auditoria do Match Score | P2 | Backlog futuro | Concluído | — | — |
 
 ## Como atualizar

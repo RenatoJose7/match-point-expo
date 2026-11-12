@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image, Platform, StatusBar as NativeStatusBar } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { BackButton } from '../components/ui/BackButton'
+import { assets } from '../theme/assets'
 import { withGriffithsWeight } from '../theme/typography'
 
 const BLUE = '#10579b'
@@ -28,7 +30,6 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   const [resources, setResources] = useState([])
   const [supportType, setSupportType] = useState('bolsa_integral')
   const [supportValue, setSupportValue] = useState('')
-  const [athleteSearch, setAthleteSearch] = useState(routeParams.candidateName || '')
   const [savingSupport, setSavingSupport] = useState(false)
 
   const load = async () => {
@@ -47,9 +48,6 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
     if (result.ok) setReports(result.data)
   }
   useEffect(() => { load() }, [session?.id])
-  useEffect(() => {
-    setAthleteSearch(routeParams.candidateName || '')
-  }, [routeParams.candidateName])
 
   const sendReport = async () => {
     const result = await repositories.reports.enviarRelato({ mensagem: message })
@@ -76,7 +74,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
 
   const support = async () => {
     if (savingSupport) return
-    if (!routeParams.athleteId) return setStatus('Selecione um atleta antes de registrar o apoio.')
+    if (!routeParams.athleteId) return setStatus('Não foi possível identificar o atleta selecionado.')
     setSavingSupport(true)
     setStatus('')
     try {
@@ -159,8 +157,10 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
       {/* Header azul com monograma */}
       <View style={localStyles.header}>
         <View style={localStyles.headerStripe} />
-        <BackButton onPress={() => trainer ? go('partnerOpportunityCandidates', { opportunityId: routeParams.opportunityId }) : back()} />
-        <Image source={require('../../assets/monogram-ultra.png')} style={localStyles.headerMark} resizeMode="contain" />
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={localStyles.backButton}>
+          <Ionicons name="arrow-back" size={20} color="#fff" />
+        </Pressable>
+        <Image source={assets.monogram} style={localStyles.headerMark} resizeMode="contain" />
       </View>
 
       {/* Painel branco */}
@@ -175,13 +175,12 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             </View>
           ) : null}
 
-          {/* Campo pesquisar atleta */}
-          <Text style={localStyles.fieldLabel}>Pesquisar o atleta</Text>
-          <TextInput
-            value={athleteSearch}
-            onChangeText={setAthleteSearch}
-            style={localStyles.searchField}
-          />
+          <Text style={localStyles.fieldLabel}>Atleta selecionado</Text>
+          <View style={localStyles.searchField}>
+            <Text numberOfLines={1} style={localStyles.selectedAthlete}>
+              {String(routeParams.candidateName || 'Atleta selecionado')}
+            </Text>
+          </View>
 
           {/* Tipo de apoio */}
           <Text style={localStyles.fieldLabel}>Tipo de apoio</Text>
@@ -238,13 +237,15 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: BLUE },
   header: { height: 272, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -173, bottom: 28, width: 390, height: 72, backgroundColor: '#e7e8e9', transform: [{ rotate: '54deg' }] },
+  backButton: { position: 'absolute', zIndex: 20, top: Platform.OS === 'web' ? 35 : (NativeStatusBar.currentHeight || 24) + 14, left: 25, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   headerMark: { position: 'absolute', top: 87, width: 126, height: 126, alignSelf: 'center' },
   panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden' },
   panelContent: { paddingHorizontal: 10, paddingTop: 24, paddingBottom: 148, gap: 13 },
   panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
   titleRule: { height: 4, borderRadius: 2, backgroundColor: GREEN, marginTop: -9, marginBottom: 25 },
   fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
-  searchField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  searchField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, justifyContent: 'center' },
+  selectedAthlete: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
   radioGroup: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 18 },
   radioRow: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10 },
   radioRowWide: { width: '100%' },
