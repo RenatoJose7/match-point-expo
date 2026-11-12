@@ -30,13 +30,14 @@ export function Header({ initials, name, photoUrl, subtitle, go, repositories, t
   }
 
   const displayName = shortName(name)
+  const displayInitials = String(initials || displayName.charAt(0) || 'U').trim()
 
   return (
     <View style={[styles.homeHeader, trainer && styles.trainerHomeHeader]}>
       <Image source={assets.monogram} style={[styles.homeMark, trainer && styles.trainerHomeMark]} resizeMode="contain" />
       <View style={[styles.greetingRow, trainer && styles.trainerGreetingRow, localStyles.greetingRow]}>
         <View style={[styles.avatar, trainer && styles.trainerAvatar, localStyles.avatar]}>
-          {activePhotoUrl ? <Image source={{ uri: activePhotoUrl }} style={localStyles.avatarPhoto} resizeMode="cover" /> : <Text style={styles.avatarText}>{initials}</Text>}
+          {activePhotoUrl ? <Image source={{ uri: activePhotoUrl }} style={localStyles.avatarPhoto} resizeMode="cover" /> : <Text style={styles.avatarText}>{displayInitials}</Text>}
         </View>
         <View style={localStyles.greetingTextContainer}>
           <Text numberOfLines={1} style={[styles.greeting, trainer && styles.trainerGreeting]}>Olá, <Text style={styles.signupAccent}>{displayName}</Text></Text>

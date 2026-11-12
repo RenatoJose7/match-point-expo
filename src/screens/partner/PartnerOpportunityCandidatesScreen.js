@@ -9,16 +9,16 @@ import { FeedbackMessage, getOwnedOpportunity, getPartnerProfile, LoadingState }
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 const demoCandidates = [
-  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Sub-20', date: 'Inscrição em 28/03/2026', photo: assets.mirra, score: 85 },
-  { id: 'demo-ariana', name: 'Ariana Sabalenka', category: 'Sub-25', date: 'Inscrição em 30/03/2026', photo: assets.ariana },
-  { id: 'demo-helena', name: 'Helena Rybakina', category: 'Sub-25', date: 'Inscrição em 31/03/2026', photo: assets.helena },
-  { id: 'demo-coco', name: 'Coco Gauffina', category: 'Sub-20', date: 'Inscrição em 01/04/2026', photo: assets.coco },
+  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Sub-20', date: 'Inscrição em 28/03/2026', photo: assets.mirra, score: 94 },
+  { id: 'demo-ariana', name: 'Ariana Sabalenka', category: 'Sub-25', date: 'Inscrição em 30/03/2026', photo: assets.ariana, score: 88 },
+  { id: 'demo-helena', name: 'Helena Rybakina', category: 'Sub-25', date: 'Inscrição em 31/03/2026', photo: assets.helena, score: 80 },
+  { id: 'demo-coco', name: 'Coco Gauffina', category: 'Sub-20', date: 'Inscrição em 01/04/2026', photo: assets.coco, score: 76 },
 ]
 
 function CandidateCard({ candidate, onPress }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Ver perfil de ${candidate.name}`} onPress={onPress} style={styles.card}>
-      <Image source={candidate.photo} style={styles.photo} />
+      <Image source={candidate.photo} style={styles.photo} resizeMode="cover" />
       <View style={styles.copy}>
         <Text numberOfLines={2} style={styles.name}>{candidate.name}</Text>
         <Text style={styles.category}>{candidate.category}</Text>
@@ -63,8 +63,11 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           score: application.matchScore,
         }))
         if (mounted) {
+          const visualCandidates = mapped.length < 4
+            ? [...mapped, ...demoCandidates.filter((candidate) => !mapped.some((item) => item.name === candidate.name)).slice(0, 4 - mapped.length)]
+            : mapped
           setTitle(opportunity.titulo || 'Bolsas de Estudos')
-          setCandidates(mapped.length ? mapped : demoCandidates)
+          setCandidates(visualCandidates.length ? visualCandidates : demoCandidates)
         }
       } catch {
         // A conta nova recebe uma amostra visual; os dados reais assumem quando existirem.
@@ -94,7 +97,21 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
-          {candidates.map((candidate) => <CandidateCard key={candidate.id} candidate={candidate} onPress={() => candidate.athleteId ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId }) : undefined} />)}
+          {candidates.map((candidate) => (
+            <CandidateCard
+              key={candidate.id}
+              candidate={candidate}
+              onPress={() => role === 'trainer'
+                ? go('operations', {
+                  opportunityId: routeParams.opportunityId,
+                  athleteId: candidate.athleteId || 'atleta-adulto',
+                  candidateName: candidate.name,
+                })
+                : candidate.athleteId
+                  ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
+                  : undefined}
+            />
+          ))}
         </ScrollView>
       )}
       <BottomNav go={go} role={role} active="opportunities" />
@@ -104,7 +121,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
 
 const styles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: '#f3f4f4' },
-  header: { minHeight: 243, backgroundColor: BLUE, overflow: 'visible', position: 'relative', zIndex: 2, paddingBottom: 18 },
+  header: { minHeight: 243, backgroundColor: BLUE, overflow: 'hidden', position: 'relative', zIndex: 2, paddingBottom: 18 },
   stripe: { position: 'absolute', bottom: -8, left: -115, width: 337, height: 65, backgroundColor: '#e5e6e7', transform: [{ rotate: '54deg' }] },
   back: { position: 'absolute', top: 32, left: 13, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', top: 32, alignSelf: 'center', width: 57, height: 61 },

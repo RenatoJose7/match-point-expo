@@ -1495,9 +1495,10 @@ export function createFirebaseRepositories() {
   }
   const support = {
     registrarApoio: async (data) => {
-      const institution = await getPartnerByUserId(auth.currentUser?.uid)
-      if (!institution.ok || institution.data.id !== data.instituicaoId || !institution.data.verificado || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de uma instituição verificada.')
-      try { const reference = doc(collection(database, SUPPORTS_COLLECTION)); const item = { id: reference.id, ...data, descricao: data.descricao.trim(), criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+      const partner = await getPartnerByUserId(auth.currentUser?.uid)
+      const partnerId = data.parceiroId ?? data.instituicaoId
+      if (!partner.ok || partner.data.id !== partnerId || !partner.data.verificado || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de um parceiro verificado.')
+      try { const reference = doc(collection(database, SUPPORTS_COLLECTION)); const item = { id: reference.id, ...data, parceiroId, descricao: data.descricao.trim(), criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
     },
   }
   const administration = {

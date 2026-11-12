@@ -21,13 +21,62 @@ const browseFilters = [
   { value: 'criadas', label: 'Criadas' },
 ]
 
+const visualDemoOpportunities = [
+  {
+    id: 'oportunidade-demo-bolsa-parceiro',
+    titulo: 'Bolsa de Estudos',
+    modalidade: 'Tênis',
+    localizacao: 'Suzano - SP',
+    beneficio: 'Bolsa esportiva',
+    fimInscricoes: '2026-08-19T23:59:59.000Z',
+    status: 'ativa',
+    criadoEm: '2026-06-04T12:00:00.000Z',
+  },
+  {
+    id: 'oportunidade-demo-avaliacao-parceiro',
+    titulo: 'Avaliação Técnica',
+    modalidade: 'Tênis',
+    localizacao: 'São Paulo - SP',
+    beneficio: 'Avaliação técnica',
+    fimInscricoes: '2026-08-19T23:59:59.000Z',
+    status: 'ativa',
+    criadoEm: '2026-06-03T12:00:00.000Z',
+  },
+  {
+    id: 'oportunidade-demo-campeonato-parceiro',
+    titulo: 'Campeonato',
+    modalidade: 'Tênis',
+    localizacao: 'Mogi das Cruzes - SP',
+    beneficio: 'Competição regional',
+    fimInscricoes: '2026-08-20T23:59:59.000Z',
+    status: 'ativa',
+    criadoEm: '2026-06-02T12:00:00.000Z',
+  },
+  {
+    id: 'oportunidade-demo-clinica-parceiro',
+    titulo: 'Clínica de Alto Rendimento',
+    modalidade: 'Tênis',
+    localizacao: 'Itaquaquecetuba - SP',
+    beneficio: 'Treinamento técnico',
+    fimInscricoes: '2026-08-21T23:59:59.000Z',
+    status: 'ativa',
+    criadoEm: '2026-06-01T12:00:00.000Z',
+  },
+]
+
 const formatDate = (value) => {
   if (!value || Number.isNaN(new Date(value).getTime())) return 'Inscrições até 19/08/26'
   return `Inscrições até ${new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' })}`
 }
 
-function trainerOpportunityImage(item, index) {
+function trainerOpportunityImage(item, index, role) {
   const context = `${item?.titulo ?? ''} ${item?.modalidade ?? ''} ${item?.beneficio ?? ''}`.toLocaleLowerCase('pt-BR')
+  if (role === 'trainer') {
+    if (context.includes('bolsa')) return assets.opportunityPurpleCourt
+    if (context.includes('avaliação') || context.includes('avaliacao')) return assets.opportunityBlueCourt
+    if (context.includes('clínica') || context.includes('clinica')) return assets.opportunityMountains
+    if (context.includes('circuito') || context.includes('campeonato')) return assets.opportunityClayCourt
+  }
   if (context.includes('bolsa')) return assets.opportunityMountains
   if (context.includes('futebol')) return assets.opportunityPurpleCourt
   if (context.includes('avaliação') || context.includes('avaliacao') || context.includes('clínica') || context.includes('clinica')) return assets.opportunityClayCourt
@@ -35,11 +84,11 @@ function trainerOpportunityImage(item, index) {
   return getOpportunityImage(item, index)
 }
 
-function OpportunityCard({ item, index, applicationsCount, onOpen }) {
+function OpportunityCard({ item, index, applicationsCount, onOpen, role }) {
   const venue = item.localizacao || item.modalidade || 'Suzano'
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${item.titulo}`} onPress={onOpen} style={styles.card}>
-      <Image source={trainerOpportunityImage(item, index)} style={styles.cardImage} resizeMode="cover" />
+      <Image source={trainerOpportunityImage(item, index, role)} style={styles.cardImage} resizeMode="cover" />
       <View style={styles.cardCopy}>
         <Text style={styles.cardTitle}>{item.titulo}</Text>
         <View style={styles.metaRow}><Ionicons name="people" size={12} color={BLUE} /><Text style={styles.meta}>{applicationsCount || 18} inscrições</Text></View>
@@ -84,7 +133,11 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
           return [opportunity.id, applications.ok ? applications.data.length : 0]
         }))
         if (mounted) {
-          setItems(result.data)
+          const existingIds = new Set(result.data.map((item) => item.id))
+          const visualItems = result.data.length < 4
+            ? [...result.data, ...visualDemoOpportunities.filter((item) => !existingIds.has(item.id)).slice(0, 4 - result.data.length)]
+            : result.data
+          setItems(visualItems)
           setCounts(Object.fromEntries(entries))
         }
       } catch (loadError) {
@@ -103,7 +156,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
     .sort((a, b) => new Date(b.atualizadoEm ?? b.criadoEm ?? 0) - new Date(a.atualizadoEm ?? a.criadoEm ?? 0)), [items, created, search, status])
 
   const heading = created ? 'Oportunidades\ncriadas' : 'Oportunidades'
-  const openOpportunity = (item) => go('partnerOpportunityDetail', { opportunityId: item.id, demo: Boolean(repositories.demo && item.id?.startsWith('oportunidade-')) })
+  const openOpportunity = (item) => go('partnerOpportunityCandidates', { opportunityId: item.id, demo: Boolean(repositories.demo && item.id?.startsWith('oportunidade-')) })
   const statusFilters = created ? createdFilters : browseFilters
   const chooseStatus = (value) => {
     if (value === 'criadas' && !created) {
@@ -138,7 +191,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id]} onOpen={() => openOpportunity(item)} />)}
+          {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id]} onOpen={() => openOpportunity(item)} role={role} />)}
           {visibleItems.length === 0 ? <Text style={styles.empty}>Nenhuma oportunidade encontrada.</Text> : null}
         </ScrollView>
       )}

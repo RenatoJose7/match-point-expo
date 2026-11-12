@@ -1,24 +1,23 @@
 import React, { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image } from 'react-native'
-import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
-import { assets } from '../theme/assets'
 import { BackButton } from '../components/ui/BackButton'
 import { withGriffithsWeight } from '../theme/typography'
 
 const BLUE = '#10579b'
 const GREEN = '#c4ff32'
-const BG = '#f5f8f7'
 
 const SUPPORT_TYPES = [
-  { value: 'bolsa_mensal', label: 'Bolsa mensal' },
-  { value: 'bolsa_escolar', label: 'Bolsa escolar' },
-  { value: 'apoio_viagem', label: 'Apoio à viagem' },
+  { value: 'bolsa_integral', label: 'Bolsa Integral' },
+  { value: 'bolsa_parcial', label: 'Bolsa Parcial' },
+  { value: 'apoio_financeiro', label: 'Apoio Financeiro' },
 ]
 
 export function OperationsScreen({ back, go, repositories, session, routeParams = {} }) {
   const admin = session?.tipo === 'administrador'
   const institution = session?.tipo === 'instituicao'
+  const trainer = session?.tipo === 'treinador'
+  const partner = institution || trainer
   const [message, setMessage] = useState('')
   const [title, setTitle] = useState('')
   const [athleteId, setAthleteId] = useState(routeParams.athleteId || '')
@@ -27,9 +26,10 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   const [reports, setReports] = useState([])
   const [accounts, setAccounts] = useState([])
   const [resources, setResources] = useState([])
-  const [supportType, setSupportType] = useState('bolsa_mensal')
+  const [supportType, setSupportType] = useState('bolsa_integral')
   const [supportValue, setSupportValue] = useState('')
-  const [athleteSearch, setAthleteSearch] = useState('')
+  const [athleteSearch, setAthleteSearch] = useState(routeParams.candidateName || '')
+  const [savingSupport, setSavingSupport] = useState(false)
 
   const load = async () => {
     if (admin) {
@@ -47,6 +47,9 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
     if (result.ok) setReports(result.data)
   }
   useEffect(() => { load() }, [session?.id])
+  useEffect(() => {
+    setAthleteSearch(routeParams.candidateName || '')
+  }, [routeParams.candidateName])
 
   const sendReport = async () => {
     const result = await repositories.reports.enviarRelato({ mensagem: message })
@@ -72,25 +75,38 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   }
 
   const support = async () => {
-    const partner = await repositories.users.obterPerfilParceiroPorUsuario(session.id)
-    if (!partner.ok) return setStatus(partner.mensagem)
-    const result = await repositories.support.registrarApoio({
-      instituicaoId: partner.data.id,
-      atletaId: routeParams.athleteId,
-      oportunidadeId: routeParams.opportunityId,
-      descricao: message,
-      tipo: supportType,
-      valor: supportValue,
-    })
-    setStatus(result.ok ? 'Apoio registrado.' : result.mensagem)
-    if (result.ok) setMessage('')
+    if (savingSupport) return
+    if (!routeParams.athleteId) return setStatus('Selecione um atleta antes de registrar o apoio.')
+    setSavingSupport(true)
+    setStatus('')
+    try {
+      const partnerResult = await repositories.users.obterPerfilParceiroPorUsuario(session.id)
+      if (!partnerResult.ok) throw new Error(partnerResult.mensagem)
+      const selectedType = SUPPORT_TYPES.find((item) => item.value === supportType)
+      const description = supportValue.trim()
+        ? `${selectedType?.label || 'Apoio'} no valor de ${supportValue.trim()}`
+        : selectedType?.label || 'Apoio esportivo'
+      const result = await repositories.support.registrarApoio({
+        parceiroId: partnerResult.data.id,
+        atletaId: routeParams.athleteId,
+        oportunidadeId: routeParams.opportunityId,
+        descricao: description,
+        tipo: supportType,
+        valor: supportValue.trim(),
+      })
+      if (!result.ok) throw new Error(result.mensagem)
+      setStatus('Apoio registrado para o atleta selecionado.')
+      setSupportValue('')
+    } catch (supportError) {
+      setStatus(supportError.message || 'Não foi possível registrar o apoio.')
+    } finally {
+      setSavingSupport(false)
+    }
   }
 
   const roleNav = session?.tipo === 'treinador' ? 'trainer' : session?.tipo === 'instituicao' ? 'institution' : 'athlete'
-  const initials = (session?.nome || 'MP').slice(0, 2)
-
   // ── Admin / Relato (funcional, sem redesign) ──────────────────────
-  if (admin || !institution) {
+  if (admin || !partner) {
     return (
       <View style={localStyles.page}>
         <View style={localStyles.simpleHeader}>
@@ -142,17 +158,16 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
     <View style={localStyles.page}>
       {/* Header azul com monograma */}
       <View style={localStyles.header}>
-        <BackButton onPress={back} />
-        <Image source={assets.monogram} style={localStyles.headerMark} />
-        <View style={localStyles.headerAvatar}>
-          <Text style={localStyles.headerAvatarText}>{initials}</Text>
-        </View>
+        <View style={localStyles.headerStripe} />
+        <BackButton onPress={() => trainer ? go('partnerOpportunityCandidates', { opportunityId: routeParams.opportunityId }) : back()} />
+        <Image source={require('../../assets/monogram-ultra.png')} style={localStyles.headerMark} resizeMode="contain" />
       </View>
 
       {/* Painel branco */}
       <View style={localStyles.panel}>
         <ScrollView contentContainerStyle={localStyles.panelContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           <Text style={localStyles.panelTitle}>Registrar apoio</Text>
+          <View style={localStyles.titleRule} />
 
           {status ? (
             <View style={localStyles.statusBadge}>
@@ -161,22 +176,17 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
           ) : null}
 
           {/* Campo pesquisar atleta */}
-          <Text style={localStyles.fieldLabel}>Pesquisar atleta</Text>
-          <View style={localStyles.searchField}>
-            <Ionicons name="search-outline" size={16} color="#aaa" style={{ marginRight: 6 }} />
-            <TextInput
-              value={athleteSearch}
-              onChangeText={setAthleteSearch}
-              placeholder="Pesquisar atleta"
-              placeholderTextColor="#aaa"
-              style={localStyles.searchInput}
-            />
-          </View>
+          <Text style={localStyles.fieldLabel}>Pesquisar o atleta</Text>
+          <TextInput
+            value={athleteSearch}
+            onChangeText={setAthleteSearch}
+            style={localStyles.searchField}
+          />
 
           {/* Tipo de apoio */}
           <Text style={localStyles.fieldLabel}>Tipo de apoio</Text>
           <View style={localStyles.radioGroup}>
-            {SUPPORT_TYPES.map((type) => {
+            {SUPPORT_TYPES.map((type, index) => {
               const selected = supportType === type.value
               return (
                 <Pressable
@@ -184,7 +194,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
                   accessibilityRole="radio"
                   accessibilityState={{ selected }}
                   onPress={() => setSupportType(type.value)}
-                  style={localStyles.radioRow}
+                  style={[localStyles.radioRow, index === 2 && localStyles.radioRowWide]}
                 >
                   <View style={[localStyles.radioOuter, selected && localStyles.radioOuterSelected]}>
                     {selected && <View style={localStyles.radioInner} />}
@@ -196,16 +206,6 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
           </View>
 
           {/* Descrição / observação */}
-          <Text style={localStyles.fieldLabel}>Observação</Text>
-          <TextInput
-            value={message}
-            onChangeText={setMessage}
-            multiline
-            placeholder="Descreva o apoio concedido ao atleta"
-            placeholderTextColor="#aaa"
-            style={localStyles.textArea}
-          />
-
           {/* Valor */}
           <Text style={localStyles.fieldLabel}>Valor (se aplicável)</Text>
           <TextInput
@@ -218,44 +218,44 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
           />
 
           {/* Botão Registrar */}
-          <Pressable onPress={support} style={localStyles.submitBtn} accessibilityRole="button">
-            <Text style={localStyles.submitBtnText}>Registrar</Text>
-          </Pressable>
         </ScrollView>
+        <Pressable
+          onPress={support}
+          disabled={savingSupport}
+          style={({ pressed }) => [localStyles.submitBtn, pressed && localStyles.submitBtnPressed, savingSupport && localStyles.submitBtnDisabled]}
+          accessibilityRole="button"
+        >
+          <Text style={localStyles.submitBtnText}>{savingSupport ? 'Registrando...' : 'Registrar'}</Text>
+        </Pressable>
       </View>
 
-      <BottomNav go={go} role={roleNav} active="profile" />
+      <BottomNav go={go} role={roleNav} active="home" />
     </View>
   )
 }
 
 const localStyles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: BLUE },
-  // Header azul
-  header: { height: 170, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'flex-end', paddingBottom: 16 },
-  headerMark: { position: 'absolute', top: 22, width: 51, height: 56, alignSelf: 'center' },
-  headerAvatar: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 2, borderColor: '#fff', alignItems: 'center', justifyContent: 'center' },
-  headerAvatarText: { fontFamily: 'Griffiths', color: '#fff', fontSize: 40, lineHeight: 50 },
-  // Painel branco
-  panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 22, borderTopRightRadius: 22, overflow: 'hidden' },
-  panelContent: { paddingHorizontal: 22, paddingTop: 24, paddingBottom: 100, gap: 12 },
-  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, marginBottom: 8 },
-  // Campos
-  fieldLabel: { color: '#183126', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  searchField: { flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: '#d4d7da', borderRadius: 22, backgroundColor: '#f8f9fa', paddingHorizontal: 14, height: 44 },
-  searchInput: { flex: 1, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  // Radio
-  radioGroup: { gap: 10, marginBottom: 4 },
-  radioRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  radioOuter: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, borderColor: '#aaa', alignItems: 'center', justifyContent: 'center' },
-  radioOuterSelected: { borderColor: BLUE },
-  radioInner: { width: 10, height: 10, borderRadius: 5, backgroundColor: BLUE },
-  radioLabel: { color: '#333', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  // Texto
-  textArea: { borderWidth: 1, borderColor: '#d4d7da', borderRadius: 8, minHeight: 90, paddingHorizontal: 12, paddingTop: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, textAlignVertical: 'top' },
-  valueInput: { borderWidth: 1, borderColor: '#d4d7da', borderRadius: 8, height: 48, paddingHorizontal: 14, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  // Botão
-  submitBtn: { marginTop: 8, height: 50, borderRadius: 25, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
+  header: { height: 272, backgroundColor: BLUE, overflow: 'hidden' },
+  headerStripe: { position: 'absolute', left: -173, bottom: 28, width: 390, height: 72, backgroundColor: '#e7e8e9', transform: [{ rotate: '54deg' }] },
+  headerMark: { position: 'absolute', top: 87, width: 126, height: 126, alignSelf: 'center' },
+  panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden' },
+  panelContent: { paddingHorizontal: 10, paddingTop: 24, paddingBottom: 148, gap: 13 },
+  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
+  titleRule: { height: 4, borderRadius: 2, backgroundColor: GREEN, marginTop: -9, marginBottom: 25 },
+  fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
+  searchField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  radioGroup: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 18 },
+  radioRow: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10 },
+  radioRowWide: { width: '100%' },
+  radioOuter: { width: 17, height: 17, borderRadius: 9, borderWidth: 1, borderColor: '#69717a', alignItems: 'center', justifyContent: 'center' },
+  radioOuterSelected: { borderColor: '#69717a' },
+  radioInner: { width: 13, height: 13, borderRadius: 7, backgroundColor: GREEN },
+  radioLabel: { color: '#6d747d', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  valueInput: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, height: 42, paddingHorizontal: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  submitBtn: { position: 'absolute', left: 4, right: 4, bottom: 78, height: 42, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#164d34', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8 },
+  submitBtnPressed: { transform: [{ scale: 0.98 }] },
+  submitBtnDisabled: { opacity: 0.65 },
   submitBtnText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   // Status
   statusBadge: { backgroundColor: '#eaf6ed', borderRadius: 8, padding: 12 },

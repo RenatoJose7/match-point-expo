@@ -2,13 +2,13 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-11-06T19:00:44.223Z
+Última atualização registrada: 2026-11-12T12:13:49.076Z
 
 ## Barras de progresso
 
-- **P0:** `███████████████████░ 95% (20/21)`
+- **P0:** `████████████████████ 100% (21/21)`
 - **P1:** `████████████████████ 100% (4/4)`
-- **P2:** `████████████████████ 100% (5/5)`
+- **P2:** `████████████████░░░░ 80% (4/5)`
 - **Total:** `███████████████████░ 97% (29/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
@@ -17,7 +17,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 
 | Responsável | P0 concluído | Total concluído | Em andamento | Bloqueado |
 | --- | --- | --- | --- | --- |
-| Maria | 6/7 | 6/7 | 1 | 0 |
+| Maria | 7/7 | 7/7 | 0 | 0 |
 | Marcelo | 6/6 | 7/7 | 0 | 0 |
 | Laura | 3/3 | 6/6 | 0 | 0 |
 | Renato | 5/5 | 5/5 | 0 | 0 |
@@ -26,7 +26,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 
 | RF | Prioridade | Responsável | Status | PR | Evidência ou bloqueio |
 | --- | --- | --- | --- | --- | --- |
-| RF01 — Cadastro e login | P0 | Maria | Em andamento | #29 | Reautenticação com senha ou Google adicionada; regras de exclusão do Firestore publicadas no projeto matchpoint-tcc-2026 e validações aprovadas. |
+| RF01 — Cadastro e login | P0 | Maria | Concluído | #29 | Reautenticação com senha ou Google adicionada; regras de exclusão do Firestore publicadas no projeto matchpoint-tcc-2026 e validações aprovadas. |
 | RF02 — Direcionamento por perfil | P0 | Renato | Concluído | — | — |
 | RF03 — Perfil esportivo | P0 | Marcelo | Concluído | — | Perfis de atleta, treinador e instituição receberam seleção e upload de foto (imagem até 5 MB), persistência em fotoUrl e exportação web aprovada. |
 | RF04 — Cálculo de idade | P0 | Maria | Concluído | #9 | PR #9 integrada em develop; formato DD/MM/AAAA, validação, cálculo automático de idade e identificação de menor verificados no navegador. |
@@ -34,7 +34,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF06 — Vínculo do responsável | P0 | Maria | Concluído | — | — |
 | RF07 — Responsável administra atleta | P0 | Maria | Concluído | — | — |
 | RF08 — Verificação de parceiros | P1 | Laura | Concluído | — | — |
-| RF09 — Gerenciar oportunidades | P0 | Laura | Concluído | #30 | Lista de oportunidades do parceiro redesenhada com busca, filtros Ativas/Encerradas/Criadas, contagem real de candidaturas e CTA fixo; contratos e exportação web aprovados. |
+| RF09 — Gerenciar oportunidades | P0 | Laura | Concluído | #30 | Home do treinador revisada em 430x932: divisória contida, indicadores sem quebra, candidatos alinhados e banner sem sobreposição; contratos, painel e exportação web aprovados. |
 | RF10 — Pesquisa e filtros | P0 | Marcelo | Concluído | — | Busca pelo cabeçalho, classes no topo, filtros no funil e Match Score compacto ordenado por compatibilidade; toda a tela usa Poppins; contratos e exportação web aprovados. |
 | RF11 — Detalhes da oportunidade | P0 | Marcelo | Concluído | — | — |
 | RF12 — Compatibilidade | P0 | Renato | Concluído | — | — |
@@ -54,7 +54,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF26 — Denúncias | P2 | Backlog futuro | Concluído | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Concluído | — | — |
 | RF28 — Moderação | P2 | Backlog futuro | Concluído | — | — |
-| RF29 — Apoios concedidos | P2 | Backlog futuro | Concluído | — | — |
+| RF29 — Apoios concedidos | P2 | Backlog futuro | Em andamento | — | — |
 | RF30 — Auditoria do Match Score | P2 | Backlog futuro | Concluído | — | — |
 
 ## Como atualizar
