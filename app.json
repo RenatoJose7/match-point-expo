@@ -15,6 +15,7 @@
       "favicon": "./assets/monogram.png"
     },
     "android": {
+      "package": "com.renatojose.matchpoint",
       "adaptiveIcon": {
         "foregroundImage": "./assets/monogram.png",
         "backgroundColor": "#0b542d"
