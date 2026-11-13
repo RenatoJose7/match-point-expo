@@ -7,6 +7,7 @@ const config = {
   accent: 'Responsável',
   background: assets.signupResponsible,
   fields: ['Nome completo', 'Endereço de email', 'Parentesco com o atleta.', 'CPF', 'Telefone', 'Senha', 'Confirme a senha'],
+  titleBreak: true,
   userType: USER_TYPES.GUARDIAN,
   next: 'athleteArea1',
 }

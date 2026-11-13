@@ -110,6 +110,15 @@ export function PartnerOpportunityDetailScreen({ go, back, repositories, session
           <ListSection title="Requisitos" values={opportunity.requisitos} empty="Nenhum requisito informado." />
           <ListSection title="Documentos necessários" values={opportunity.documentosNecessarios} empty="Nenhum documento exigido." />
 
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => go('partnerOpportunityCandidates', { opportunityId: opportunity.id })}
+            style={partnerStyles.primaryButton}
+          >
+            <Ionicons name="people-outline" size={18} color={partnerColors.white} />
+            <Text style={partnerStyles.primaryButtonText}>Ver candidaturas</Text>
+          </Pressable>
+
           {confirmClose ? (
             <View style={styles.confirmBox}>
               <Text style={styles.confirmTitle}>Encerrar esta oportunidade?</Text>
@@ -165,26 +174,26 @@ function ListSection({ title, values = [], empty }) {
 
 const styles = StyleSheet.create({
   stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
-  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 12 },
   titleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   titleCopy: { flex: 1, gap: 6 },
-  title: { color: partnerColors.ink, fontSize: 20, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
-  meta: { color: partnerColors.green, fontSize: 12, fontFamily: 'Poppins_500Medium' },
-  iconButton: { width: 40, height: 40, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.canvas },
+  title: { color: partnerColors.ink, fontSize: 13, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
+  meta: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_500Medium' },
+  iconButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.greenLight },
   rule: { height: 1, backgroundColor: partnerColors.border, marginVertical: 14 },
   infoGrid: { marginTop: 17, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   infoItem: { width: '47%', minHeight: 48, flexDirection: 'row', gap: 7, alignItems: 'flex-start' },
   infoCopy: { flex: 1, gap: 2 },
-  infoLabel: { color: partnerColors.muted, fontSize: 10, fontFamily: 'Poppins_400Regular' },
-  infoValue: { color: partnerColors.ink, fontSize: 11, lineHeight: 16, fontFamily: 'Poppins_500Medium' },
+  infoLabel: { color: partnerColors.muted, fontSize: 13, fontFamily: 'Poppins_400Regular' },
+  infoValue: { color: partnerColors.ink, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_500Medium' },
   listCard: { gap: 10 },
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   listText: { flex: 1 },
   confirmBox: { padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#f1cfca', backgroundColor: partnerColors.redLight, gap: 10 },
-  confirmTitle: { color: partnerColors.red, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
-  confirmCopy: { color: partnerColors.ink, fontSize: 11, lineHeight: 17, fontFamily: 'Poppins_400Regular' },
+  confirmTitle: { color: partnerColors.red, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  confirmCopy: { color: partnerColors.ink, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
   confirmActions: { gap: 8 },
   closeButton: { backgroundColor: partnerColors.red },
   closeTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  closeTriggerText: { color: partnerColors.red, fontSize: 12, fontFamily: 'Poppins_600SemiBold' },
+  closeTriggerText: { color: partnerColors.red, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
 })

@@ -1,10 +1,12 @@
-import React, { useState } from 'react'
-import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native'
+import React, { useEffect, useState } from 'react'
+import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { GoogleLoginButton, isGoogleLoginConfigured } from '../../components/auth/GoogleLoginButton'
 import { Button } from '../../components/ui/Button'
-import { Shell } from '../../components/ui/Shell'
+import { BackButton } from '../../components/ui/BackButton'
+import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { BLUE } from '../../theme/colors'
+import { assets } from '../../theme/assets'
 import { USER_TYPES, calculateAge, isMinor } from '../../domain/contracts.js'
-import { styles } from '../../theme/styles'
 
 const BRAZIL_DDDS = [
   '11', '12', '13', '14', '15', '16', '17', '18', '19',
@@ -17,6 +19,13 @@ const BRAZIL_DDDS = [
   '81', '82', '83', '84', '85', '86', '87', '88', '89',
   '91', '92', '93', '94', '95', '96', '97', '98', '99',
 ]
+
+const GOOGLE_SIGNUP_ROUTES = {
+  [USER_TYPES.ATHLETE]: 'signupAthlete',
+  [USER_TYPES.TRAINER]: 'signupTrainer',
+  [USER_TYPES.INSTITUTION]: 'signupInstitution',
+  [USER_TYPES.GUARDIAN]: 'signupResponsible',
+}
 
 function parseBirthDate(value) {
   const match = value.match(/^(\d{2})\/(\d{2})\/(\d{4})$/)
@@ -72,6 +81,9 @@ function formatPhone(ddd, number) {
 }
 
 function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
+  const { width, height } = useWindowDimensions()
+  const appFrameWidth = width <= 430 ? width : Math.min(height * (402 / 874), 430)
+
   return (
     <Modal
       visible={visible}
@@ -79,7 +91,7 @@ function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.55)', padding: 24 }}>
+      <View style={{ flex: 1, width: appFrameWidth, alignSelf: 'flex-start', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.55)', padding: 24 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Fechar seleção de DDD"
@@ -87,7 +99,7 @@ function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
           style={{ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 }}
         />
         <View style={{ maxHeight: '78%', borderRadius: 12, backgroundColor: '#fff', padding: 18 }}>
-          <Text style={{ color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 18, marginBottom: 10 }}>
+          <Text style={{ color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, marginBottom: 10 }}>
             Selecione o DDD
           </Text>
           <ScrollView keyboardShouldPersistTaps="handled">
@@ -106,7 +118,7 @@ function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
                   backgroundColor: selectedDdd === ddd ? '#eff8ff' : '#fff',
                 }}
               >
-                <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 16 }}>
+                <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 }}>
                   +55 ({ddd})
                 </Text>
               </Pressable>
@@ -153,23 +165,45 @@ function Feedback({ status, children }) {
 }
 
 function isOptionalField(field) {
-  return field.toLowerCase().includes('(opcional)')
+  const normalized = field.toLowerCase()
+  return normalized.includes('(opcional)') || normalized.includes('(apenas menores)')
 }
 
-export function SignupForm({ config, go, back, repositories }) {
-  const { accent, background, fields, isAthlete = false, userType } = config
-  const [values, setValues] = useState({})
+export function SignupForm({ config, go, back, repositories, routeParams = {} }) {
+  const { height } = useWindowDimensions()
+  const { accent, background, fields, isAthlete = false, titleBreak = false, userType } = config
+  const googleSignup = Boolean(routeParams.googleSignup)
+  const nameField = fields.find(field => field.toLowerCase().includes('nome'))
+  const [values, setValues] = useState(() => (
+    googleSignup && nameField && routeParams.nome ? { [nameField]: routeParams.nome } : {}
+  ))
   const [acceptedPrivacy, setAcceptedPrivacy] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
   const [selectedDdd, setSelectedDdd] = useState('')
   const [dddPickerVisible, setDddPickerVisible] = useState(false)
+  const emailField = fields.find(field => field.toLowerCase().includes('email'))
+  const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
+  const passwordField = fields.find(field => field.toLowerCase().includes('senha') && !field.toLowerCase().includes('confirme'))
+  const guardianCodeField = fields.find(field => field.toLowerCase().includes('respons'))
+  const institutionTypeField = fields.find(field => field.toLowerCase().includes('tipo:'))
+
+  useEffect(() => {
+    if (googleSignup && nameField && routeParams.nome) {
+      setValues(current => ({ ...current, [nameField]: routeParams.nome }))
+    }
+  }, [googleSignup, nameField, routeParams.nome])
   const birthDateField = fields.find(field => field === 'Data de nascimento')
   const birthDateInput = birthDateField ? values[birthDateField] ?? '' : ''
   const birthDate = isAthlete ? parseBirthDate(birthDateInput) : null
   const age = birthDate ? calculateAge(birthDate) : null
   const minor = birthDate ? isMinor(birthDate) : false
-  const passwordField = fields.find(field => field.toLowerCase().includes('senha') && !field.toLowerCase().includes('confirme'))
+  const visibleFields = fields.filter((field) => (
+    !(googleSignup && (field === emailField || field === passwordField || field === confirmationField))
+    && !(isAthlete && field.toLowerCase().includes('respons') && !minor)
+  ))
+  const compactForm = visibleFields.length >= 7
   const passwordValue = values[passwordField] ?? ''
   const hasStrongPassword = passwordValue.length >= 8
     && /[a-z]/.test(passwordValue)
@@ -193,18 +227,17 @@ export function SignupForm({ config, go, back, repositories }) {
   const register = async () => {
     if (loading) return
 
-    const emailField = fields.find(field => field.toLowerCase().includes('email'))
-    const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
-    const nameField = fields.find(field => field.toLowerCase().includes('nome'))
     const phoneField = fields.find(field => field.toLowerCase().includes('telefone'))
     const documentField = fields.find(field => /cpf|cnpj/i.test(field))
     const locationField = fields.find(field => field.toLowerCase().includes('localiza'))
     const relationshipField = fields.find(field => field.toLowerCase().includes('parentesco'))
-    const email = values[emailField]?.trim() ?? ''
+    const email = googleSignup ? routeParams.email ?? '' : values[emailField]?.trim() ?? ''
     const password = values[passwordField] ?? ''
     const passwordConfirmation = values[confirmationField] ?? ''
 
     const missingField = fields.find((field) => {
+      if (googleSignup && (field === emailField || field === passwordField || field === confirmationField)) return false
+      if (isAthlete && field === guardianCodeField && !minor) return false
       if (isOptionalField(field) || field === confirmationField) return false
       return !String(values[field] ?? '').trim()
     })
@@ -219,12 +252,12 @@ export function SignupForm({ config, go, back, repositories }) {
       return
     }
 
-    if (!password || password !== passwordConfirmation) {
+    if (!googleSignup && (!password || password !== passwordConfirmation)) {
       setFeedback({ status: 'error', message: 'As senhas são obrigatórias e precisam ser iguais.' })
       return
     }
 
-    if (!hasStrongPassword) {
+    if (!googleSignup && !hasStrongPassword) {
       setFeedback({
         status: 'error',
         message: 'Use pelo menos 8 caracteres e inclua uma letra maiúscula, uma minúscula, um número e um símbolo (como !).',
@@ -262,10 +295,10 @@ export function SignupForm({ config, go, back, repositories }) {
       return
     }
 
-    if (isAthlete && minor) {
+    if (isAthlete && minor && !values[guardianCodeField]?.trim()) {
       setFeedback({
         status: 'error',
-        message: 'Para proteger atletas menores, a criação da conta aguarda o vínculo confirmado do responsável legal.',
+        message: 'Informe o código ativo gerado pelo responsável legal para concluir o cadastro.',
       })
       return
     }
@@ -279,7 +312,11 @@ export function SignupForm({ config, go, back, repositories }) {
     setLoading(true)
 
     const profile = userType === USER_TYPES.ATHLETE
-      ? { dataNascimento: birthDate, modalidade: '' }
+      ? {
+          dataNascimento: birthDate,
+          modalidade: '',
+          ...(minor ? { codigoResponsavel: values[guardianCodeField]?.trim() } : {}),
+        }
       : userType === USER_TYPES.GUARDIAN
         ? {
             parentesco: values[relationshipField]?.trim() ?? '',
@@ -289,17 +326,23 @@ export function SignupForm({ config, go, back, repositories }) {
         : {
             tipo: userType,
             nomeExibicao: values[nameField]?.trim() ?? '',
+            ...(userType === USER_TYPES.INSTITUTION && institutionTypeField
+              ? { tipoInstituicao: values[institutionTypeField]?.trim() || undefined }
+              : {}),
             documento: documentValue.trim() || undefined,
             localizacao: values[locationField]?.trim() || undefined,
             verificado: false,
           }
 
     try {
-      const result = await repositories.authentication.cadastrar(email, password, userType, {
-        nome: values[nameField]?.trim() ?? '',
+      const registrationData = {
+        nome: values[nameField]?.trim() || routeParams.nome || '',
         telefone: phoneDigits ? formatPhone(selectedDdd, phoneValue) : undefined,
         perfil: profile,
-      })
+      }
+      const result = googleSignup
+        ? await repositories.authentication.concluirCadastroGoogle(userType, registrationData)
+        : await repositories.authentication.cadastrar(email, password, userType, registrationData)
 
       if (!result.ok) {
         setFeedback({ status: 'error', message: result.mensagem })
@@ -307,7 +350,7 @@ export function SignupForm({ config, go, back, repositories }) {
       }
 
       const message = userType === USER_TYPES.GUARDIAN
-        ? 'Conta de responsável criada. O vínculo com o atleta será concluído quando o fluxo estiver disponível.'
+        ? 'Conta de responsável criada. Gere um código para vincular o atleta menor de idade.'
         : 'Conta criada com sucesso. Abrindo seu espaço...'
       setFeedback({ status: 'success', message })
     } catch (error) {
@@ -319,16 +362,29 @@ export function SignupForm({ config, go, back, repositories }) {
   }
 
   return (
-    <Shell background={background} back={back} logo>
-      <ScrollView
-        keyboardShouldPersistTaps="handled"
-        style={{ flex: 1 }}
-        contentContainerStyle={{ flexGrow: 1 }}
-      >
-        <View style={[styles.signupWrap, { flexShrink: 0 }]}>
-          <Text style={styles.signupTitle}>Cadastro<Text style={styles.signupAccent}>{accent}</Text></Text>
-          <View style={styles.signupFields}>
-            {fields.map(field => {
+    <View style={[localStyles.screen, { height }]}>
+      <Image source={background} resizeMode="cover" style={[localStyles.background, { height }]} />
+      <View pointerEvents="none" style={localStyles.dim} />
+      <SafeAreaView style={localStyles.safe}>
+        {back ? <BackButton onPress={back} /> : null}
+        <Image source={assets.monogram} resizeMode="contain" style={localStyles.monogram} />
+        <ScrollView
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          style={localStyles.scroll}
+          contentContainerStyle={[localStyles.scrollContent, { minHeight: height }]}
+        >
+          <View style={[localStyles.signupWrap, compactForm && localStyles.signupWrapCompact]}>
+          <Text style={[localStyles.title, compactForm && localStyles.titleCompact, titleBreak && localStyles.titleTwoLine]}>
+            Cadastro{titleBreak ? '\n' : ' '}<Text style={localStyles.accent}>{accent}</Text>
+          </Text>
+          {googleSignup && (
+            <Text style={{ color: '#fff', fontFamily: 'Poppins_400Regular', textAlign: 'center', marginBottom: 18 }}>
+              Conta Google conectada. Complete os dados abaixo.
+            </Text>
+          )}
+          <View style={[localStyles.fields, compactForm && localStyles.fieldsCompact]}>
+            {visibleFields.map(field => {
               const isBirthDate = field === birthDateField
               const normalizedField = field.toLowerCase()
               const isPassword = normalizedField.includes('senha')
@@ -336,10 +392,21 @@ export function SignupForm({ config, go, back, repositories }) {
               const isPhone = normalizedField.includes('telefone')
               const isDocument = /cpf|cnpj/i.test(field)
               const isEmail = normalizedField.includes('email')
+              const isGuardianCode = field === guardianCodeField
+              const selectOptions = optionsForField(field)
 
               return (
                 <React.Fragment key={field}>
-                  {isPhone ? (
+                  {selectOptions ? (
+                    <SelectField
+                      accessibilityLabel={field}
+                      options={selectOptions}
+                      value={values[field] ?? ''}
+                      onChange={value => updateValue(field, value)}
+                      placeholder={field}
+                      triggerStyle={localStyles.select}
+                    />
+                  ) : isPhone ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                       <Pressable
                         accessibilityRole="button"
@@ -347,7 +414,7 @@ export function SignupForm({ config, go, back, repositories }) {
                         accessibilityState={{ expanded: dddPickerVisible }}
                         onPress={() => setDddPickerVisible(true)}
                         style={{
-                          height: 53,
+                          height: 50,
                           minWidth: 96,
                           borderRadius: 8,
                           backgroundColor: '#fff',
@@ -356,7 +423,7 @@ export function SignupForm({ config, go, back, repositories }) {
                           paddingHorizontal: 10,
                         }}
                       >
-                        <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 }}>
+                        <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 }}>
                           {selectedDdd ? `+55 (${selectedDdd})` : 'DDD'}
                         </Text>
                       </Pressable>
@@ -364,7 +431,7 @@ export function SignupForm({ config, go, back, repositories }) {
                         accessibilityLabel="Telefone sem DDD"
                         placeholder="Número"
                         placeholderTextColor={BLUE}
-                        style={[styles.signupInput, { flex: 1, minWidth: 0, paddingHorizontal: 8, fontSize: 14 }]}
+                        style={[localStyles.input, { flex: 1, minWidth: 0, paddingHorizontal: 8 }]}
                         value={values[field] ?? ''}
                         onChangeText={value => updateValue(field, value)}
                         keyboardType="phone-pad"
@@ -374,10 +441,10 @@ export function SignupForm({ config, go, back, repositories }) {
                     </View>
                   ) : (
                     <TextInput
-                      placeholder={isBirthDate ? 'Data de nascimento (DD/MM/AAAA)' : field}
+                      placeholder={isBirthDate ? 'DD/MM/AAAA' : isGuardianCode ? 'Código do responsável' : field}
                       placeholderTextColor={BLUE}
                       secureTextEntry={isPassword}
-                      style={styles.signupInput}
+                      style={localStyles.input}
                       value={values[field] ?? ''}
                       onChangeText={value => updateValue(field, value)}
                       keyboardType={isBirthDate || isDocument ? 'numeric' : normalizedField.includes('email') ? 'email-address' : 'default'}
@@ -390,7 +457,7 @@ export function SignupForm({ config, go, back, repositories }) {
                   )}
                   {isPassword && !isPasswordConfirmation && passwordValue.length > 0 && !hasStrongPassword && (
                     <View style={{ borderRadius: 8, backgroundColor: '#fff', padding: 12 }}>
-                      <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 12 }}>
+                      <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 }}>
                         Use pelo menos 8 caracteres, com maiúscula, minúscula, número e um símbolo (como !).
                       </Text>
                     </View>
@@ -427,20 +494,181 @@ export function SignupForm({ config, go, back, repositories }) {
               setAcceptedPrivacy(value => !value)
               setFeedback(null)
             }}
+            style={localStyles.privacyRow}
           >
-            <Text style={styles.privacy}>{acceptedPrivacy ? '☑' : '□'}  Aceito as políticas de Privacidade</Text>
+            <View style={[localStyles.checkbox, acceptedPrivacy && localStyles.checkboxChecked]}>
+              {acceptedPrivacy ? <Text style={localStyles.checkMark}>✓</Text> : null}
+            </View>
+            <Text style={localStyles.privacyText}>Aceito as políticas de Privacidade</Text>
           </Pressable>
           {feedback && <Feedback status={feedback.status}>{feedback.message}</Feedback>}
-          <Button onPress={register} disabled={loading}>
-            {loading ? 'Criando conta...' : 'Criar conta'}
-          </Button>
+          <View style={localStyles.actions}>
+            <Button onPress={register} disabled={loading || googleLoading}>
+              {googleLoading ? 'Conectando...' : loading ? 'Criando conta...' : 'Criar conta'}
+            </Button>
+          {!googleSignup && isGoogleLoginConfigured() && (
+            <View>
+              <GoogleLoginButton
+                repositories={repositories}
+                variant="signup"
+                label="Cadastrar com Google"
+                onPendingSignup={(params) => go(GOOGLE_SIGNUP_ROUTES[userType], { googleSignup: true, ...params })}
+                onFeedback={setFeedback}
+                onLoading={setGoogleLoading}
+              />
+            </View>
+          )}
           {isAthlete && (
           <Pressable onPress={() => go('signupResponsible')}>
-            <Text style={styles.minorLink}>Cadastro de responsável</Text>
+            <Text style={localStyles.minorLink}>Cadastro de responsável</Text>
           </Pressable>
           )}
-        </View>
-      </ScrollView>
-    </Shell>
+          </View>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </View>
   )
 }
+
+function optionsForField(field) {
+  const normalized = field.toLowerCase()
+  if (normalized.includes('tipo:')) return SELECT_OPTIONS.tipoInstituicao
+  if (normalized.includes('localiza')) return SELECT_OPTIONS.locais
+  if (normalized.includes('parentesco')) return SELECT_OPTIONS.parentescos
+  return null
+}
+
+const localStyles = StyleSheet.create({
+  screen: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+    backgroundColor: BLUE,
+  },
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    width: '100%',
+    height: '100%',
+  },
+  dim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 30, 5, .08)',
+  },
+  safe: {
+    flex: 1,
+    minHeight: 0,
+  },
+  monogram: {
+    position: 'absolute',
+    zIndex: 2,
+    width: 51,
+    height: 56,
+    top: 36,
+    alignSelf: 'center',
+  },
+  scroll: {
+    flex: 1,
+    minHeight: 0,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  signupWrap: {
+    flexGrow: 1,
+    flexShrink: 0,
+    paddingHorizontal: 30,
+    paddingTop: 112,
+    paddingBottom: 110,
+  },
+  signupWrapCompact: {
+    paddingTop: 104,
+    paddingBottom: 92,
+  },
+  title: {
+    color: '#ffffff',
+    fontFamily: 'Griffiths',
+    fontSize: 40,
+    lineHeight: 54,
+    fontWeight: '400',
+    marginBottom: 50,
+    textAlign: 'center',
+  },
+  titleCompact: {
+    marginBottom: 24,
+  },
+  titleTwoLine: {
+    lineHeight: 42,
+    marginBottom: 12,
+  },
+  accent: {
+    color: '#b6ff38',
+  },
+  fields: {
+    gap: 20,
+  },
+  fieldsCompact: {
+    gap: 11,
+  },
+  input: {
+    height: 50,
+    borderRadius: 8,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 16,
+    color: BLUE,
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    ...Platform.select({ web: { outlineStyle: 'none' } }),
+  },
+  select: {
+    minHeight: 50,
+    height: 50,
+    borderWidth: 0,
+  },
+  privacyRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 12,
+    marginBottom: 11,
+  },
+  checkbox: {
+    width: 15,
+    height: 15,
+    borderRadius: 3,
+    borderWidth: 1.5,
+    borderColor: BLUE,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#ffffff',
+  },
+  checkboxChecked: {
+    backgroundColor: BLUE,
+  },
+  checkMark: {
+    color: '#ffffff',
+    fontSize: 18,
+    lineHeight: 22,
+    fontWeight: 'bold',
+  },
+  privacyText: {
+    color: '#ffffff',
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+  },
+  actions: {
+    alignItems: 'center',
+    gap: 7,
+  },
+  minorLink: {
+    color: '#ffffff',
+    fontFamily: 'Poppins_400Regular',
+    fontSize: 13,
+    lineHeight: 18,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+})

@@ -1,11 +1,13 @@
 import assert from 'node:assert/strict'
 import {
   APPLICATION_STATUS,
+  OPPORTUNITY_STATUS,
   REPOSITORY_ERROR_CODES,
   USER_TYPES,
   calculateAge,
   isMinor,
 } from '../src/domain/contracts.js'
+import { getHomeRouteForUser } from '../src/core/session.js'
 import { createMemoryRepositories } from '../src/repositories/memory/index.js'
 
 const repositories = createMemoryRepositories()
@@ -13,26 +15,35 @@ const repositories = createMemoryRepositories()
 assert.equal(calculateAge('2000-10-10', new Date('2026-10-09T12:00:00Z')), 25)
 assert.equal(calculateAge('2000-10-09', new Date('2026-10-09T12:00:00Z')), 26)
 assert.equal(isMinor('2011-08-20', new Date('2026-10-09T12:00:00Z')), true)
+assert.equal(getHomeRouteForUser({ tipo: USER_TYPES.GUARDIAN }), 'homeResponsible')
 
 const login = await repositories.authentication.entrar('atleta.menor@matchpoint.example', 'demo-local')
 assert.equal(login.ok, true)
 
 const activeOpportunities = await repositories.opportunities.listarOportunidades({ status: 'ativa' })
 assert.equal(activeOpportunities.ok, true)
-assert.equal(activeOpportunities.data.length, 2)
+assert.equal(activeOpportunities.data.length, 4)
 
 const eligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(eligible.ok, true)
 assert.equal(eligible.data.elegivel, true)
-assert.equal(eligible.data.criterios.every((criterion) => criterion.atendido), true)
+assert.equal(eligible.data.criterios.filter((criterion) => criterion.obrigatorio).every((criterion) => criterion.atendido), true)
 assert.deepEqual(eligible.data.motivosBloqueio, [])
 
 const compatibleScore = await repositories.match.calcularMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
 assert.equal(compatibleScore.ok, true)
-assert.equal(compatibleScore.data.percentualTotal, 100)
-assert.equal(compatibleScore.data.criterios.length, 2)
-assert.equal(compatibleScore.data.criterios.every((criterion) => criterion.percentual === 100), true)
+assert.equal(compatibleScore.data.percentualTotal, 94)
+assert.equal(compatibleScore.data.criterios.length, 3)
+assert.deepEqual(compatibleScore.data.criterios.map((criterion) => criterion.percentual), [100, 100, 70])
 assert.equal(typeof compatibleScore.data.versaoDoCalculo, 'string')
+
+const demoScores = await Promise.all([
+  'oportunidade-bolsa-tenis',
+  'oportunidade-avaliacao-tecnica',
+  'oportunidade-clinica-tenis',
+  'oportunidade-circuito-tenis',
+].map((opportunityId) => repositories.match.calcularMatchScore('atleta-adulto', opportunityId)))
+assert.deepEqual(demoScores.map((result) => result.data.percentualTotal), [94, 88, 85, 80])
 
 const ineligible = await repositories.match.avaliarElegibilidade('atleta-menor', 'oportunidade-futebol-incompativel')
 assert.equal(ineligible.ok, true)
@@ -68,10 +79,114 @@ assert.equal(application.data.historico[0].statusAnterior, null)
 assert.equal(application.data.historico[0].statusNovo, APPLICATION_STATUS.SUBMITTED)
 assert.equal(application.data.historico[0].responsavelId, 'usuario-atleta-menor')
 
+const unauthenticatedProfile = await createMemoryRepositories().applications.obterPerfilPublicoCandidato(
+  'oportunidade-bolsa-tenis',
+  'atleta-adulto',
+)
+assert.equal(unauthenticatedProfile.ok, false)
+assert.equal(unauthenticatedProfile.codigo, REPOSITORY_ERROR_CODES.UNAUTHENTICATED)
+
+await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
+const publicCandidateProfile = await repositories.applications.obterPerfilPublicoCandidato(
+  'oportunidade-bolsa-tenis',
+  'atleta-adulto',
+)
+assert.equal(publicCandidateProfile.ok, true)
+assert.equal(publicCandidateProfile.data.nome, 'Atleta Demo Adulto')
+assert.equal(publicCandidateProfile.data.modalidade, 'Tenis')
+assert.equal(publicCandidateProfile.data.categoria, 'Universitario')
+assert.deepEqual(Object.keys(publicCandidateProfile.data).sort(), [
+  'categoria',
+  'equipeAtual',
+  'fotoUrl',
+  'maoDominante',
+  'modalidade',
+  'nome',
+  'perfilCompleto',
+  'posicao',
+  'ranking',
+  'tempoDePratica',
+  'titulos',
+  'torneiosDisputados',
+].sort())
+assert.equal('email' in publicCandidateProfile.data, false)
+assert.equal('dataNascimento' in publicCandidateProfile.data, false)
+assert.equal('cpf' in publicCandidateProfile.data, false)
+assert.equal('responsavelId' in publicCandidateProfile.data, false)
+
+const newApplicantProfile = await repositories.applications.obterPerfilPublicoCandidato(
+  'oportunidade-bolsa-tenis',
+  'atleta-menor',
+)
+assert.equal(newApplicantProfile.ok, true)
+assert.equal(newApplicantProfile.data.nome, 'Atleta Demo Menor')
+
+const evaluationRequest = await repositories.evaluations.solicitarAvaliacao({
+  instituicaoId: 'instituicao-demo',
+  treinadorId: 'treinador-demo',
+  atletaId: 'atleta-menor',
+  oportunidadeId: 'oportunidade-bolsa-tenis',
+  candidaturaId: application.data.id,
+})
+assert.equal(evaluationRequest.ok, true)
+await repositories.authentication.entrar('treinador@matchpoint.example', 'demo-local')
+const pendingEvaluations = await repositories.evaluations.listarSolicitacoesDoTreinador('treinador-demo')
+assert.equal(pendingEvaluations.ok, true)
+assert.equal(pendingEvaluations.data.some((item) => item.id === evaluationRequest.data.id), true)
+const technicalEvaluation = await repositories.evaluations.registrarAvaliacao({
+  solicitacaoId: evaluationRequest.data.id,
+  treinadorId: 'treinador-demo',
+  notaTecnica: 5,
+  notaFisica: 4,
+  notaTatica: 4,
+  parecer: 'Atleta apresenta evolução consistente e boa leitura de jogo.',
+  recomendacao: 'recomendar',
+})
+assert.equal(technicalEvaluation.ok, true)
+assert.equal(repositories.snapshot().evaluationRequests.find((item) => item.id === evaluationRequest.data.id).status, 'concluida')
+await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
+const grantedSupport = await repositories.support.registrarApoio({ instituicaoId: 'instituicao-demo', atletaId: 'atleta-menor', descricao: 'Bolsa para transporte e material esportivo.' })
+assert.equal(grantedSupport.ok, true)
+const athleteReport = await repositories.reports.enviarRelato({ mensagem: 'Relato de teste para acompanhamento.' })
+assert.equal(athleteReport.ok, true)
+const adminSeed = repositories.snapshot()
+adminSeed.users.push({ id: 'usuario-admin', email: 'admin@matchpoint.example', tipo: USER_TYPES.ADMIN, nome: 'Admin Demo' })
+const adminRepositories = createMemoryRepositories(adminSeed)
+await adminRepositories.authentication.entrar('admin@matchpoint.example', 'demo-local')
+const managedResource = await adminRepositories.administration.salvarRecurso({ titulo: 'Guia de segurança' })
+assert.equal(managedResource.ok, true)
+const accountDecision = await adminRepositories.administration.decidirConta({ tipo: 'parceiro', id: 'treinador-demo', decisao: 'aprovada' })
+assert.equal(accountDecision.ok, true)
+const matchAudit = await adminRepositories.administration.auditarMatchScore('atleta-menor', 'oportunidade-bolsa-tenis')
+assert.equal(matchAudit.ok, true)
+assert.equal(matchAudit.data.versao, 'p0-memory-v2')
+
+const nonApplicantProfile = await repositories.applications.obterPerfilPublicoCandidato(
+  'oportunidade-futebol-incompativel',
+  'atleta-adulto',
+)
+assert.equal(nonApplicantProfile.ok, false)
+assert.equal(nonApplicantProfile.codigo, REPOSITORY_ERROR_CODES.NOT_FOUND)
+
+await repositories.authentication.entrar('treinador@matchpoint.example', 'demo-local')
+const otherPartnerProfile = await repositories.applications.obterPerfilPublicoCandidato(
+  'oportunidade-bolsa-tenis',
+  'atleta-adulto',
+)
+assert.equal(otherPartnerProfile.ok, false)
+assert.equal(otherPartnerProfile.codigo, REPOSITORY_ERROR_CODES.NOT_FOUND)
+
+await repositories.authentication.entrar('atleta.menor@matchpoint.example', 'demo-local')
+const athleteProfileAccess = await repositories.applications.obterPerfilPublicoCandidato(
+  'oportunidade-bolsa-tenis',
+  'atleta-adulto',
+)
+assert.equal(athleteProfileAccess.ok, false)
+assert.equal(athleteProfileAccess.codigo, REPOSITORY_ERROR_CODES.FORBIDDEN)
+
 const invalidTransition = await repositories.applications.atualizarStatusDaCandidatura(
   application.data.id,
   APPLICATION_STATUS.APPROVED,
-  'usuario-instituicao',
 )
 assert.equal(invalidTransition.ok, false)
 assert.equal(invalidTransition.codigo, REPOSITORY_ERROR_CODES.INVALID_TRANSITION)
@@ -86,31 +201,6 @@ const duplicate = await repositories.applications.criarCandidatura(
 assert.equal(duplicate.ok, false)
 assert.equal(duplicate.codigo, 'CANDIDATURA_DUPLICADA')
 
-const underReview = await repositories.applications.atualizarStatusDaCandidatura(
-  application.data.id,
-  APPLICATION_STATUS.UNDER_REVIEW,
-  'usuario-instituicao',
-)
-assert.equal(underReview.ok, true)
-assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(underReview.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.SUBMITTED)
-assert.equal(underReview.data.historico.at(-1).statusNovo, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(underReview.data.historico.at(-1).responsavelId, 'usuario-instituicao')
-assert.match(underReview.data.historico.at(-1).descricao, /inscrita.*em_analise/)
-
-const approved = await repositories.applications.atualizarStatusDaCandidatura(
-  application.data.id,
-  APPLICATION_STATUS.APPROVED,
-  'usuario-instituicao',
-)
-assert.equal(approved.ok, true)
-assert.equal(approved.data.historico.length, 3)
-assert.equal(approved.data.historico.at(-1).status, APPLICATION_STATUS.APPROVED)
-assert.equal(approved.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.UNDER_REVIEW)
-assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPROVED)
-assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
-assert.ok(Date.parse(approved.data.historico.at(-1).data))
-
 const uploadedDocument = await repositories.storage.enviarArquivoCandidatura(application.data.id, {
   tipo: 'curriculo_esportivo',
   arquivo: { uri: 'memory://curriculo.pdf', name: 'curriculo.pdf', type: 'application/pdf' },
@@ -119,13 +209,60 @@ assert.equal(uploadedDocument.ok, true)
 assert.equal(uploadedDocument.data.arquivoUrl, 'memory://curriculo.pdf')
 assert.equal('arquivo' in uploadedDocument.data, false)
 
-const applicationWithDocument = await repositories.applications.enviarDocumento(
+const applicationWithFirstDocument = await repositories.applications.enviarDocumento(
   application.data.id,
   uploadedDocument.data,
 )
-assert.equal(applicationWithDocument.ok, true)
-assert.equal(applicationWithDocument.data.documentos.length, 1)
-assert.equal(applicationWithDocument.data.documentos[0].arquivoUrl, 'memory://curriculo.pdf')
+assert.equal(applicationWithFirstDocument.ok, true)
+assert.equal(applicationWithFirstDocument.data.documentos.length, 1)
+assert.equal(applicationWithFirstDocument.data.status, APPLICATION_STATUS.SUBMITTED)
+assert.equal(applicationWithFirstDocument.data.historico.length, 1)
+
+const applicationWithRequiredDocuments = await repositories.applications.enviarDocumento(
+  application.data.id,
+  {
+    tipo: 'historico_escolar',
+    arquivo: { uri: 'memory://historico.pdf', name: 'historico.pdf', type: 'application/pdf' },
+  },
+)
+assert.equal(applicationWithRequiredDocuments.ok, true)
+assert.equal(applicationWithRequiredDocuments.data.documentos.length, 2)
+assert.equal(applicationWithRequiredDocuments.data.status, APPLICATION_STATUS.DOCUMENTS_SENT)
+assert.equal(applicationWithRequiredDocuments.data.historico.length, 2)
+assert.equal(applicationWithRequiredDocuments.data.historico.at(-1).responsavelId, 'usuario-atleta-menor')
+
+await repositories.authentication.entrar('instituicao@matchpoint.example', 'demo-local')
+const underReview = await repositories.applications.atualizarStatusDaCandidatura(
+  application.data.id,
+  APPLICATION_STATUS.UNDER_REVIEW,
+)
+assert.equal(underReview.ok, true)
+assert.equal(underReview.data.historico.at(-1).status, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.DOCUMENTS_SENT)
+assert.equal(underReview.data.historico.at(-1).statusNovo, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(underReview.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.match(underReview.data.historico.at(-1).descricao, /documentos_enviados.*em_analise/)
+
+const approved = await repositories.applications.atualizarStatusDaCandidatura(
+  application.data.id,
+  APPLICATION_STATUS.APPROVED,
+)
+assert.equal(approved.ok, true)
+assert.equal(approved.data.historico.length, 4)
+assert.equal(approved.data.historico.at(-1).status, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).statusAnterior, APPLICATION_STATUS.UNDER_REVIEW)
+assert.equal(approved.data.historico.at(-1).statusNovo, APPLICATION_STATUS.APPROVED)
+assert.equal(approved.data.historico.at(-1).responsavelId, 'usuario-instituicao')
+assert.ok(Date.parse(approved.data.historico.at(-1).data))
+
+await repositories.authentication.entrar('atleta.menor@matchpoint.example', 'demo-local')
+const athleteNotifications = await repositories.notifications.listarNotificacoesDoUsuario('usuario-atleta-menor')
+assert.equal(athleteNotifications.ok, true)
+assert.equal(athleteNotifications.data.length, 1)
+assert.equal(athleteNotifications.data[0].lida, false)
+const readNotification = await repositories.notifications.marcarComoLida(athleteNotifications.data[0].id)
+assert.equal(readNotification.ok, true)
+assert.equal(readNotification.data.lida, true)
 
 const signupRepositories = createMemoryRepositories()
 let observedSession = null
@@ -147,6 +284,69 @@ assert.equal(athleteProfile.data.dataNascimento, '2000-10-10')
 const athleteProfileByUser = await signupRepositories.users.obterPerfilAtletaPorUsuario(athleteSignup.data.id)
 assert.equal(athleteProfileByUser.ok, true)
 assert.equal(athleteProfileByUser.data.id, athleteProfile.data.id)
+const updatedAthleteProfile = await signupRepositories.users.atualizarPerfilAtleta(
+  athleteProfile.data.id,
+  {
+    modalidade: 'Tenis',
+    categoria: 'Universitario',
+    posicao: 'Individual',
+    perfilCompleto: true,
+  },
+)
+assert.equal(updatedAthleteProfile.ok, true)
+assert.equal(updatedAthleteProfile.data.modalidade, 'Tenis')
+assert.equal(updatedAthleteProfile.data.perfilCompleto, true)
+
+const duplicateAthleteSignup = await signupRepositories.authentication.cadastrar(
+  'novo.atleta@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Duplicado', perfil: { dataNascimento: '2000-10-10' } },
+)
+assert.equal(duplicateAthleteSignup.ok, false)
+assert.match(duplicateAthleteSignup.mensagem, /Cadastro já existente/)
+
+const uploadedProfilePhoto = await signupRepositories.storage.enviarFotoPerfil({
+  uri: 'memory://foto-perfil.jpg',
+  mimeType: 'image/jpeg',
+  size: 1024,
+})
+assert.equal(uploadedProfilePhoto.ok, true)
+const userWithProfilePhoto = await signupRepositories.users.atualizarUsuario(
+  athleteSignup.data.id,
+  { fotoUrl: uploadedProfilePhoto.data.fotoUrl },
+)
+assert.equal(userWithProfilePhoto.ok, true)
+assert.equal(userWithProfilePhoto.data.fotoUrl, 'memory://foto-perfil.jpg')
+
+const blockedDeletionRepositories = createMemoryRepositories()
+await blockedDeletionRepositories.authentication.entrar('atleta.adulto@matchpoint.example', 'demo-local')
+const blockedAccountDeletion = await blockedDeletionRepositories.authentication.excluirConta()
+assert.equal(blockedAccountDeletion.ok, false)
+assert.match(blockedAccountDeletion.mensagem, /candidaturas/)
+
+const accountDeletionRepositories = createMemoryRepositories({
+  users: [],
+  athletes: [],
+  partners: [],
+  guardians: [],
+  guardianInvites: [],
+  opportunities: [],
+  applications: [],
+  notifications: [],
+})
+const deletableAthleteSignup = await accountDeletionRepositories.authentication.cadastrar(
+  'excluir.atleta@matchpoint.example',
+  'demo-local',
+  USER_TYPES.ATHLETE,
+  { nome: 'Atleta Excluível', perfil: { dataNascimento: '2000-10-10' } },
+)
+assert.equal(deletableAthleteSignup.ok, true)
+const accountDeletion = await accountDeletionRepositories.authentication.excluirConta()
+assert.equal(accountDeletion.ok, true)
+const deletedSession = await accountDeletionRepositories.authentication.obterSessaoAtual()
+assert.equal(deletedSession.ok, true)
+assert.equal(deletedSession.data, null)
 
 const partnerSignup = await signupRepositories.authentication.cadastrar(
   'novo.treinador@matchpoint.example',
@@ -164,6 +364,37 @@ assert.equal(partnerProfile.data.documento, '12345678900')
 const partnerProfileByUser = await signupRepositories.users.obterPerfilParceiroPorUsuario(partnerSignup.data.id)
 assert.equal(partnerProfileByUser.ok, true)
 assert.equal(partnerProfileByUser.data.id, partnerProfile.data.id)
+const grantedUnverifiedSupport = await signupRepositories.support.registrarApoio({
+  parceiroId: partnerProfile.data.id,
+  atletaId: 'atleta-adulto',
+  descricao: 'Bolsa de apoio em validaÃ§Ã£o.',
+})
+assert.equal(grantedUnverifiedSupport.ok, true)
+assert.equal(grantedUnverifiedSupport.data.status, 'concedido')
+const blockedUnverifiedPublication = await signupRepositories.opportunities.criarOportunidade({
+  criadorId: partnerProfile.data.id,
+  titulo: 'Avaliação em validação',
+  descricao: 'Oportunidade de teste para parceiro ainda não verificado.',
+  modalidade: 'Tenis',
+  categoria: 'Sub-18',
+  localizacao: 'Suzano - SP',
+  fimInscricoes: '2026-12-20T23:59:59.000Z',
+  status: OPPORTUNITY_STATUS.ACTIVE,
+})
+assert.equal(blockedUnverifiedPublication.ok, false)
+assert.equal(blockedUnverifiedPublication.codigo, REPOSITORY_ERROR_CODES.FORBIDDEN)
+const unverifiedDraft = await signupRepositories.opportunities.criarOportunidade({
+  criadorId: partnerProfile.data.id,
+  titulo: 'Rascunho em validação',
+  descricao: 'Oportunidade salva até a verificação do parceiro.',
+  modalidade: 'Tenis',
+  categoria: 'Sub-18',
+  localizacao: 'Suzano - SP',
+  fimInscricoes: '2026-12-20T23:59:59.000Z',
+  status: 'rascunho',
+})
+assert.equal(unverifiedDraft.ok, true)
+assert.equal(unverifiedDraft.data.status, 'rascunho')
 
 const institutionSignup = await signupRepositories.authentication.cadastrar(
   'nova.instituicao@matchpoint.example',
@@ -173,6 +404,7 @@ const institutionSignup = await signupRepositories.authentication.cadastrar(
     nome: 'Clube Novo',
     perfil: {
       tipo: USER_TYPES.INSTITUTION,
+      tipoInstituicao: 'Clube esportivo',
       nomeExibicao: 'Clube Novo',
       documento: '12345678000100',
       localizacao: 'São Paulo',
@@ -182,6 +414,7 @@ const institutionSignup = await signupRepositories.authentication.cadastrar(
 assert.equal(institutionSignup.ok, true)
 const institutionProfile = await signupRepositories.users.obterPerfilParceiro(institutionSignup.data.id)
 assert.equal(institutionProfile.ok, true)
+assert.equal(institutionProfile.data.tipoInstituicao, 'Clube esportivo')
 assert.equal(institutionProfile.data.localizacao, 'São Paulo')
 
 const guardianSignup = await signupRepositories.authentication.cadastrar(

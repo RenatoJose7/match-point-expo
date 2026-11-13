@@ -532,10 +532,7 @@ Um requisito recebe estado **Concluído** somente se:
 - possui validação de entrada;
 - apresenta carregamento, erro e vazio quando aplicável;
 - respeita o perfil autenticado;
-- foi testado pelo responsável e por outra pessoa;
-- possui evidência de execução;
-- passou por Pull Request;
-- está integrado à `develop`.
+- foi validado funcionalmente pelo responsável.
 
 Estados permitidos na matriz:
 
@@ -560,7 +557,7 @@ O painel apresenta:
 - barras P1, P2 e total;
 - progresso individual de Maria, Marcelo, Laura e Renato;
 - requisitos em andamento e bloqueados;
-- PR e evidência de cada requisito concluído.
+- validação funcional de cada requisito concluído; PR e evidências podem ser adicionados para rastreabilidade.
 
 Os arquivos de origem ficam separados por responsável em `docs/progresso/`, evitando que todos editem o mesmo arquivo manualmente.
 

@@ -1,8 +1,27 @@
 {
   "expo": {
-    "name": "Match Point", "slug": "match-point", "version": "1.0.0", "orientation": "portrait", "userInterfaceStyle": "light",
-    "assetBundlePatterns": ["**/*"],
-    "web": { "bundler": "metro", "output": "single", "favicon": "./assets/monogram.png" },
-    "android": { "adaptiveIcon": { "foregroundImage": "./assets/monogram.png", "backgroundColor": "#0b542d" } }
+    "name": "Match Point",
+    "slug": "match-point",
+    "version": "1.0.0",
+    "scheme": "matchpoint",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "web": {
+      "bundler": "metro",
+      "output": "single",
+      "favicon": "./assets/monogram.png"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/monogram.png",
+        "backgroundColor": "#0b542d"
+      }
+    },
+    "plugins": [
+      "expo-web-browser"
+    ]
   }
 }

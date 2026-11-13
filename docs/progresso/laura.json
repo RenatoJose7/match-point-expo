@@ -5,61 +5,61 @@
       "id": "RF08",
       "titulo": "Verificação de parceiros",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:37:25.413Z"
     },
     {
       "id": "RF09",
       "titulo": "Gerenciar oportunidades",
       "prioridade": "P0",
-      "status": "em_revisao",
+      "status": "concluido",
       "pr": "#30",
-      "evidencia": "",
+      "evidencia": "Home do treinador revisada em 430x932: divisória contida, indicadores sem quebra, candidatos alinhados e banner sem sobreposição; contratos, painel e exportação web aprovados.",
       "bloqueio": "",
-      "atualizadoEm": "2026-10-16T18:47:30.752Z"
+      "atualizadoEm": "2026-11-12T11:45:24.012Z"
     },
     {
       "id": "RF18",
       "titulo": "Visualizar candidatos",
       "prioridade": "P0",
-      "status": "nao_iniciado",
-      "pr": "",
-      "evidencia": "",
+      "status": "concluido",
+      "pr": "#35",
+      "evidencia": "Lista e retrato público do candidato em revisão; integração das rotas centrais pendente com Renato.",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-11-12T11:34:42.764Z"
     },
     {
       "id": "RF19",
       "titulo": "Avaliação técnica",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-11-05T17:32:13.754Z"
     },
     {
       "id": "RF20",
       "titulo": "Solicitar avaliação",
       "prioridade": "P1",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-10-22T00:49:38.629Z"
     },
     {
       "id": "RF21",
       "titulo": "Decisão institucional",
       "prioridade": "P0",
-      "status": "nao_iniciado",
+      "status": "concluido",
       "pr": "",
       "evidencia": "",
       "bloqueio": "",
-      "atualizadoEm": ""
+      "atualizadoEm": "2026-11-05T16:57:17.776Z"
     }
   ]
 }

@@ -3,6 +3,7 @@ import { View, useWindowDimensions } from 'react-native'
 import { StatusBar } from 'expo-status-bar'
 import { useFonts } from 'expo-font'
 import { ScreenTransition } from './src/components/motion'
+import { LoadingScreen } from './src/components/ui/LoadingScreen'
 import { getHomeRouteForUser } from './src/core/session'
 import { createRepositories } from './src/repositories'
 import {
@@ -24,18 +25,24 @@ import {
   LoginScreen,
   MatchScoreScreen,
   NotificationsScreen,
+  OperationsScreen,
   OpeningScreen,
   OpportunityDetailScreen,
-  PartnerOpportunitiesScreen,
+  PartnerCandidateProfileScreen,
+  PartnerOpportunityCandidatesScreen,
   PartnerOpportunityDetailScreen,
   PartnerOpportunityFormScreen,
+  PartnerOpportunitiesScreen,
   ProfileChoiceScreen,
   RecoveryEmailScreen,
   RecoveryInboxScreen,
   RecoveryResetScreen,
+  ResponsibleAthleteProfileScreen,
+  ResponsibleHomeScreen,
   ResponsibleSignupScreen,
   TrainerHomeScreen,
   TrainerProfileScreen,
+  TechnicalEvaluationsScreen,
   TrainerSignupScreen,
   TelaPerfilAtletaTecnico,
   WomenInSportScreen,
@@ -58,12 +65,15 @@ const ROUTES = {
   homeAthlete: AthleteHomeScreen,
   homeTrainer: TrainerHomeScreen,
   homeInstitution: InstitutionHomeScreen,
+  homeResponsible: ResponsibleHomeScreen,
   notifications: NotificationsScreen,
+  operations: OperationsScreen,
+  administration: OperationsScreen,
   women: WomenInSportScreen,
   opportunitiesAthlete: AthleteOpportunitiesScreen,
   opportunitiesTrainer: PartnerOpportunitiesScreen,
   opportunitiesInstitution: PartnerOpportunitiesScreen,
-  opportunitiesCreated: PartnerOpportunitiesScreen,
+  opportunitiesCreated: CreatedOpportunitiesScreen,
   candidates: CandidatesScreen,
   profileAthlete: AthleteProfileScreen,
   profileTrainer: TrainerProfileScreen,
@@ -72,8 +82,12 @@ const ROUTES = {
   applicationDetail: ApplicationDetailScreen,
   matchScore: MatchScoreScreen,
   opportunityDetail: OpportunityDetailScreen,
+  partnerOpportunityCandidates: PartnerOpportunityCandidatesScreen,
   partnerOpportunityDetail: PartnerOpportunityDetailScreen,
   partnerOpportunityForm: PartnerOpportunityFormScreen,
+  partnerCandidateProfile: PartnerCandidateProfileScreen,
+  technicalEvaluations: TechnicalEvaluationsScreen,
+  responsibleAthleteProfile: ResponsibleAthleteProfileScreen,
   applicationInfo: ApplicationInfoScreen,
   applicationStatus: ApplicationStatusScreen,
   athleteDetail: AthleteDetailScreen,
@@ -98,7 +112,10 @@ const HISTORY = {
   homeAthlete: 'athleteArea2',
   homeTrainer: 'signupTrainer',
   homeInstitution: 'signupInstitution',
+  homeResponsible: 'opening',
   notifications: 'homeAthlete',
+  operations: 'homeAthlete',
+  administration: 'opening',
   women: 'homeAthlete',
   opportunitiesAthlete: 'homeAthlete',
   opportunitiesTrainer: 'homeTrainer',
@@ -112,6 +129,12 @@ const HISTORY = {
   applicationDetail: 'applications',
   matchScore: 'opportunitiesAthlete',
   opportunityDetail: 'matchScore',
+  partnerOpportunityCandidates: 'partnerOpportunityDetail',
+  partnerOpportunityDetail: 'opportunitiesInstitution',
+  partnerOpportunityForm: 'opportunitiesInstitution',
+  partnerCandidateProfile: 'partnerOpportunityCandidates',
+  technicalEvaluations: 'homeTrainer',
+  responsibleAthleteProfile: 'homeResponsible',
   applicationInfo: 'opportunityDetail',
   applicationStatus: 'applicationInfo',
   athleteDetail: 'candidates',
@@ -132,10 +155,15 @@ const TAB_POSITION = {
   opportunitiesTrainer: 1,
   profileTrainer: 2,
   homeInstitution: 0,
+  homeResponsible: 0,
   opportunitiesInstitution: 1,
   opportunitiesCreated: 1,
+  partnerOpportunityCandidates: 1,
   partnerOpportunityDetail: 1,
   partnerOpportunityForm: 1,
+  partnerCandidateProfile: 1,
+  technicalEvaluations: 1,
+  responsibleAthleteProfile: 0,
   criarOportunidadeTecnico: 1,
   criarOportunidadeInicioTecnico: 1,
   oportunidadesCriadasTecnico: 1,
@@ -208,7 +236,11 @@ export default function App() {
   }
 
   if ((!fontsLoaded && !fontError) || !sessionResolved) {
-    return <View style={[styles.full, { backgroundColor: '#0b542d' }]} />
+    return (
+      <View style={[styles.appFrame, { width: frameWidth, height: frameHeight }]}>
+        <LoadingScreen />
+      </View>
+    )
   }
 
   const CurrentScreen = ROUTES[screen] || OpeningScreen
