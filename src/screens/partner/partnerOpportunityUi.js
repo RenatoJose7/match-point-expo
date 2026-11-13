@@ -1,47 +1,50 @@
 import React from 'react'
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { assets } from '../../theme/assets'
+import { BLUE, GREEN } from '../../theme/colors'
 
 export const partnerColors = {
-  ink: '#183126',
-  muted: '#64756b',
-  green: '#236b46',
-  greenDark: '#164d34',
-  lime: '#c4ff32',
-  border: '#dce6dd',
-  canvas: '#f5f8f4',
+  ink: BLUE,
+  muted: '#597494',
+  green: GREEN,
+  greenDark: BLUE,
+  lime: GREEN,
+  border: '#d7e1ed',
+  canvas: BLUE,
   white: '#ffffff',
   red: '#a33831',
   redLight: '#fff0ee',
   amber: '#8c5b11',
   amberLight: '#fff5dc',
-  greenLight: '#eaf6ed',
+  greenLight: '#efffd2',
 }
 
 export const partnerStyles = StyleSheet.create({
   page: { flex: 1, backgroundColor: partnerColors.canvas },
-  scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 28 },
-  header: { minHeight: 86, paddingHorizontal: 20, paddingTop: 14, paddingBottom: 14, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  backButton: { width: 42, height: 42, borderRadius: 14, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border, alignItems: 'center', justifyContent: 'center' },
-  headerCopy: { flex: 1 },
-  eyebrow: { color: partnerColors.green, fontSize: 13, fontFamily: 'Poppins_600SemiBold', textTransform: 'uppercase' },
-  pageTitle: { color: partnerColors.ink, fontSize: 13, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
-  subtitle: { color: partnerColors.muted, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular' },
-  headerAction: { width: 44, height: 44, borderRadius: 14, backgroundColor: partnerColors.green, alignItems: 'center', justifyContent: 'center' },
+  scroll: { flex: 1, minHeight: 0, backgroundColor: partnerColors.white, borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden' },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 108 },
+  header: { height: 164, backgroundColor: BLUE, position: 'relative' },
+  headerMark: { position: 'absolute', top: 16, alignSelf: 'center', width: 51, height: 56 },
+  backButton: { position: 'absolute', top: 30, left: 12, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  headerCopy: { position: 'absolute', left: 20, right: 20, bottom: 18, alignItems: 'center' },
+  eyebrow: { display: 'none' },
+  pageTitle: { color: partnerColors.white, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
+  subtitle: { color: partnerColors.white, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular', textAlign: 'center', opacity: 0.92 },
+  headerAction: { width: 44, height: 44, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
   sectionTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
   body: { color: partnerColors.ink, fontSize: 13, lineHeight: 21, fontFamily: 'Poppins_400Regular' },
-  card: { backgroundColor: partnerColors.white, borderRadius: 8, borderWidth: 1, borderColor: partnerColors.border, padding: 16 },
+  card: { backgroundColor: partnerColors.white, borderRadius: 16, borderWidth: 1, borderColor: partnerColors.border, padding: 16 },
   feedback: { flexDirection: 'row', gap: 9, alignItems: 'flex-start', borderRadius: 8, padding: 12, borderWidth: 1 },
   feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_500Medium' },
   fieldGroup: { gap: 6 },
   fieldLabel: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  input: { minHeight: 48, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 7, backgroundColor: partnerColors.white, paddingHorizontal: 12, color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_400Regular' },
+  input: { minHeight: 48, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 10, backgroundColor: partnerColors.white, paddingHorizontal: 12, color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_400Regular' },
   multilineInput: { minHeight: 104, paddingTop: 11, textAlignVertical: 'top' },
-  primaryButton: { minHeight: 48, paddingHorizontal: 16, borderRadius: 7, backgroundColor: partnerColors.green, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  primaryButton: { minHeight: 48, paddingHorizontal: 16, borderRadius: 14, backgroundColor: BLUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   primaryButtonDisabled: { opacity: 0.55 },
   primaryButtonText: { color: partnerColors.white, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  secondaryButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 7, borderWidth: 1, borderColor: partnerColors.border, backgroundColor: partnerColors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  secondaryButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: BLUE, backgroundColor: partnerColors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
   secondaryButtonText: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   statusText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
@@ -54,9 +57,10 @@ export const partnerStyles = StyleSheet.create({
 export function PartnerHeader({ title, subtitle, onBack, action }) {
   return (
     <View style={partnerStyles.header}>
+      <Image source={assets.monogram} resizeMode="contain" style={partnerStyles.headerMark} />
       {onBack ? (
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={onBack} style={partnerStyles.backButton}>
-          <Ionicons name="arrow-back" size={20} color={partnerColors.ink} />
+          <Ionicons name="arrow-back" size={22} color={partnerColors.white} />
         </Pressable>
       ) : null}
       <View style={partnerStyles.headerCopy}>

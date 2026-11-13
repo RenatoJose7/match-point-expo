@@ -14,9 +14,10 @@ export function ListHeader({
   headerBackground,
   headerOverlay,
   headerAction,
+  headerStyle,
 }) {
   return (
-    <View style={[styles.listHeader, localStyles.header]}>
+    <View style={[styles.listHeader, localStyles.header, headerStyle]}>
       {headerBackground}
       <BackButton onPress={back} />
       <Image source={assets.monogram} style={styles.listMark} resizeMode="contain" />

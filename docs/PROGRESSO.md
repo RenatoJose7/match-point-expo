@@ -2,14 +2,14 @@
 
 > Arquivo gerado por `npm run progress`. Não edite esta página manualmente.
 
-Última atualização registrada: 2026-11-12T12:13:49.076Z
+Última atualização registrada: 2026-11-13T14:30:55.238Z
 
 ## Barras de progresso
 
 - **P0:** `████████████████████ 100% (21/21)`
 - **P1:** `████████████████████ 100% (4/4)`
-- **P2:** `████████████████░░░░ 80% (4/5)`
-- **Total:** `███████████████████░ 97% (29/30)`
+- **P2:** `████████████████████ 100% (5/5)`
+- **Total:** `████████████████████ 100% (30/30)`
 
 Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver validado. PR e evidências são opcionais para rastreabilidade. Itens simulados não contam para os 70%.
 
@@ -54,7 +54,7 @@ Requisitos `Concluídos` avançam as barras quando o fluxo funcional estiver val
 | RF26 — Denúncias | P2 | Backlog futuro | Concluído | — | — |
 | RF27 — Portal administrativo | P2 | Backlog futuro | Concluído | — | — |
 | RF28 — Moderação | P2 | Backlog futuro | Concluído | — | — |
-| RF29 — Apoios concedidos | P2 | Backlog futuro | Em andamento | — | — |
+| RF29 — Apoios concedidos | P2 | Backlog futuro | Concluído | — | Apoio permitido para qualquer parceiro autenticado; registro concedido validado nos repositórios em memória. |
 | RF30 — Auditoria do Match Score | P2 | Backlog futuro | Concluído | — | — |
 
 ## Como atualizar

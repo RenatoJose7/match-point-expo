@@ -174,12 +174,12 @@ function ListSection({ title, values = [], empty }) {
 
 const styles = StyleSheet.create({
   stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
-  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 12 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 12 },
   titleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   titleCopy: { flex: 1, gap: 6 },
   title: { color: partnerColors.ink, fontSize: 13, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
-  meta: { color: partnerColors.green, fontSize: 13, fontFamily: 'Poppins_500Medium' },
-  iconButton: { width: 40, height: 40, borderRadius: 7, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.canvas },
+  meta: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_500Medium' },
+  iconButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.greenLight },
   rule: { height: 1, backgroundColor: partnerColors.border, marginVertical: 14 },
   infoGrid: { marginTop: 17, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   infoItem: { width: '47%', minHeight: 48, flexDirection: 'row', gap: 7, alignItems: 'flex-start' },

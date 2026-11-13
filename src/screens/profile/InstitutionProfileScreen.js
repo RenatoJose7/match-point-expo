@@ -17,7 +17,7 @@ const sample = {
 
 export function InstitutionProfileScreen({ go, back, repositories, session }) {
   const [profile, setProfile] = useState(null)
-  const [values, setValues] = useState(sample)
+  const [values, setValues] = useState({ nomeExibicao: '', documento: '', localizacao: '', descricao: '', tipoInstituicao: '' })
   const [editing, setEditing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -35,10 +35,11 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
       const next = result.data
       setProfile({ ...next, source })
       setValues({
-        nomeExibicao: next.nomeExibicao || sample.nomeExibicao,
-        documento: next.documento || sample.documento,
-        localizacao: next.localizacao || sample.localizacao,
-        descricao: next.descricao || sample.descricao,
+        nomeExibicao: next.nomeExibicao || session?.nome || '',
+        documento: next.documento || '',
+        localizacao: next.localizacao || '',
+        descricao: next.descricao || '',
+        tipoInstituicao: next.tipoInstituicao || '',
       })
     }
     load()
@@ -59,28 +60,30 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
 
   const cancelEditing = () => {
     setValues({
-      nomeExibicao: profile?.nomeExibicao || sample.nomeExibicao,
-      documento: profile?.documento || sample.documento,
-      localizacao: profile?.localizacao || sample.localizacao,
-      descricao: profile?.descricao || sample.descricao,
+      nomeExibicao: profile?.nomeExibicao || session?.nome || '',
+      documento: profile?.documento || '',
+      localizacao: profile?.localizacao || '',
+      descricao: profile?.descricao || '',
+      tipoInstituicao: profile?.tipoInstituicao || '',
     })
     setEditing(false)
   }
 
   const rows = [
     ['CNPJ', values.documento],
-    ['Tipo', 'Universidade'],
+    ['Tipo', values.tipoInstituicao],
     ['Localização', values.localizacao],
     ['Site', values.descricao],
-  ]
+  ].map(([label, value]) => [label, value || 'Não informado'])
+  const profileInitials = values.nomeExibicao.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN'
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.back}><Ionicons name="arrow-back" size={21} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <View style={styles.identity}>
-          <View style={styles.initials}><Text style={styles.initialsText}>In</Text></View>
+          <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
           <View style={styles.identityCopy}><Text numberOfLines={2} style={styles.name}>{values.nomeExibicao}</Text><Text style={styles.role}>Instituição</Text></View>
         </View>
         <Pressable accessibilityRole="button" accessibilityLabel={editing ? 'Cancelar edição' : 'Editar perfil'} onPress={() => editing ? cancelEditing() : setEditing(true)} style={styles.headerEditButton}><Text style={styles.headerEditText}>{editing ? 'Cancelar' : 'Editar perfil'}</Text></Pressable>
@@ -95,6 +98,7 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
             <View style={styles.form}>
               <Field label="Nome da instituição" value={values.nomeExibicao} onChangeText={(nomeExibicao) => setValues((current) => ({ ...current, nomeExibicao }))} />
               <Field label="CNPJ" value={values.documento} onChangeText={(documento) => setValues((current) => ({ ...current, documento }))} />
+              <Field label="Tipo da instituicao" value={values.tipoInstituicao} onChangeText={(tipoInstituicao) => setValues((current) => ({ ...current, tipoInstituicao }))} />
               <Field label="Localização" value={values.localizacao} onChangeText={(localizacao) => setValues((current) => ({ ...current, localizacao }))} />
               <Field label="Site" value={values.descricao} onChangeText={(descricao) => setValues((current) => ({ ...current, descricao }))} />
               <Pressable accessibilityRole="button" onPress={save} disabled={saving} style={[styles.editButton, saving && styles.buttonDisabled]}><Text style={styles.editText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable>
@@ -119,7 +123,7 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE },
   header: { height: 159, backgroundColor: BLUE },
   back: { position: 'absolute', top: 41, left: 14, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  mark: { position: 'absolute', top: 7, alignSelf: 'center', width: 58, height: 62 },
+  mark: { position: 'absolute', top: 18, alignSelf: 'center', width: 54, height: 58 },
   identity: { position: 'absolute', left: 20, right: 124, bottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   identityCopy: { flex: 1, minWidth: 0 },
   initials: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },

@@ -51,7 +51,8 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
       </Pressable>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Fechar opções" onPress={close} style={[styles.backdrop, { width: appFrameWidth }]}>
+        <View style={[styles.backdrop, { width: appFrameWidth }]}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Fechar opções" onPress={close} style={styles.backdropDismiss} />
           <View accessibilityRole="menu" style={styles.menu}>
             <View style={styles.menuHeader}>
               <Text style={styles.menuTitle}>{label}</Text>
@@ -90,7 +91,7 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
               {filteredOptions.length === 0 && !canUseTypedValue ? <Text style={styles.empty}>Nenhuma opção encontrada.</Text> : null}
             </ScrollView>
           </View>
-        </Pressable>
+        </View>
       </Modal>
     </>
   )
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
   triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, marginRight: 8 },
   placeholder: { color: '#6a7d86' },
   backdrop: { flex: 1, alignSelf: 'flex-start', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
+  backdropDismiss: { ...StyleSheet.absoluteFillObject },
   menu: { width: '100%', maxHeight: '70%', backgroundColor: '#ffffff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 28 },
   menuHeader: { alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e1e8eb', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 17 },
   menuTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },

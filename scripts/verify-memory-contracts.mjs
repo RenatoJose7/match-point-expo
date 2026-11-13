@@ -364,6 +364,13 @@ assert.equal(partnerProfile.data.documento, '12345678900')
 const partnerProfileByUser = await signupRepositories.users.obterPerfilParceiroPorUsuario(partnerSignup.data.id)
 assert.equal(partnerProfileByUser.ok, true)
 assert.equal(partnerProfileByUser.data.id, partnerProfile.data.id)
+const grantedUnverifiedSupport = await signupRepositories.support.registrarApoio({
+  parceiroId: partnerProfile.data.id,
+  atletaId: 'atleta-adulto',
+  descricao: 'Bolsa de apoio em validaÃ§Ã£o.',
+})
+assert.equal(grantedUnverifiedSupport.ok, true)
+assert.equal(grantedUnverifiedSupport.data.status, 'concedido')
 const blockedUnverifiedPublication = await signupRepositories.opportunities.criarOportunidade({
   criadorId: partnerProfile.data.id,
   titulo: 'Avaliação em validação',
@@ -397,6 +404,7 @@ const institutionSignup = await signupRepositories.authentication.cadastrar(
     nome: 'Clube Novo',
     perfil: {
       tipo: USER_TYPES.INSTITUTION,
+      tipoInstituicao: 'Clube esportivo',
       nomeExibicao: 'Clube Novo',
       documento: '12345678000100',
       localizacao: 'São Paulo',
@@ -406,6 +414,7 @@ const institutionSignup = await signupRepositories.authentication.cadastrar(
 assert.equal(institutionSignup.ok, true)
 const institutionProfile = await signupRepositories.users.obterPerfilParceiro(institutionSignup.data.id)
 assert.equal(institutionProfile.ok, true)
+assert.equal(institutionProfile.data.tipoInstituicao, 'Clube esportivo')
 assert.equal(institutionProfile.data.localizacao, 'São Paulo')
 
 const guardianSignup = await signupRepositories.authentication.cadastrar(

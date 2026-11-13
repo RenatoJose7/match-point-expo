@@ -22,6 +22,7 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           profileResult = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
         }
         if (!profileResult.ok) return
+        const ownProfileName = profileResult.data.nomeExibicao || session?.nome || 'Instituição'
         let opportunitiesResult = await source.opportunities.listarOportunidadesDoParceiro(profileResult.data.id)
         if (opportunitiesResult.ok && opportunitiesResult.data.length === 0 && repositories.demo) {
           source = repositories.demo
@@ -34,7 +35,7 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
         const candidateCount = candidates.reduce((total, item) => total + (item.ok ? item.data.length : 0), 0)
         if (!active) return
         const usingDemo = source === repositories.demo
-        setProfileName(profileResult.data.nomeExibicao || session?.nome || 'Instituição')
+        setProfileName(ownProfileName)
         setSummary(usingDemo ? {
           active: 31,
           published: 19,
@@ -58,13 +59,20 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
 
   const signOut = () => repositories.authentication.sair()
   const displayName = String(profileName).trim() || 'Instituição'
+  const profileInitials = displayName
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'IN'
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <View style={styles.identity}>
-          <View style={styles.initials}><Text style={styles.initialsText}>In</Text></View>
+          <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
           <View style={styles.identityCopy}>
             <Text numberOfLines={1} style={styles.greeting}>Olá, <Text style={styles.greetingAccent}>{displayName}</Text></Text>
             <Text style={styles.welcome}>Bem-vindo de volta</Text>

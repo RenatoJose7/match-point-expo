@@ -58,19 +58,19 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
               <View style={localStyles.cardDivider} />
               <View style={[styles.trainerStatusList, localStyles.statusList]}>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
-                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotGreen]} />
+                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotGreen, localStyles.statusDot]} />
                   <Text style={localStyles.statusNumber}>{summary.activeCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Divulgadas</Text>
+                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Ativas</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
-                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue]} />
+                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue, localStyles.statusDot]} />
                   <Text style={styles.trainerStatusNumber}>{summary.candidateCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Em análise</Text>
+                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Análise</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
-                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange]} />
+                  <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange, localStyles.statusDot]} />
                   <Text style={styles.trainerStatusNumber}>—</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Sem dados</Text>
+                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Sem info.</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.trainerCreateShortcut}>
@@ -107,8 +107,8 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
 
           <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner]}>
             <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
-            <Text style={localStyles.bannerCopy}>Acompanhe, avalie e{`\n`}descubra o próximo{`\n`}destaque do esporte.</Text>
-            <Text style={localStyles.bannerCta}>Saiba mais</Text>
+            <Text style={localStyles.bannerCopy}>Acompanhe e avalie os{`\n`}próximos talentos.</Text>
+            <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
             <Image source={assets.trainerBanner} style={[styles.trainerBannerPerson, localStyles.bannerPerson]} resizeMode="contain" />
           </Banner>
         </ScrollView>
@@ -152,7 +152,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
         <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.heroBanner, styles.trainerBanner, localStyles.partnerBanner]}>
           <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
           <Text style={localStyles.bannerCopy}>Acompanhe, avalie e{`\n`}descubra o próximo{`\n`}destaque do esporte.</Text>
-          <Text style={localStyles.bannerCta}>Saiba mais</Text>
+          <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
           <Image source={assets.trainerBanner} style={styles.bannerPerson} resizeMode="contain" />
         </Banner>
       </ScrollView>
@@ -167,22 +167,24 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     gap: 9,
   },
   trainerCard: {
-    minHeight: 153,
-    height: 153,
-    paddingBottom: 0,
+    minHeight: 172,
+    height: 172,
+    paddingBottom: 10,
   },
   trainerBody: {
-    minHeight: 0,
-    paddingTop: 0,
-    paddingBottom: 8,
-    overflow: 'hidden',
+    minHeight: 105,
+    paddingTop: 1,
+    paddingBottom: 9,
   },
   trainerBanner: {
-    minHeight: 140,
-    height: 140,
+    minHeight: 152,
+    height: 152,
+    paddingTop: 11,
+    paddingBottom: 10,
+    overflow: 'hidden',
   },
   countBlock: {
-    width: 122,
+    width: 118,
   },
   countLabel: {
     color: BLUE,
@@ -205,16 +207,20 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   statusList: {
     flex: 1,
     gap: 7,
-    paddingLeft: 10,
+    paddingLeft: 8,
     minWidth: 0,
+    paddingRight: 4,
   },
   statusRow: {
     flexDirection: 'row',
     alignItems: 'center',
     minHeight: 22,
   },
+  statusDot: {
+    marginRight: 5,
+  },
   statusNumber: {
-    width: 31,
+    width: 23,
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 13,
@@ -243,8 +249,9 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
     lineHeight: 22,
-    marginTop: 4,
+    marginTop: 6,
     textAlign: 'center',
+    paddingHorizontal: 4,
   },
   partnerHomeScroll: {
     paddingBottom: 124,
@@ -267,11 +274,11 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     height: 140,
   },
   cardHeading: {
-    minHeight: 35,
+    minHeight: 47,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 9,
-    marginBottom: 4,
+    marginBottom: 1,
   },
   cardIcon: {
     width: 28,
@@ -282,6 +289,8 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     justifyContent: 'center',
   },
   cardTitle: {
+    flexShrink: 1,
+    minWidth: 0,
     color: BLUE,
     fontFamily: 'Griffiths',
     fontSize: 40,
@@ -300,7 +309,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   },
   bannerTitle: {
     zIndex: 2,
-    maxWidth: 255,
+    maxWidth: 286,
     color: GREEN,
     fontFamily: 'Griffiths',
     fontSize: 40,
@@ -308,6 +317,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   },
   bannerCopy: {
     zIndex: 2,
+    maxWidth: 205,
     color: '#ffffff',
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
@@ -316,20 +326,23 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   },
   bannerCta: {
     zIndex: 2,
-    marginTop: 8,
-    borderRadius: 10,
+    marginTop: 6,
+    minWidth: 108,
+    height: 30,
+    borderRadius: 15,
     backgroundColor: GREEN,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
     alignSelf: 'flex-start',
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
     fontSize: 13,
+    lineHeight: 30,
+    textAlign: 'center',
   },
   bannerPerson: {
-    right: -5,
-    bottom: -6,
-    width: 150,
-    height: 150,
+    zIndex: 1,
+    right: -3,
+    bottom: -4,
+    width: 126,
+    height: 126,
   },
 }))

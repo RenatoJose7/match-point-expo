@@ -15,10 +15,32 @@ const demoCandidates = [
   { id: 'demo-coco', name: 'Coco Gauffina', category: 'Sub-20', date: 'Inscrição em 01/04/2026', photo: assets.coco, score: 76 },
 ]
 
+function getCandidatePhotoSource(value) {
+  const uri = String(value ?? '').trim()
+  return /^(https?:|data:image\/|blob:|file:)/i.test(uri) ? { uri } : null
+}
+
+function getCandidateInitials(name) {
+  return String(name ?? 'Candidato')
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join('')
+    .toUpperCase() || 'CA'
+}
+
 function CandidateCard({ candidate, onPress }) {
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Ver perfil de ${candidate.name}`} onPress={onPress} style={styles.card}>
-      <Image source={candidate.photo} style={styles.photo} resizeMode="cover" />
+      {candidate.photo ? (
+        <Image source={candidate.photo} style={styles.photo} resizeMode="cover" />
+      ) : (
+        <View style={[styles.photo, styles.photoFallback]}>
+          <Text style={styles.photoInitials}>{candidate.initials}</Text>
+        </View>
+      )}
       <View style={styles.copy}>
         <Text numberOfLines={2} style={styles.name}>{candidate.name}</Text>
         <Text style={styles.category}>{candidate.category}</Text>
@@ -59,7 +81,8 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           name: profile?.nome || `Candidato ${index + 1}`,
           category: profile?.categoria || 'Sub-20',
           date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição em 19/08/2026',
-          photo: profile?.fotoUrl ? { uri: profile.fotoUrl } : demoCandidates[index % demoCandidates.length].photo,
+          photo: getCandidatePhotoSource(profile?.fotoUrl),
+          initials: getCandidateInitials(profile?.nome),
           score: application.matchScore,
         }))
         if (mounted) {
@@ -87,7 +110,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
     <View style={styles.page}>
       <View style={styles.header}>
         <View style={styles.stripe} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.back}><Ionicons name="arrow-back" size={20} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
         <Text numberOfLines={2} style={styles.title}>{title}</Text>
@@ -135,6 +158,8 @@ const styles = StyleSheet.create(withGriffithsWeight({
   listContent: { paddingHorizontal: 8, paddingTop: 20, paddingBottom: 100, gap: 10 },
   card: { minHeight: 133, borderRadius: 17, padding: 9, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(26, 56, 92, .14)' }, default: { elevation: 3 } }) },
   photo: { width: 94, height: 113, borderRadius: 10 },
+  photoFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0f8', borderWidth: 1, borderColor: '#d7e4f2' },
+  photoInitials: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   copy: { flex: 1, minWidth: 0, paddingLeft: 13, justifyContent: 'center' },
   name: { color: '#1878d3', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 19 },
   category: { color: '#1878d3', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 17 },

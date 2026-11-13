@@ -139,7 +139,7 @@ export function ProfileView({ role, go, back, repositories, session }) {
 const localStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE },
   header: { height: 159, backgroundColor: BLUE },
-  headerMark: { position: 'absolute', top: 7, width: 51, height: 56, alignSelf: 'center' },
+  headerMark: { position: 'absolute', top: 18, width: 51, height: 56, alignSelf: 'center' },
   identity: { position: 'absolute', left: 20, right: 18, bottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   identityText: { flex: 1 },
   name: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },

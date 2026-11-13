@@ -324,7 +324,7 @@ export function AthleteProfileScreen(props) {
 const localStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE },
   header: { height: 159, backgroundColor: BLUE },
-  headerMark: { position: 'absolute', top: 7, alignSelf: 'center', width: 56, height: 61 },
+  headerMark: { position: 'absolute', top: 18, alignSelf: 'center', width: 52, height: 56 },
   identity: { position: 'absolute', left: 20, right: 18, bottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
   identityCopy: { flex: 1 },
   name: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },

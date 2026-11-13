@@ -46,7 +46,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
   return (
     <View style={styles.page}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.back}><Ionicons name="arrow-back" size={21} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
       </View>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
@@ -94,7 +94,7 @@ const styles = StyleSheet.create({
   page: { flex: 1, backgroundColor: '#fff' },
   header: { height: 76, backgroundColor: BLUE },
   back: { position: 'absolute', left: 12, top: 24, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  mark: { position: 'absolute', top: 16, alignSelf: 'center', width: 56, height: 60 },
+  mark: { position: 'absolute', top: 12, alignSelf: 'center', width: 52, height: 52 },
   scroll: { flex: 1, backgroundColor: '#fff' },
   content: { paddingBottom: 188 },
   hero: { width: '100%', height: 142 },

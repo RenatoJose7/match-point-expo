@@ -143,7 +143,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             <View style={styles.fieldsGrid}>
               {visibleFields.map((field) => (
                 <View key={field.key} style={styles.fieldItem}>
-                  <Ionicons name={field.icon} size={17} color={partnerColors.green} />
+                  <Ionicons name={field.icon} size={17} color={partnerColors.ink} />
                   <View style={styles.fieldCopy}>
                     <Text style={styles.fieldLabel}>{field.label}</Text>
                     <Text style={styles.fieldValue}>{String(profile[field.key])}</Text>
@@ -169,7 +169,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
               <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
                 <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
               </Pressable>
-              <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId })} style={partnerStyles.secondaryButton}>
+              <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId, candidateName: profile?.nome || '' })} style={partnerStyles.secondaryButton}>
                 <Text style={partnerStyles.secondaryButtonText}>Registrar apoio concedido</Text>
               </Pressable>
             </View>
@@ -241,7 +241,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
 
 const styles = StyleSheet.create({
   stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
-  content: { paddingHorizontal: 20, paddingBottom: 24, gap: 14 },
+  content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 14 },
   identityCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   avatar: { width: 68, height: 68, borderRadius: 34, backgroundColor: partnerColors.greenLight },
   avatarFallback: { alignItems: 'center', justifyContent: 'center' },
@@ -257,9 +257,9 @@ const styles = StyleSheet.create({
   fieldCopy: { flex: 1, minWidth: 0, gap: 4 },
   fieldLabel: { color: partnerColors.muted, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
   fieldValue: { color: partnerColors.ink, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_600SemiBold' },
-  privacyNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 8, backgroundColor: partnerColors.greenLight },
+  privacyNote: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, padding: 12, borderRadius: 14, backgroundColor: partnerColors.greenLight },
   privacyText: { flex: 1, color: partnerColors.greenDark, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
-  decisionCard: { gap: 10, padding: 14, borderRadius: 8, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border },
+  decisionCard: { gap: 10, padding: 14, borderRadius: 16, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border },
   decisionCopy: { color: partnerColors.muted, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
   decisionActions: { gap: 8 },
   confirmation: { gap: 8, padding: 12, borderRadius: 7, backgroundColor: partnerColors.amberLight },

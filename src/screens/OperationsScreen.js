@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
-import { BackButton } from '../components/ui/BackButton'
 import { withGriffithsWeight } from '../theme/typography'
 
 const BLUE = '#10579b'
@@ -28,7 +28,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   const [resources, setResources] = useState([])
   const [supportType, setSupportType] = useState('bolsa_integral')
   const [supportValue, setSupportValue] = useState('')
-  const [athleteSearch, setAthleteSearch] = useState(routeParams.candidateName || '')
+  const [athleteName, setAthleteName] = useState(routeParams.candidateName || '')
   const [savingSupport, setSavingSupport] = useState(false)
 
   const load = async () => {
@@ -48,8 +48,22 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   }
   useEffect(() => { load() }, [session?.id])
   useEffect(() => {
-    setAthleteSearch(routeParams.candidateName || '')
-  }, [routeParams.candidateName])
+    let active = true
+    const providedName = String(routeParams.candidateName || '').trim()
+    setAthleteName(providedName)
+
+    if (!partner || !routeParams.opportunityId || !routeParams.athleteId) return () => { active = false }
+
+    repositories.applications.obterPerfilPublicoCandidato(routeParams.opportunityId, routeParams.athleteId)
+      .then((result) => {
+        if (active && result.ok && result.data?.nome) setAthleteName(result.data.nome)
+      })
+      .catch(() => {
+        // O nome recebido na navegaÃ§Ã£o continua disponÃ­vel se a consulta falhar.
+      })
+
+    return () => { active = false }
+  }, [partner, repositories, routeParams.athleteId, routeParams.candidateName, routeParams.opportunityId])
 
   const sendReport = async () => {
     const result = await repositories.reports.enviarRelato({ mensagem: message })
@@ -95,7 +109,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
         valor: supportValue.trim(),
       })
       if (!result.ok) throw new Error(result.mensagem)
-      setStatus('Apoio registrado para o atleta selecionado.')
+      setStatus(`Apoio registrado para ${athleteName || 'o atleta selecionado'}.`)
       setSupportValue('')
     } catch (supportError) {
       setStatus(supportError.message || 'Não foi possível registrar o apoio.')
@@ -159,7 +173,14 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
       {/* Header azul com monograma */}
       <View style={localStyles.header}>
         <View style={localStyles.headerStripe} />
-        <BackButton onPress={() => trainer ? go('partnerOpportunityCandidates', { opportunityId: routeParams.opportunityId }) : back()} />
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Voltar"
+          onPress={() => trainer ? go('partnerOpportunityCandidates', { opportunityId: routeParams.opportunityId }) : back()}
+          style={localStyles.headerBack}
+        >
+          <Ionicons name="arrow-back" size={22} color="#fff" />
+        </Pressable>
         <Image source={require('../../assets/monogram-ultra.png')} style={localStyles.headerMark} resizeMode="contain" />
       </View>
 
@@ -175,13 +196,10 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             </View>
           ) : null}
 
-          {/* Campo pesquisar atleta */}
-          <Text style={localStyles.fieldLabel}>Pesquisar o atleta</Text>
-          <TextInput
-            value={athleteSearch}
-            onChangeText={setAthleteSearch}
-            style={localStyles.searchField}
-          />
+          <Text style={localStyles.fieldLabel}>Atleta</Text>
+          <View style={localStyles.selectedAthleteField}>
+            <Text numberOfLines={1} style={localStyles.selectedAthleteText}>{athleteName || 'Atleta selecionado'}</Text>
+          </View>
 
           {/* Tipo de apoio */}
           <Text style={localStyles.fieldLabel}>Tipo de apoio</Text>
@@ -238,13 +256,15 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: BLUE },
   header: { height: 272, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -173, bottom: 28, width: 390, height: 72, backgroundColor: '#e7e8e9', transform: [{ rotate: '54deg' }] },
+  headerBack: { position: 'absolute', zIndex: 2, left: 10, top: 24, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   headerMark: { position: 'absolute', top: 87, width: 126, height: 126, alignSelf: 'center' },
   panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden' },
   panelContent: { paddingHorizontal: 10, paddingTop: 24, paddingBottom: 148, gap: 13 },
   panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
   titleRule: { height: 4, borderRadius: 2, backgroundColor: GREEN, marginTop: -9, marginBottom: 25 },
   fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
-  searchField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  selectedAthleteField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, justifyContent: 'center' },
+  selectedAthleteText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
   radioGroup: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 18 },
   radioRow: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10 },
   radioRowWide: { width: '100%' },
