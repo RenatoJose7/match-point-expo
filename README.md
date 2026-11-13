@@ -1,6 +1,19 @@
-# MatchPoint
+# MatchPoint — Plataforma esportiva
 
-> Olá, professor Washington e professora Juliana! Sejam bem-vindos ao repositório do MatchPoint. Este espaço reúne a aplicação, a documentação e a organização usada pela equipe para desenvolver o projeto.
+**Aplicativo mobile para aproximar atletas, treinadores e instituições esportivas por meio de oportunidades, perfis esportivos e candidaturas.**
+
+[![React Native](https://img.shields.io/badge/React_Native-20232A?logo=react&logoColor=61DAFB)](https://reactnative.dev/)
+[![Expo](https://img.shields.io/badge/Expo-000020?logo=expo&logoColor=white)](https://expo.dev/)
+[![Firebase](https://img.shields.io/badge/Firebase-DD2C00?logo=firebase&logoColor=white)](https://firebase.google.com/)
+[![JavaScript](https://img.shields.io/badge/JavaScript-F7DF1E?logo=javascript&logoColor=black)](https://developer.mozilla.org/docs/Web/JavaScript)
+
+**Projeto de conclusão de curso em Desenvolvimento de Sistemas, desenvolvido em equipe.**
+
+### Minha contribuição
+
+Atuação no **núcleo técnico e na integração** do aplicativo, incluindo navegação, contratos e repositórios de dados, integração com Firebase, regras de Match Score e elegibilidade, segurança e integração dos módulos.
+
+> A documentação a seguir contém os objetivos do projeto, a arquitetura e o planejamento da equipe. Recursos planejados não devem ser interpretados automaticamente como funcionalidades concluídas.
 
 ## Sobre o projeto
 
