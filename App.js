@@ -19,6 +19,7 @@ import {
   AthleteProfileScreen,
   AthleteSignupScreen,
   CandidatesScreen,
+  CreatedOpportunitiesScreen,
   InstitutionHomeScreen,
   InstitutionProfileScreen,
   InstitutionSignupScreen,

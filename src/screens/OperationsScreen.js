@@ -176,7 +176,9 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Voltar"
-          onPress={() => trainer ? go('partnerOpportunityCandidates', { opportunityId: routeParams.opportunityId }) : back()}
+          // Retorna pela pilha de navegação. Recriar manualmente a lista de
+          // candidatos fazia a seta alternar entre as mesmas duas telas.
+          onPress={back}
           style={localStyles.headerBack}
         >
           <Ionicons name="arrow-back" size={22} color="#fff" />

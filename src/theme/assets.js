@@ -5,7 +5,9 @@ export const assets = {
   recovery1: require('../../assets/recovery-1-hd.png'),
   recovery2: require('../../assets/recovery-2-hd.png'),
   recovery3: require('../../assets/recovery-3-hd.png'),
-  monogram: require('../../assets/monogram-crisp.png'),
+  // A versão ultra mantém o monograma nítido tanto no cabeçalho compacto
+  // quanto nas telas que usam a marca em destaque.
+  monogram: require('../../assets/monogram-ultra.png'),
   signupAthlete: require('../../assets/signup-athlete-hd.png'),
   signupTrainer: require('../../assets/signup-trainer-hd.png'),
   signupInstitution: require('../../assets/signup-institution-hd.png'),
