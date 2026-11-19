@@ -26,6 +26,12 @@
       "expo-web-browser",
       "expo-font",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "56ca1dd5-e345-44ac-96de-b96188208f9e"
+      }
+    },
+    "owner": "renatojose7"
   }
 }
