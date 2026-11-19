@@ -187,6 +187,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
   const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
   const passwordField = fields.find(field => field.toLowerCase().includes('senha') && !field.toLowerCase().includes('confirme'))
   const guardianCodeField = fields.find(field => field.toLowerCase().includes('respons'))
+  const institutionTypeField = fields.find(field => field.toLowerCase().includes('tipo:'))
 
   useEffect(() => {
     if (googleSignup && nameField && routeParams.nome) {
@@ -236,6 +237,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
 
     const missingField = fields.find((field) => {
       if (googleSignup && (field === emailField || field === passwordField || field === confirmationField)) return false
+      if (isAthlete && field === guardianCodeField && !minor) return false
       if (isOptionalField(field) || field === confirmationField) return false
       return !String(values[field] ?? '').trim()
     })
@@ -324,6 +326,9 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
         : {
             tipo: userType,
             nomeExibicao: values[nameField]?.trim() ?? '',
+            ...(userType === USER_TYPES.INSTITUTION && institutionTypeField
+              ? { tipoInstituicao: values[institutionTypeField]?.trim() || undefined }
+              : {}),
             documento: documentValue.trim() || undefined,
             localizacao: values[locationField]?.trim() || undefined,
             verificado: false,

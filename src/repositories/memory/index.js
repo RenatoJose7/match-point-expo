@@ -159,6 +159,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         profileResult = await users.criarPerfilParceiro(user.id, {
           id: user.id,
           tipo: type,
+          tipoInstituicao: profile.tipoInstituicao?.trim() || undefined,
           nomeExibicao: profile.nomeExibicao?.trim() || user.nome,
           documento: profile.documento?.trim() || undefined,
           descricao: profile.descricao?.trim() || undefined,
@@ -621,7 +622,13 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil público do candidato não encontrado para esta oportunidade.')
       }
 
-      return success(candidateSnapshot.perfilPublico)
+      const candidateAthlete = findAthlete(athleteId)
+      const candidateUser = candidateAthlete ? findUser(candidateAthlete.usuarioId) : null
+
+      return success({
+        ...candidateSnapshot.perfilPublico,
+        fotoUrl: candidateUser?.fotoUrl ?? candidateSnapshot.perfilPublico.fotoUrl ?? null,
+      })
     },
     atualizarStatusDaCandidatura: async (id, nextStatus) => {
       const user = currentSession()
@@ -785,8 +792,15 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
   const support = {
     registrarApoio: async (data) => {
       const user = currentSession(); const partnerId = data.parceiroId ?? data.instituicaoId; const partner = state.partners.find((item) => item.id === partnerId)
-      if (!user || partner?.usuarioId !== user.id || !partner.verificado || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de um parceiro verificado.')
-      const item = { id: nextId('apoio'), ...data, parceiroId: partner.id, descricao: data.descricao.trim(), criadoEm: now() }; state.supports.push(item); return success(item)
+      if (!user || partner?.usuarioId !== user.id || !findAthlete(data.atletaId) || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe os dados de um apoio válido.')
+      const item = {
+        id: nextId('apoio'),
+        ...data,
+        parceiroId: partner.id,
+        descricao: data.descricao.trim(),
+        status: 'concedido',
+        criadoEm: now(),
+      }; state.supports.push(item); return success(item)
     },
   }
   const administration = {

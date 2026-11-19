@@ -3,6 +3,7 @@
     "name": "Match Point",
     "slug": "match-point",
     "version": "1.0.0",
+    "icon": "./assets/app-icon.png",
     "scheme": "matchpoint",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -15,13 +16,22 @@
       "favicon": "./assets/monogram.png"
     },
     "android": {
+      "package": "com.renatojose.matchpoint",
       "adaptiveIcon": {
-        "foregroundImage": "./assets/monogram.png",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundColor": "#0b542d"
       }
     },
     "plugins": [
-      "expo-web-browser"
-    ]
+      "expo-web-browser",
+      "expo-font",
+      "expo-status-bar"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "56ca1dd5-e345-44ac-96de-b96188208f9e"
+      }
+    },
+    "owner": "renatojose7"
   }
 }

@@ -139,7 +139,7 @@ export function ApplicationsScreen({ go, back, repositories, session }) {
     <View style={styles.page}>
       <View style={styles.header}>
         <View style={styles.stripe} />
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.back}><Ionicons name="arrow-back" size={20} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <Pressable accessibilityRole="button" accessibilityLabel="Filtros" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filterIcon}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
         <Text style={styles.heading}>Candidaturas</Text>
@@ -158,15 +158,15 @@ export function ApplicationsScreen({ go, back, repositories, session }) {
 
 const styles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: '#f3f4f4' },
-  header: { height: 258, backgroundColor: BLUE, position: 'relative', overflow: 'hidden', zIndex: 2 },
+  header: { height: 252, backgroundColor: BLUE, position: 'relative', overflow: 'hidden', zIndex: 2 },
   stripe: { position: 'absolute', bottom: -8, left: -115, width: 337, height: 65, backgroundColor: '#e5e6e7', transform: [{ rotate: '54deg' }] },
   back: { position: 'absolute', top: 18, left: 6, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', top: 21, alignSelf: 'center', width: 45, height: 50 },
   filterIcon: { position: 'absolute', top: 19, right: 12, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  heading: { marginTop: 100, color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 46, textAlign: 'center' },
-  searchWrap: { height: 39, marginHorizontal: 18, marginTop: 7, borderRadius: 21, backgroundColor: '#fff', paddingHorizontal: 10, alignItems: 'center', flexDirection: 'row' },
+  heading: { marginTop: 96, color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 46, textAlign: 'center' },
+  searchWrap: { height: 39, marginHorizontal: 18, marginTop: 6, borderRadius: 21, backgroundColor: '#fff', paddingHorizontal: 10, alignItems: 'center', flexDirection: 'row' },
   searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 6, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  filterChips: { position: 'absolute', left: 38, bottom: 17, flexDirection: 'row', gap: 7 },
+  filterChips: { position: 'absolute', left: 32, bottom: 15, flexDirection: 'row', gap: 7 },
   chip: { minWidth: 75, height: 29, borderRadius: 15, backgroundColor: '#477bc2', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   chipSelected: { backgroundColor: '#fff' },
   chipText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 13 },

@@ -20,9 +20,6 @@ function openLink(url) {
 export function WomenInSportScreen({ go, back }) {
   return (
     <View style={localStyles.screen}>
-      <View pointerEvents="none" style={localStyles.ribbon} />
-      <View pointerEvents="none" style={localStyles.ribbonMask} />
-      <View pointerEvents="none" style={localStyles.ribbonTop} />
       <BackButton onPress={back} style={localStyles.back} />
       <Image source={assets.monogram} style={localStyles.mark} resizeMode="contain" />
       <Text numberOfLines={1} style={localStyles.title}>
@@ -57,9 +54,6 @@ export function WomenInSportScreen({ go, back }) {
 
 const localStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE, overflow: 'hidden' },
-  ribbon: { position: 'absolute', width: 850, height: 500, left: -240, top: 185, borderRadius: 300, borderWidth: 30, borderColor: '#e5e7e8', opacity: 0.95, transform: [{ rotate: '24deg' }] },
-  ribbonMask: { position: 'absolute', zIndex: 1, top: 0, left: 0, right: 0, height: 607, backgroundColor: BLUE },
-  ribbonTop: { position: 'absolute', zIndex: 1, width: 560, height: 30, left: -80, top: 179, backgroundColor: '#e5e7e8', opacity: 0.95, transform: [{ rotate: '22deg' }] },
   back: { top: 37, left: 18, zIndex: 3 },
   mark: { position: 'absolute', zIndex: 2, top: 39, alignSelf: 'center', width: 54, height: 57 },
   title: { position: 'relative', zIndex: 2, marginTop: 116, width: '100%', paddingHorizontal: 16, color: LIME, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 46, textAlign: 'center' },

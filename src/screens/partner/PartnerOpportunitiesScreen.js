@@ -171,7 +171,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
       <View style={[styles.header, created && styles.createdHeader]}>
         <View style={styles.headerStripe} />
         <View style={styles.headerTop}>
-          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" onPress={back} style={styles.iconButton}><Ionicons name="arrow-back" size={20} color="#fff" /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.iconButton}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
           <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
           <Pressable accessibilityRole="button" accessibilityLabel="Filtrar oportunidades" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.iconButton}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
         </View>
@@ -180,7 +180,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
           <Ionicons name="search-outline" size={20} color={BLUE} />
           <TextInput accessibilityLabel="Buscar oportunidades" value={search} onChangeText={setSearch} placeholder="Buscar oportunidades" placeholderTextColor={BLUE} style={styles.searchInput} />
         </View>
-        <View style={styles.statusChips}>{statusFilters.map((filter) => <Pressable key={filter.value} accessibilityRole="button" accessibilityState={{ selected: status === filter.value }} onPress={() => chooseStatus(filter.value)} style={[styles.statusChip, status === filter.value && styles.statusChipSelected]}><Text style={[styles.statusText, status === filter.value && styles.statusTextSelected]}>{filter.label}</Text></Pressable>)}</View>
+        <View style={[styles.statusChips, created && styles.createdStatusChips]}>{statusFilters.map((filter) => <Pressable key={filter.value} accessibilityRole="button" accessibilityState={{ selected: status === filter.value }} onPress={() => chooseStatus(filter.value)} style={[styles.statusChip, status === filter.value && styles.statusChipSelected]}><Text style={[styles.statusText, status === filter.value && styles.statusTextSelected]}>{filter.label}</Text></Pressable>)}</View>
         {filterOpen ? <View style={styles.filterMenu}>
           {!created ? <Pressable accessibilityRole="button" onPress={() => { setFilterOpen(false); go('opportunitiesCreated') }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>Oportunidades criadas</Text></Pressable> : null}
           {statusFilters.map((filter) => <Pressable key={filter.value} onPress={() => { chooseStatus(filter.value); setFilterOpen(false) }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>{filter.label}</Text></Pressable>)}
@@ -205,7 +205,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
 const styles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: '#f3f4f4' },
   header: { backgroundColor: BLUE, height: 266, overflow: 'hidden', position: 'relative', zIndex: 2 },
-  createdHeader: { height: 293 },
+  createdHeader: { height: 317 },
   headerStripe: { position: 'absolute', bottom: -38, left: -51, width: 220, height: 104, backgroundColor: '#e6e7e8', transform: [{ rotate: '52deg' }] },
   headerTop: { height: 91, paddingTop: 27, paddingHorizontal: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
@@ -214,7 +214,8 @@ const styles = StyleSheet.create(withGriffithsWeight({
   createdHeading: { fontSize: 40, lineHeight: 46, marginTop: 0 },
   searchWrap: { height: 44, marginHorizontal: 14, marginTop: 20, paddingHorizontal: 12, borderRadius: 24, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center' },
   searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 9, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  statusChips: { position: 'absolute', left: 18, bottom: 14, flexDirection: 'row', gap: 8 },
+  statusChips: { position: 'absolute', left: 18, right: 18, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  createdStatusChips: { bottom: 16 },
   statusChip: { minWidth: 88, height: 31, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#477bc2', paddingHorizontal: 12 },
   statusChipSelected: { backgroundColor: '#fff' },
   statusText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 13 },

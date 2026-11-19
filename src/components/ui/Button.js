@@ -16,6 +16,9 @@ export function Button({ children, onPress, variant = 'green', wide = false, dis
   return (
     <Animated.View style={[styles.buttonMotion, wide && styles.buttonMotionWide, { transform: [{ scale }] }]}>
       <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={typeof children === 'string' ? children : undefined}
+        accessibilityState={{ disabled }}
         onPress={onPress}
         disabled={disabled}
         onPressIn={() => !disabled && animateScale(0.965)}

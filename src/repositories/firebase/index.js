@@ -164,6 +164,7 @@ function buildRegistrationProfile(type, userId, initialData, createdAt) {
       data: {
         ...base,
         tipo: type,
+        tipoInstituicao: profile.tipoInstituicao?.trim() || null,
         nomeExibicao,
         documento: profile.documento?.trim() || null,
         descricao: profile.descricao?.trim() || null,
@@ -1254,7 +1255,17 @@ export function createFirebaseRepositories() {
           return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O perfil público do candidato está inconsistente.')
         }
 
-        return success(candidate.perfilPublico)
+        const athleteResult = await getAthleteById(athleteId)
+        const athleteUser = athleteResult.ok
+          ? await getUserById(athleteResult.data.usuarioId)
+          : null
+
+        return success({
+          ...candidate.perfilPublico,
+          fotoUrl: athleteUser?.ok
+            ? athleteUser.data.fotoUrl ?? candidate.perfilPublico.fotoUrl ?? null
+            : candidate.perfilPublico.fotoUrl ?? null,
+        })
       } catch (error) {
         if (error?.code === 'permission-denied') {
           return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Perfil público do candidato não encontrado para esta oportunidade.')
@@ -1497,8 +1508,20 @@ export function createFirebaseRepositories() {
     registrarApoio: async (data) => {
       const partner = await getPartnerByUserId(auth.currentUser?.uid)
       const partnerId = data.parceiroId ?? data.instituicaoId
-      if (!partner.ok || partner.data.id !== partnerId || !partner.data.verificado || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um apoio válido em nome de um parceiro verificado.')
-      try { const reference = doc(collection(database, SUPPORTS_COLLECTION)); const item = { id: reference.id, ...data, parceiroId, descricao: data.descricao.trim(), criadoEm: now() }; await setDoc(reference, item); return success(item) } catch (error) { return mapFirebaseError(error) }
+      if (!partner.ok || partner.data.id !== partnerId || !String(data.descricao ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe os dados de um apoio válido.')
+      try {
+        const reference = doc(collection(database, SUPPORTS_COLLECTION))
+        const item = {
+          id: reference.id,
+          ...data,
+          parceiroId,
+          descricao: data.descricao.trim(),
+          status: 'concedido',
+          criadoEm: now(),
+        }
+        await setDoc(reference, item)
+        return success(item)
+      } catch (error) { return mapFirebaseError(error) }
     },
   }
   const administration = {
