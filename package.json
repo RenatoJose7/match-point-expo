@@ -17,6 +17,7 @@
     "@expo/vector-icons": "^15.1.1",
     "@lottiefiles/dotlottie-react": "^0.13.5",
     "@react-native-async-storage/async-storage": "2.2.0",
+    "@react-native-google-signin/google-signin": "^17.0.0",
     "expo": "^57.0.9",
     "expo-auth-session": "~57.0.17",
     "expo-document-picker": "~57.0.3",
@@ -28,6 +29,7 @@
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-native": "0.86.3",
+    "react-native-safe-area-context": "~5.7.0",
     "react-native-web": "~0.21.0"
   },
   "private": true

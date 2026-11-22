@@ -4,7 +4,10 @@
     "slug": "match-point",
     "version": "1.0.0",
     "icon": "./assets/app-icon.png",
-    "scheme": "matchpoint",
+    "scheme": [
+      "matchpoint",
+      "com.renatojose.matchpoint"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
