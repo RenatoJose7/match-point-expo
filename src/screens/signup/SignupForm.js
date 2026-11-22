@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Modal, Platform, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
-import { GoogleLoginButton, isGoogleLoginConfigured } from '../../components/auth/GoogleLoginButton'
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton'
 import { Button } from '../../components/ui/Button'
 import { BackButton } from '../../components/ui/BackButton'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { BLUE } from '../../theme/colors'
 import { assets } from '../../theme/assets'
 import { USER_TYPES, calculateAge, isMinor } from '../../domain/contracts.js'
+import { withGriffithsOverhang } from '../../theme/typography'
 
 const BRAZIL_DDDS = [
   '11', '12', '13', '14', '15', '16', '17', '18', '19',
@@ -102,7 +103,7 @@ function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
           <Text style={{ color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, marginBottom: 10 }}>
             Selecione o DDD
           </Text>
-          <ScrollView keyboardShouldPersistTaps="handled">
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {BRAZIL_DDDS.map(ddd => (
               <Pressable
                 key={ddd}
@@ -170,7 +171,6 @@ function isOptionalField(field) {
 }
 
 export function SignupForm({ config, go, back, repositories, routeParams = {} }) {
-  const { height } = useWindowDimensions()
   const { accent, background, fields, isAthlete = false, titleBreak = false, userType } = config
   const googleSignup = Boolean(routeParams.googleSignup)
   const nameField = fields.find(field => field.toLowerCase().includes('nome'))
@@ -362,17 +362,17 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
   }
 
   return (
-    <View style={[localStyles.screen, { height }]}>
-      <Image source={background} resizeMode="cover" style={[localStyles.background, { height }]} />
+    <View style={localStyles.screen}>
+      <Image source={background} resizeMode="cover" style={localStyles.background} />
       <View pointerEvents="none" style={localStyles.dim} />
-      <SafeAreaView style={localStyles.safe}>
+      <View style={localStyles.safe}>
         {back ? <BackButton onPress={back} /> : null}
         <Image source={assets.monogram} resizeMode="contain" style={localStyles.monogram} />
         <ScrollView
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
           style={localStyles.scroll}
-          contentContainerStyle={[localStyles.scrollContent, { minHeight: height }]}
+          contentContainerStyle={localStyles.scrollContent}
         >
           <View style={[localStyles.signupWrap, compactForm && localStyles.signupWrapCompact]}>
           <Text style={[localStyles.title, compactForm && localStyles.titleCompact, titleBreak && localStyles.titleTwoLine]}>
@@ -405,6 +405,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                       onChange={value => updateValue(field, value)}
                       placeholder={field}
                       triggerStyle={localStyles.select}
+                      textStyle={localStyles.selectText}
                     />
                   ) : isPhone ? (
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
@@ -423,7 +424,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                           paddingHorizontal: 10,
                         }}
                       >
-                        <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 }}>
+                        <Text style={{ color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 16 }}>
                           {selectedDdd ? `+55 (${selectedDdd})` : 'DDD'}
                         </Text>
                       </Pressable>
@@ -431,7 +432,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                         accessibilityLabel="Telefone sem DDD"
                         placeholder="Número"
                         placeholderTextColor={BLUE}
-                        style={[localStyles.input, { flex: 1, minWidth: 0, paddingHorizontal: 8 }]}
+                        style={[localStyles.input, { flex: 1, minWidth: 0 }]}
                         value={values[field] ?? ''}
                         onChangeText={value => updateValue(field, value)}
                         keyboardType="phone-pad"
@@ -441,7 +442,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                     </View>
                   ) : (
                     <TextInput
-                      placeholder={isBirthDate ? 'DD/MM/AAAA' : isGuardianCode ? 'Código do responsável' : field}
+                      placeholder={isBirthDate ? 'Data de nascimento (DD/MM/AAAA)' : isGuardianCode ? 'Código do responsável' : field}
                       placeholderTextColor={BLUE}
                       secureTextEntry={isPassword}
                       style={localStyles.input}
@@ -506,7 +507,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
             <Button onPress={register} disabled={loading || googleLoading}>
               {googleLoading ? 'Conectando...' : loading ? 'Criando conta...' : 'Criar conta'}
             </Button>
-          {!googleSignup && isGoogleLoginConfigured() && (
+          {!googleSignup && (
             <View>
               <GoogleLoginButton
                 repositories={repositories}
@@ -526,7 +527,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
           </View>
           </View>
         </ScrollView>
-      </SafeAreaView>
+      </View>
     </View>
   )
 }
@@ -539,7 +540,7 @@ function optionsForField(field) {
   return null
 }
 
-const localStyles = StyleSheet.create({
+const localStyles = StyleSheet.create(withGriffithsOverhang({
   screen: {
     flex: 1,
     minHeight: 0,
@@ -617,13 +618,19 @@ const localStyles = StyleSheet.create({
     paddingHorizontal: 16,
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } }),
   },
   select: {
     minHeight: 50,
     height: 50,
     borderWidth: 0,
+    paddingHorizontal: 16,
+  },
+  // Mesma cor e tamanho dos outros campos do cadastro, com reticências se não couber.
+  selectText: {
+    color: BLUE,
+    fontSize: 16,
   },
   privacyRow: {
     flexDirection: 'row',
@@ -648,14 +655,17 @@ const localStyles = StyleSheet.create({
   },
   checkMark: {
     color: '#ffffff',
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 11,
+    lineHeight: 13,
     fontWeight: 'bold',
   },
   privacyText: {
     color: '#ffffff',
+    textShadowColor: 'rgba(0, 0, 0, 0.45)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 12,
     lineHeight: 18,
     textAlign: 'center',
   },
@@ -665,10 +675,14 @@ const localStyles = StyleSheet.create({
   },
   minorLink: {
     color: '#ffffff',
+    // O link fica sobre a foto: a sombra garante a leitura em qualquer trecho dela.
+    textShadowColor: 'rgba(0, 0, 0, 0.55)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
     lineHeight: 18,
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
-})
+}))

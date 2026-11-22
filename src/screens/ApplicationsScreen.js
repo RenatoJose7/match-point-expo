@@ -68,7 +68,7 @@ function ApplicationCard({ application, index, onPress }) {
         <Text numberOfLines={2} style={styles.cardTitle}>{application.opportunity?.titulo || 'Oportunidade'}</Text>
         <Text numberOfLines={2} style={styles.detail}>{details[0] || 'Tênis Universitário'}</Text>
         <Text numberOfLines={2} style={styles.detail}>{details[1] || 'Universidade do esporte'}</Text>
-        <Text style={styles.date}>Inscrições feita em {updated ? new Date(updated).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }) : '19/08'}</Text>
+        {updated ? <Text style={styles.date}>Inscrição feita em {new Date(updated).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</Text> : null}
       </View>
       <View style={[styles.status, status === 'Não selecionado' && styles.statusInactive]}><Text numberOfLines={1} style={[styles.statusText, status === 'Não selecionado' && styles.statusTextInactive]}>{status}</Text></View>
     </Pressable>
@@ -141,7 +141,7 @@ export function ApplicationsScreen({ go, back, repositories, session }) {
         <View style={styles.stripe} />
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
-        <Pressable accessibilityRole="button" accessibilityLabel="Filtros" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filterIcon}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Filtros" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filterIcon}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
         <Text style={styles.heading}>Candidaturas</Text>
         <View style={styles.searchWrap}>
           <Ionicons name="search-outline" size={20} color={BLUE} />
@@ -158,18 +158,18 @@ export function ApplicationsScreen({ go, back, repositories, session }) {
 
 const styles = StyleSheet.create(withGriffithsWeight({
   page: { flex: 1, backgroundColor: '#f3f4f4' },
-  header: { height: 252, backgroundColor: BLUE, position: 'relative', overflow: 'hidden', zIndex: 2 },
+  header: { height: 284, backgroundColor: BLUE, position: 'relative', overflow: 'hidden', zIndex: 2 },
   stripe: { position: 'absolute', bottom: -8, left: -115, width: 337, height: 65, backgroundColor: '#e5e6e7', transform: [{ rotate: '54deg' }] },
-  back: { position: 'absolute', top: 18, left: 6, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  mark: { position: 'absolute', top: 21, alignSelf: 'center', width: 45, height: 50 },
-  filterIcon: { position: 'absolute', top: 19, right: 12, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
-  heading: { marginTop: 96, color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 46, textAlign: 'center' },
-  searchWrap: { height: 39, marginHorizontal: 18, marginTop: 6, borderRadius: 21, backgroundColor: '#fff', paddingHorizontal: 10, alignItems: 'center', flexDirection: 'row' },
-  searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 6, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  filterChips: { position: 'absolute', left: 32, bottom: 15, flexDirection: 'row', gap: 7 },
-  chip: { minWidth: 75, height: 29, borderRadius: 15, backgroundColor: '#477bc2', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
+  back: { position: 'absolute', top: 33, left: 14, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  mark: { position: 'absolute', top: 40, alignSelf: 'center', width: 52, height: 58 },
+  filterIcon: { position: 'absolute', top: 36, right: 22, width: 38, height: 38, alignItems: 'center', justifyContent: 'center' },
+  heading: { marginTop: 104, color: LIME, fontFamily: 'Griffiths', fontSize: 48, lineHeight: 54, textAlign: 'center' },
+  searchWrap: { height: 44, marginHorizontal: 24, marginTop: 12, borderRadius: 22, backgroundColor: '#fff', paddingHorizontal: 10, alignItems: 'center', flexDirection: 'row' },
+  searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 6, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  filterChips: { position: 'absolute', left: 12, right: 12, bottom: 20, flexDirection: 'row', justifyContent: 'center', gap: 7 },
+  chip: { flexShrink: 1, minWidth: 0, width: 99, height: 32, borderRadius: 16, backgroundColor: '#477bc2', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 },
   chipSelected: { backgroundColor: '#fff' },
-  chipText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  chipText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 14 },
   chipTextSelected: { color: BLUE, fontFamily: 'Poppins_600SemiBold' },
   filterMenu: { position: 'absolute', top: 67, right: 15, zIndex: 5, width: 154, padding: 11, borderRadius: 13, backgroundColor: '#fff', elevation: 4 },
   menuTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, marginBottom: 5 },
@@ -177,18 +177,18 @@ const styles = StyleSheet.create(withGriffithsWeight({
   menuText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
   list: { flex: 1 },
   listContent: { paddingHorizontal: 6, paddingTop: 6, paddingBottom: 84, gap: 10 },
-  card: { minHeight: 124, borderRadius: 17, padding: 8, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(24, 48, 81, .16)' }, default: { elevation: 3 } }) },
-  cardImage: { width: 85, height: 105, borderRadius: 9 },
+  card: { minHeight: 134, borderRadius: 17, padding: 8, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', overflow: 'hidden', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(24, 48, 81, .16)' }, default: { elevation: 3 } }) },
+  cardImage: { width: 94, height: 116, borderRadius: 9 },
   cardCopy: { flex: 1, minWidth: 0, paddingLeft: 10, paddingRight: 96, paddingVertical: 5, alignSelf: 'stretch', justifyContent: 'center', gap: 1 },
-  cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 16 },
-  detail: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 15 },
-  date: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 15 },
+  cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20 },
+  detail: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 21 },
+  date: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 21 },
   status: { position: 'absolute', right: 0, top: 0, minWidth: 91, height: 36, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 9, borderBottomLeftRadius: 9, backgroundColor: LIME },
   statusInactive: { backgroundColor: '#dfe1e3' },
-  statusText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  statusTextInactive: { fontSize: 13 },
+  statusText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 12 },
+  statusTextInactive: { fontSize: 12 },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, padding: 30 },
-  stateText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, textAlign: 'center' },
+  stateText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, textAlign: 'center' },
   error: { color: '#9b2c2c', fontFamily: 'Poppins_500Medium', textAlign: 'center' },
   retry: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
 }))

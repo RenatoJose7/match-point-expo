@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { BackButton } from '../components/ui/BackButton'
+import { DecorativeCurves } from '../components/ui/DecorativeCurves'
 import { assets } from '../theme/assets'
 import { styles } from '../theme/styles'
 
@@ -85,6 +86,7 @@ export function NotificationsScreen({ back, repositories, session }) {
 
   return (
     <View style={[styles.notifications, localStyles.screen]}>
+      <DecorativeCurves />
       <BackButton onPress={back} />
       <Image source={assets.monogram} style={[styles.notificationMark, localStyles.mark]} resizeMode="contain" />
       <Text style={[styles.notificationsTitle, localStyles.heading]}>Notificações</Text>
@@ -108,14 +110,14 @@ export function NotificationsScreen({ back, repositories, session }) {
 const localStyles = StyleSheet.create({
   screen: { overflow: 'hidden' },
   mark: { top: 18, width: 51, height: 56 },
-  heading: { fontSize: 40, lineHeight: 48 },
-  subtitle: { lineHeight: 22 },
+  heading: { fontSize: 48, lineHeight: 54 },
+  subtitle: { fontSize: 16, lineHeight: 17 },
   scroll: { flex: 1 },
-  list: { paddingHorizontal: 22, paddingTop: 36, paddingBottom: 124, gap: 16 },
-  notice: { minHeight: 166, padding: 16, borderRadius: 14, backgroundColor: '#fff', justifyContent: 'center' },
+  list: { paddingHorizontal: 22, paddingTop: 28, paddingBottom: 40, gap: 14 },
+  notice: { minHeight: 122, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14, backgroundColor: '#fff', justifyContent: 'center' },
   state: { color: '#526770', fontFamily: 'Poppins_400Regular', paddingVertical: 16, textAlign: 'center' },
   error: { color: '#9b2c2c', fontFamily: 'Poppins_500Medium', textAlign: 'center' },
   action: { color: '#126b35', fontFamily: 'Poppins_600SemiBold', padding: 8 },
-  emptyTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'center' },
-  readNotice: { opacity: 0.62 },
+  emptyTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 15, textAlign: 'center' },
+  readNotice: { backgroundColor: '#eef3f9' },
 })

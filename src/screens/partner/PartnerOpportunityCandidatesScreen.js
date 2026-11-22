@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
 import { withGriffithsWeight } from '../../theme/typography'
+import { computeMatchScore } from '../../domain/matchScore.js'
 import { FeedbackMessage, getOwnedOpportunity, getPartnerProfile, LoadingState } from './partnerOpportunityUi'
 
 const BLUE = '#10579b'
@@ -80,10 +81,11 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           athleteId: application.atletaId,
           name: profile?.nome || `Candidato ${index + 1}`,
           category: profile?.categoria || 'Sub-20',
-          date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição em 19/08/2026',
+          date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição recente',
           photo: getCandidatePhotoSource(profile?.fotoUrl),
           initials: getCandidateInitials(profile?.nome),
-          score: application.matchScore,
+          // Sem score gravado na candidatura, calcula com o perfil público do atleta.
+          score: application.matchScore ?? (profile ? computeMatchScore(profile, opportunity).percentualTotal : null),
         }))
         if (mounted) {
           const visualCandidates = mapped.length < 4
@@ -112,7 +114,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
         <View style={styles.stripe} />
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
-        <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
         <Text numberOfLines={2} style={styles.title}>{title}</Text>
         <Text style={styles.pill}>Candidatos</Text>
         {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
@@ -149,8 +151,8 @@ const styles = StyleSheet.create(withGriffithsWeight({
   back: { position: 'absolute', top: 32, left: 13, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', top: 32, alignSelf: 'center', width: 57, height: 61 },
   filter: { position: 'absolute', top: 35, right: 17, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  title: { color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 48, marginTop: 102, textAlign: 'center', paddingHorizontal: 18 },
-  pill: { alignSelf: 'center', marginTop: 20, width: 157, height: 33, borderRadius: 18, overflow: 'hidden', backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 33, textAlign: 'center' },
+  title: { color: LIME, fontFamily: 'Griffiths', fontSize: 46, lineHeight: 52, marginTop: 102, textAlign: 'center', paddingHorizontal: 18 },
+  pill: { alignSelf: 'center', marginTop: 20, width: 157, height: 33, borderRadius: 18, overflow: 'hidden', backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 14, lineHeight: 33, textAlign: 'center' },
   filterMenu: { position: 'absolute', zIndex: 8, top: 70, right: 16, padding: 11, gap: 8, borderRadius: 12, backgroundColor: '#fff', elevation: 4 },
   filterText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13 },
   filterAction: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
@@ -159,14 +161,14 @@ const styles = StyleSheet.create(withGriffithsWeight({
   card: { minHeight: 133, borderRadius: 17, padding: 9, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(26, 56, 92, .14)' }, default: { elevation: 3 } }) },
   photo: { width: 94, height: 113, borderRadius: 10 },
   photoFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0f8', borderWidth: 1, borderColor: '#d7e4f2' },
-  photoInitials: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  photoInitials: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 18 },
   copy: { flex: 1, minWidth: 0, paddingLeft: 13, justifyContent: 'center' },
-  name: { color: '#1878d3', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 19 },
-  category: { color: '#1878d3', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 17 },
+  name: { color: '#1878d3', fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 19 },
+  category: { color: '#1878d3', fontFamily: 'Poppins_400Regular', fontStyle: 'italic', fontSize: 13, lineHeight: 17 },
   dateRow: { marginTop: 2, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  date: { color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  score: { alignSelf: 'stretch', width: 78, marginVertical: -9, marginRight: -9, paddingTop: 11, alignItems: 'center', backgroundColor: LIME, borderTopRightRadius: 17, borderBottomRightRadius: 17 },
-  scoreCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22, textAlign: 'center' },
-  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 34 },
+  date: { color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  score: { alignSelf: 'flex-start', width: 78, height: 88, marginTop: -9, marginRight: -9, paddingTop: 8, alignItems: 'center', backgroundColor: LIME, borderTopRightRadius: 17, borderBottomLeftRadius: 12 },
+  scoreCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 18, lineHeight: 16, textAlign: 'center' },
+  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 34 },
   state: { flex: 1, justifyContent: 'center', padding: 20 },
 }))

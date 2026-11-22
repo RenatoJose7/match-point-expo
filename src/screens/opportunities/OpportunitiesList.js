@@ -23,7 +23,7 @@ export function OpportunitiesList({ role, go, back, created = false }) {
           </Pressable>
         )}
       </View>
-      <ScrollView contentContainerStyle={styles.listContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {opportunityRows.slice(0, created ? 1 : 4).map((item, index) => (
           <OpportunityRow
             key={item[0]}

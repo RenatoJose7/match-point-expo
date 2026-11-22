@@ -1,5 +1,5 @@
 import React from 'react'
-import { Image, ImageBackground, SafeAreaView, View } from 'react-native'
+import { Image, ImageBackground, View } from 'react-native'
 import { assets } from '../../theme/assets'
 import { styles } from '../../theme/styles'
 import { BackButton } from './BackButton'
@@ -12,11 +12,12 @@ export function Shell({ background, backgroundResizeMode = 'cover', children, ba
       style={[styles.full, fallbackColor ? { backgroundColor: fallbackColor } : null]}
     >
       <View style={styles.dim} />
-      <SafeAreaView style={styles.safe}>
+      {/* As margens das barras do sistema já são reservadas uma vez no App.js. */}
+      <View style={styles.safe}>
         {back && <BackButton onPress={back} />}
         {logo && <Image source={assets.monogram} style={styles.monogram} resizeMode="contain" />}
         {children}
-      </SafeAreaView>
+      </View>
     </ImageBackground>
   )
 }

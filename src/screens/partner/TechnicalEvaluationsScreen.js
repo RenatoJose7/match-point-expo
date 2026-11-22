@@ -80,7 +80,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
     <View style={partnerStyles.page}>
       <PartnerHeader title={isTrainer ? 'Avaliações técnicas' : 'Solicitar avaliação'} subtitle={isTrainer ? 'Demandas enviadas por instituições' : 'Escolha um treinador verificado'} onBack={back} />
       {loading ? <LoadingState label="Carregando avaliações..." /> : (
-        <ScrollView style={partnerStyles.scroll} contentContainerStyle={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false} style={partnerStyles.scroll} contentContainerStyle={styles.content}>
           {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
           {notice ? <FeedbackMessage tone="success">{notice}</FeedbackMessage> : null}
           {isTrainer ? (
@@ -107,5 +107,5 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 108, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 12, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  content: { padding: 20, paddingBottom: 108, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 14, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 12, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 15, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 })

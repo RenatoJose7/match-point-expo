@@ -2,6 +2,7 @@ import React from 'react'
 import { Image, StyleSheet, Text, View } from 'react-native'
 import { Button } from '../components/ui/Button'
 import { assets } from '../theme/assets'
+import { withGriffithsOverhang } from '../theme/typography'
 
 export function OpeningScreen({ go }) {
   return (
@@ -24,7 +25,7 @@ export function OpeningScreen({ go }) {
   )
 }
 
-const localStyles = StyleSheet.create({
+const localStyles = StyleSheet.create(withGriffithsOverhang({
   screen: { flex: 1, backgroundColor: '#ffffff' },
   hero: { height: '56.4%', width: '100%', alignItems: 'center', overflow: 'hidden', backgroundColor: '#1c5a83' },
   background: { position: 'absolute', top: -5, left: 0, width: '100%', height: '172%' },
@@ -33,4 +34,4 @@ const localStyles = StyleSheet.create({
   title: { fontFamily: 'Griffiths', fontWeight: '400', color: '#10579b', textAlign: 'center', fontSize: 60, lineHeight: 49 },
   subtitle: { marginTop: 12, fontFamily: 'Poppins_400Regular', color: '#10579b', textAlign: 'center', fontSize: 18, lineHeight: 20 },
   actions: { gap: 5 },
-})
+}))

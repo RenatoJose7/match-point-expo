@@ -4,6 +4,7 @@ import * as DocumentPicker from 'expo-document-picker'
 import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { Button } from '../components/ui/Button'
+import { documentLabel } from '../components/ui/documentLabels'
 import { assets } from '../theme/assets'
 import { USER_TYPES } from '../domain/contracts.js'
 import { styles } from '../theme/styles'
@@ -269,14 +270,13 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
           <View style={localStyles.successBlock}>
             <Text style={styles.applicationFormTitle}>{alreadyApplied ? 'Candidatura em andamento' : 'Candidatura enviada'}</Text>
             <Text style={localStyles.success}>{alreadyApplied ? `Continue o envio dos documentos da sua candidatura para ${opportunity.titulo}.` : `Sua candidatura para ${opportunity.titulo} foi registrada.`}</Text>
-            <Text style={localStyles.state}>Número da candidatura: {application.id}</Text>
             <Text style={styles.applicationFormSection}>Documentos necessários</Text>
             {requiredDocumentTypes.length ? requiredDocumentTypes.map((documentType) => {
               const sentDocument = application.documentos?.find((document) => document.tipo === documentType)
               return (
                 <View key={documentType} style={localStyles.documentRow}>
                   <View style={localStyles.documentCopy}>
-                    <Text style={localStyles.value}>{documentType.replaceAll('_', ' ')}</Text>
+                    <Text style={localStyles.value}>{documentLabel(documentType)}</Text>
                     <Text style={sentDocument ? localStyles.success : localStyles.label}>{sentDocument ? `Enviado: ${sentDocument.nome}` : 'Pendente'}</Text>
                   </View>
                   <Button disabled={Boolean(uploadingDocument) || Boolean(sentDocument)} onPress={() => uploadDocument(documentType)}>
@@ -299,13 +299,13 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
 const localStyles = StyleSheet.create({
   summaryRow: { borderBottomColor: '#d8e1e3', borderBottomWidth: 1, gap: 3, paddingVertical: 10 },
   label: { color: '#65777e', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  value: { color: '#17313c', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  value: { color: '#17313c', fontFamily: 'Poppins_500Medium', fontSize: 14 },
   state: { color: '#526770', fontFamily: 'Poppins_400Regular', marginVertical: 12, textAlign: 'center' },
   error: { color: '#b42318', fontFamily: 'Poppins_400Regular', marginVertical: 10, textAlign: 'center' },
   success: { color: '#126b35', fontFamily: 'Poppins_500Medium', marginVertical: 10, textAlign: 'center' },
   feedbackBlock: { gap: 2, marginTop: 8 },
   reason: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  successBlock: { flex: 1, justifyContent: 'center', gap: 10, paddingVertical: 50 },
+  successBlock: { gap: 10, paddingTop: 8, paddingBottom: 24 },
   opportunityPickerCard: { gap: 4, marginTop: 8, padding: 12, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },
   documentRow: { alignItems: 'center', flexDirection: 'row', gap: 10, paddingVertical: 8, borderBottomColor: '#d8e1e3', borderBottomWidth: 1 },
   documentCopy: { flex: 1, gap: 3 },

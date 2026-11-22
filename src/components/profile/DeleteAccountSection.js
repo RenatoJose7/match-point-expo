@@ -85,15 +85,15 @@ export function DeleteAccountSection({ repositories }) {
 
 const styles = StyleSheet.create({
   openButton: { minHeight: 42, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
-  openText: { color: '#b42318', fontFamily: 'Poppins_500Medium', fontSize: 13, textDecorationLine: 'underline' },
+  openText: { color: '#b42318', fontFamily: 'Poppins_500Medium', fontSize: 14, textDecorationLine: 'underline' },
   container: { borderColor: '#efb8b4', borderRadius: 10, borderWidth: 1, backgroundColor: '#fff6f5', gap: 9, marginTop: 12, padding: 14 },
-  title: { color: '#8f1d16', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  copy: { color: '#704845', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
-  input: { minHeight: 42, borderColor: '#d9a5a1', borderRadius: 7, borderWidth: 1, backgroundColor: '#fff', color: '#8f1d16', fontFamily: 'Poppins_600SemiBold', fontSize: 13, paddingHorizontal: 11 },
+  title: { color: '#8f1d16', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
+  copy: { color: '#704845', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 22 },
+  input: { minHeight: 42, borderColor: '#d9a5a1', borderRadius: 7, borderWidth: 1, backgroundColor: '#fff', color: '#8f1d16', fontFamily: 'Poppins_600SemiBold', fontSize: 14, paddingHorizontal: 11 },
   error: { color: '#b42318', fontFamily: 'Poppins_400Regular', fontSize: 13 },
   deleteButton: { minHeight: 42, borderRadius: 7, backgroundColor: '#b42318', alignItems: 'center', justifyContent: 'center' },
   disabled: { opacity: 0.45 },
-  deleteText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  deleteText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
   cancelButton: { minHeight: 36, alignItems: 'center', justifyContent: 'center' },
-  cancelText: { color: '#526770', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  cancelText: { color: '#526770', fontFamily: 'Poppins_500Medium', fontSize: 14 },
 })

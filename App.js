@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { View, useWindowDimensions } from 'react-native'
+import { BackHandler, KeyboardAvoidingView, Platform, Text, View, useWindowDimensions } from 'react-native'
+import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { useFonts } from 'expo-font'
 import { ScreenTransition } from './src/components/motion'
 import { LoadingScreen } from './src/components/ui/LoadingScreen'
+import { LoadingOverlay } from './src/components/ui/LoadingOverlay'
 import { getHomeRouteForUser } from './src/core/session'
 import { createRepositories } from './src/repositories'
 import {
@@ -49,6 +51,24 @@ import {
   WomenInSportScreen,
 } from './src/screens'
 import { styles } from './src/theme/styles'
+
+// Na versão web o app imita a tela do celular: sem barras de rolagem do navegador
+// e sem o "puxa e volta" que não existe no aplicativo.
+if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getElementById('matchpoint-app-chrome')) {
+  const appChrome = document.createElement('style')
+  appChrome.id = 'matchpoint-app-chrome'
+  appChrome.textContent = [
+    '* { scrollbar-width: none; -ms-overflow-style: none; -webkit-tap-highlight-color: transparent; }',
+    '*::-webkit-scrollbar { display: none; width: 0; height: 0; }',
+    'html, body { overscroll-behavior: none; }',
+  ].join('\n')
+  document.head.appendChild(appChrome)
+}
+
+const KEYBOARD_AREA = { flex: 1, width: '100%' }
+
+// Ao abrir a escolha de perfil e os cadastros, a bolinha de tênis aparece por um instante.
+const LOADER_ROUTES = new Set(['choice', 'signupAthlete', 'signupTrainer', 'signupInstitution', 'signupResponsible'])
 
 const ROUTES = {
   opening: OpeningScreen,
@@ -147,6 +167,16 @@ const HISTORY = {
   perfilAtletaTecnico: 'candidates',
 }
 
+// Um APK gerado sem as variáveis do Firebase cai no modo em memória e perde tudo ao fechar.
+// O aviso deixa isso visível em vez de os dados "sumirem" sem explicação.
+const IS_DEMO_NATIVE_BUILD = Platform.OS !== 'web'
+  && !__DEV__
+  && (process.env.EXPO_PUBLIC_DATA_PROVIDER ?? 'memory') === 'memory'
+const DEMO_BANNER = { backgroundColor: '#f5a524', paddingVertical: 3, paddingHorizontal: 10 }
+const DEMO_BANNER_TEXT = { color: '#3b2600', fontFamily: 'Poppins_500Medium', fontSize: 11, textAlign: 'center' }
+
+const ROOT_ROUTES = new Set(['opening', 'athleteArea1', 'homeAthlete', 'homeTrainer', 'homeInstitution', 'homeResponsible'])
+
 const TAB_POSITION = {
   homeAthlete: 0,
   opportunitiesAthlete: 1,
@@ -173,6 +203,14 @@ const TAB_POSITION = {
 }
 
 export default function App() {
+  return (
+    <SafeAreaProvider>
+      <MatchPointApp />
+    </SafeAreaProvider>
+  )
+}
+
+function MatchPointApp() {
   const [fontsLoaded, fontError] = useFonts({
     Poppins_400Regular: require('./assets/Poppins-Regular.ttf'),
     Poppins_500Medium: require('./assets/Poppins-Medium.ttf'),
@@ -180,33 +218,80 @@ export default function App() {
     Griffiths: require('./assets/Griffiths.otf'),
   })
   const { width, height } = useWindowDimensions()
+  // O Android desenha o app por baixo das barras do sistema (edge-to-edge obrigatório).
+  // Reservamos o espaço delas uma única vez aqui: azul da marca em cima, branco embaixo.
+  const insets = useSafeAreaInsets()
+  const systemBars = Platform.OS === 'web'
+    ? null
+    : { paddingTop: insets.top, paddingBottom: insets.bottom, backgroundColor: '#10579b' }
   const repositories = useMemo(() => createRepositories(), [])
   const [route, setRoute] = useState({ name: 'opening', params: {} })
   const routeHistory = useRef([])
   const [session, setSession] = useState(null)
   const [sessionResolved, setSessionResolved] = useState(false)
   const transitionDirection = useRef(1)
+  const [loaderTrigger, setLoaderTrigger] = useState(0)
   const isPhoneViewport = width <= 430
   const frameWidth = isPhoneViewport ? width : Math.min(height * (402 / 874), 430)
   const frameHeight = isPhoneViewport ? height : frameWidth * (874 / 402)
+  // No celular o quadro ocupa a tela inteira; o tamanho fixo de 402x874 vale só para a web.
+  const frameSize = Platform.OS === 'web' ? { width: frameWidth, height: frameHeight } : { flexGrow: 1, flexShrink: 1, width: '100%', alignSelf: 'stretch' }
+
+  const sessionUserId = useRef(null)
 
   useEffect(() => {
-    const unsubscribe = repositories.authentication.observarSessao((nextSession) => {
+    const unsubscribe = repositories.authentication.observarSessao(async (nextSession) => {
       setSession(nextSession)
-      setSessionResolved(true)
 
       if (!nextSession) {
+        sessionUserId.current = null
         routeHistory.current = []
         setRoute({ name: 'opening', params: {} })
+        setSessionResolved(true)
         return
       }
 
-      const destination = getHomeRouteForUser(nextSession)
+      // Atualizar foto ou nome também avisa a sessão: só redirecionamos quando entra outra pessoa.
+      if (nextSession.id === sessionUserId.current) {
+        setSessionResolved(true)
+        return
+      }
+      sessionUserId.current = nextSession.id
+
+      let destination = getHomeRouteForUser(nextSession)
+      // Atleta sem modalidade ainda não preencheu a Área do Atleta: começa por ela.
+      if (destination === 'homeAthlete') {
+        try {
+          const profile = await repositories.users.obterPerfilAtletaPorUsuario(nextSession.id)
+          if (profile.ok && !profile.data.modalidade) destination = 'athleteArea1'
+        } catch {
+          // Sem conseguir ler o perfil, segue para o início normalmente.
+        }
+        if (sessionUserId.current !== nextSession.id) return
+      }
+
+      // Treinador sem modalidade e instituição sem cidade completam o perfil antes do início.
+      let params = {}
+      if (destination === 'homeTrainer' || destination === 'homeInstitution') {
+        try {
+          const partner = await repositories.users.obterPerfilParceiroPorUsuario(nextSession.id)
+          const incomplete = destination === 'homeTrainer' ? !partner.data?.modalidade : !partner.data?.localizacao
+          if (partner.ok && incomplete) {
+            params = { onboarding: true }
+            destination = destination === 'homeTrainer' ? 'profileTrainer' : 'profileInstitution'
+          }
+        } catch {
+          // Sem conseguir ler o perfil, segue para o início normalmente.
+        }
+        if (sessionUserId.current !== nextSession.id) return
+      }
+
       if (destination) {
         transitionDirection.current = 1
         routeHistory.current = []
-        setRoute({ name: destination, params: {} })
+        setRoute({ name: destination, params })
       }
+      setSessionResolved(true)
     })
 
     return unsubscribe
@@ -221,6 +306,7 @@ export default function App() {
     const nextPosition = TAB_POSITION[next]
     transitionDirection.current = Number.isFinite(currentPosition) && Number.isFinite(nextPosition) && nextPosition < currentPosition ? -1 : 1
     routeHistory.current = [...routeHistory.current, route]
+    if (LOADER_ROUTES.has(next)) setLoaderTrigger((value) => value + 1)
     setRoute({ name: next, params })
   }
 
@@ -236,9 +322,23 @@ export default function App() {
     setRoute({ name: HISTORY[screen] || 'opening', params: route.params })
   }
 
+  // No Android, o botão voltar do sistema deve voltar uma tela dentro do app.
+  // Só nas telas raiz (abertura e inícios) ele mantém o comportamento padrão de sair.
+  const backRef = useRef(back)
+  backRef.current = back
+  useEffect(() => {
+    if (Platform.OS !== 'android') return undefined
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (ROOT_ROUTES.has(screen)) return false
+      backRef.current()
+      return true
+    })
+    return () => subscription.remove()
+  }, [screen])
+
   if ((!fontsLoaded && !fontError) || !sessionResolved) {
     return (
-      <View style={[styles.appFrame, { width: frameWidth, height: frameHeight }]}>
+      <View style={[styles.appFrame, frameSize, systemBars]}>
         <LoadingScreen />
       </View>
     )
@@ -247,17 +347,28 @@ export default function App() {
   const CurrentScreen = ROUTES[screen] || OpeningScreen
 
   return (
-    <View style={[styles.appFrame, { width: frameWidth, height: frameHeight }]}>
+    <View style={[styles.appFrame, frameSize, systemBars]}>
+      {systemBars && insets.bottom > 0 ? <View pointerEvents="none" style={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: insets.bottom, backgroundColor: '#ffffff' }} /> : null}
       <StatusBar style="light" translucent />
-      <ScreenTransition key={screen} direction={transitionDirection.current}>
-        <CurrentScreen
-          go={go}
-          back={back}
-          repositories={repositories}
-          session={session}
-          routeParams={route.params}
-        />
-      </ScreenTransition>
+      {IS_DEMO_NATIVE_BUILD ? (
+        <View style={DEMO_BANNER}>
+          <Text style={DEMO_BANNER_TEXT}>Modo demonstração: os dados não são salvos neste APK</Text>
+        </View>
+      ) : null}
+      {/* Com edge-to-edge o Android não encolhe mais a janela quando o teclado abre:
+          o KeyboardAvoidingView faz isso, para o campo digitado não ficar escondido. */}
+      <KeyboardAvoidingView enabled={Platform.OS !== 'web'} behavior="padding" style={KEYBOARD_AREA}>
+        <ScreenTransition key={screen} direction={transitionDirection.current}>
+          <CurrentScreen
+            go={go}
+            back={back}
+            repositories={repositories}
+            session={session}
+            routeParams={route.params}
+          />
+        </ScreenTransition>
+      </KeyboardAvoidingView>
+      <LoadingOverlay trigger={loaderTrigger} />
     </View>
   )
 }

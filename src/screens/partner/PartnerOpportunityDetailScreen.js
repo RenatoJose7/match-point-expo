@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
+import { documentLabel } from '../../components/ui/documentLabels'
 import {
   FeedbackMessage,
   formatOpportunityDate,
@@ -108,7 +109,7 @@ export function PartnerOpportunityDetailScreen({ go, back, repositories, session
           </View>
 
           <ListSection title="Requisitos" values={opportunity.requisitos} empty="Nenhum requisito informado." />
-          <ListSection title="Documentos necessários" values={opportunity.documentosNecessarios} empty="Nenhum documento exigido." />
+          <ListSection title="Documentos necessários" values={(opportunity.documentosNecessarios ?? []).map(documentLabel)} empty="Nenhum documento exigido." />
 
           <Pressable
             accessibilityRole="button"
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 12 },
   titleRow: { flexDirection: 'row', gap: 12, alignItems: 'flex-start' },
   titleCopy: { flex: 1, gap: 6 },
-  title: { color: partnerColors.ink, fontSize: 13, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
+  title: { color: partnerColors.ink, fontSize: 22, lineHeight: 27, fontFamily: 'Poppins_600SemiBold' },
   meta: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_500Medium' },
   iconButton: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center', backgroundColor: partnerColors.greenLight },
   rule: { height: 1, backgroundColor: partnerColors.border, marginVertical: 14 },
@@ -185,15 +186,15 @@ const styles = StyleSheet.create({
   infoItem: { width: '47%', minHeight: 48, flexDirection: 'row', gap: 7, alignItems: 'flex-start' },
   infoCopy: { flex: 1, gap: 2 },
   infoLabel: { color: partnerColors.muted, fontSize: 13, fontFamily: 'Poppins_400Regular' },
-  infoValue: { color: partnerColors.ink, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_500Medium' },
+  infoValue: { color: partnerColors.ink, fontSize: 14, lineHeight: 22, fontFamily: 'Poppins_500Medium' },
   listCard: { gap: 10 },
   listItem: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   listText: { flex: 1 },
   confirmBox: { padding: 14, borderRadius: 8, borderWidth: 1, borderColor: '#f1cfca', backgroundColor: partnerColors.redLight, gap: 10 },
-  confirmTitle: { color: partnerColors.red, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  confirmCopy: { color: partnerColors.ink, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
+  confirmTitle: { color: partnerColors.red, fontSize: 16, fontFamily: 'Poppins_600SemiBold' },
+  confirmCopy: { color: partnerColors.ink, fontSize: 14, lineHeight: 22, fontFamily: 'Poppins_400Regular' },
   confirmActions: { gap: 8 },
   closeButton: { backgroundColor: partnerColors.red },
   closeTrigger: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  closeTriggerText: { color: partnerColors.red, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  closeTriggerText: { color: partnerColors.red, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 })

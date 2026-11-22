@@ -1,11 +1,11 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { USE_NATIVE_DRIVER } from '../motion'
 import { BLUE } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 
-function NavButton({ item, isActive, onPress, partner = false }) {
+function NavButton({ item, isActive, onPress, partner = false, compact = false }) {
   const scale = useRef(new Animated.Value(1)).current
   const iconScale = useRef(new Animated.Value(isActive ? 0.78 : 1)).current
 
@@ -37,19 +37,22 @@ function NavButton({ item, isActive, onPress, partner = false }) {
       onPress={onPress}
       onPressIn={() => animateScale(0.92)}
       onPressOut={() => animateScale(1)}
-      style={[styles.navItem, localStyles.item, item.key === 'opportunities' && localStyles.opportunityItem]}
+      style={[styles.navItem, localStyles.item, (item.key === 'opportunities' || item.key === 'applications') && localStyles.wideItem]}
     >
       <Animated.View style={[styles.navContent, partner && styles.navContentPartner, localStyles.content, isActive && styles.navActive, { transform: [{ scale }] }]}>
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
           <Ionicons name={item.icon} size={22} color={BLUE} />
         </Animated.View>
-        <Text numberOfLines={1} style={[styles.navText, localStyles.label]}>{item.label}</Text>
+        <Text numberOfLines={1} style={[styles.navText, localStyles.label, compact && localStyles.labelCompact]}>{item.label}</Text>
       </Animated.View>
     </Pressable>
   )
 }
 
 export function BottomNav({ go, role = 'athlete', active = 'home' }) {
+  // Em celulares estreitos (até ~350 px) o rótulo diminui um pouco para caber inteiro.
+  const { width } = useWindowDimensions()
+  const compact = Math.min(width, 430) < 350
   const partner = role !== 'athlete'
   const home = role === 'trainer' ? 'homeTrainer' : role === 'institution' ? 'homeInstitution' : 'homeAthlete'
   const opportunities = role === 'athlete' ? 'opportunitiesAthlete' : role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
@@ -57,7 +60,7 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
   const items = [
     { key: 'home', label: 'Início', icon: 'home', target: home },
     { key: 'opportunities', label: 'Oportunidades', icon: 'trophy', target: opportunities },
-    ...(role === 'athlete' ? [{ key: 'applications', label: 'Inscrições', icon: 'document-text', target: 'applications' }] : []),
+    ...(role === 'athlete' ? [{ key: 'applications', label: 'Candidatar-se', icon: 'document-text', target: 'applications' }] : []),
     { key: 'profile', label: 'Perfil', icon: 'person', target: profile },
   ]
 
@@ -70,6 +73,7 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
           isActive={active === item.key}
           onPress={() => go(item.target)}
           partner={partner}
+          compact={compact}
         />
       ))}
     </View>
@@ -79,7 +83,8 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
 const localStyles = StyleSheet.create({
   nav: { height: 72 },
   item: { minHeight: 72, minWidth: 0 },
-  opportunityItem: { flex: 1.3 },
+  wideItem: { flex: 1.3 },
   content: { width: '100%', minHeight: 72, paddingTop: 4, paddingBottom: 4, gap: 1 },
-  label: { alignSelf: 'stretch', fontSize: 13, letterSpacing: -0.35, lineHeight: 16, textAlign: 'center' },
+  label: { alignSelf: 'stretch', fontSize: 11, letterSpacing: -0.35, lineHeight: 14, textAlign: 'center' },
+  labelCompact: { fontSize: 9.5, letterSpacing: -0.4 },
 })

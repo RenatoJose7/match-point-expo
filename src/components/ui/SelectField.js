@@ -20,7 +20,7 @@ export const SELECT_OPTIONS = Object.freeze({
   notas: ['1', '2', '3', '4', '5'],
 })
 
-export function SelectField({ accessibilityLabel, options, placeholder = 'Selecione uma opção', value, onChange, triggerStyle }) {
+export function SelectField({ accessibilityLabel, options, placeholder = 'Selecione uma opção', value, onChange, triggerStyle, textStyle }) {
   const { width, height } = useWindowDimensions()
   const appFrameWidth = width <= 430 ? width : Math.min(height * (402 / 874), 430)
   const [visible, setVisible] = useState(false)
@@ -46,7 +46,7 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
         onPress={() => setVisible(true)}
         style={[styles.trigger, triggerStyle]}
       >
-        <Text numberOfLines={2} style={[styles.triggerText, !value && styles.placeholder]}>{value || placeholder}</Text>
+        <Text numberOfLines={1} style={[styles.triggerText, !value && styles.placeholder, textStyle]}>{value || placeholder}</Text>
         <Ionicons name="chevron-down" size={18} color={BLUE} />
       </Pressable>
 
@@ -99,20 +99,20 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
 
 const styles = StyleSheet.create({
   trigger: { minHeight: 48, borderWidth: 1, borderColor: '#c8d5d8', borderRadius: 8, backgroundColor: '#ffffff', alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
-  triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, marginRight: 8 },
+  triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 16, marginRight: 8 },
   placeholder: { color: '#6a7d86' },
   backdrop: { flex: 1, alignSelf: 'flex-start', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
   backdropDismiss: { ...StyleSheet.absoluteFillObject },
   menu: { width: '100%', maxHeight: '70%', backgroundColor: '#ffffff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 28 },
   menuHeader: { alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e1e8eb', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 17 },
-  menuTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  searchInput: { height: 46, marginHorizontal: 16, marginTop: 14, borderWidth: 1, borderColor: '#c8d5d8', borderRadius: 9, color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13, paddingHorizontal: 12 },
+  menuTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
+  searchInput: { height: 46, marginHorizontal: 16, marginTop: 14, borderWidth: 1, borderColor: '#c8d5d8', borderRadius: 9, color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14, paddingHorizontal: 12 },
   options: { padding: 12, gap: 6 },
   customOption: { minHeight: 46, alignItems: 'center', borderRadius: 8, flexDirection: 'row', gap: 8, paddingHorizontal: 13, backgroundColor: '#eaf2fb' },
-  customOptionText: { color: BLUE, flex: 1, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  customOptionText: { color: BLUE, flex: 1, fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
   option: { minHeight: 46, alignItems: 'center', borderRadius: 8, flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 13 },
   optionSelected: { backgroundColor: '#eaf2fb' },
-  optionText: { color: '#344b55', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  optionText: { color: '#344b55', fontFamily: 'Poppins_400Regular', fontSize: 14 },
   optionTextSelected: { color: BLUE, fontFamily: 'Poppins_600SemiBold' },
   empty: { color: '#6a7d86', fontFamily: 'Poppins_400Regular', fontSize: 13, padding: 12, textAlign: 'center' },
 })

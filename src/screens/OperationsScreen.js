@@ -127,7 +127,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
           <BackButton onPress={back} />
           <Text style={localStyles.simpleTitle}>{admin ? 'Administração' : 'Enviar relato'}</Text>
         </View>
-        <ScrollView contentContainerStyle={localStyles.simpleContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={localStyles.simpleContent}>
           {status ? <Text style={localStyles.statusMsg}>{status}</Text> : null}
           {admin ? (
             <>
@@ -262,32 +262,32 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   headerMark: { position: 'absolute', top: 87, width: 126, height: 126, alignSelf: 'center' },
   panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden' },
   panelContent: { paddingHorizontal: 10, paddingTop: 24, paddingBottom: 148, gap: 13 },
-  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
+  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 17, lineHeight: 22 },
   titleRule: { height: 4, borderRadius: 2, backgroundColor: GREEN, marginTop: -9, marginBottom: 25 },
-  fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
+  fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 15, lineHeight: 20 },
   selectedAthleteField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, justifyContent: 'center' },
-  selectedAthleteText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  selectedAthleteText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   radioGroup: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 18 },
   radioRow: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10 },
   radioRowWide: { width: '100%' },
   radioOuter: { width: 17, height: 17, borderRadius: 9, borderWidth: 1, borderColor: '#69717a', alignItems: 'center', justifyContent: 'center' },
   radioOuterSelected: { borderColor: '#69717a' },
   radioInner: { width: 13, height: 13, borderRadius: 7, backgroundColor: GREEN },
-  radioLabel: { color: '#6d747d', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  valueInput: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, height: 42, paddingHorizontal: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  radioLabel: { color: '#6d747d', fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  valueInput: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, height: 42, paddingHorizontal: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   submitBtn: { position: 'absolute', left: 4, right: 4, bottom: 78, height: 42, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#164d34', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8 },
   submitBtnPressed: { transform: [{ scale: 0.98 }] },
   submitBtnDisabled: { opacity: 0.65 },
-  submitBtnText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  submitBtnText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
   // Status
   statusBadge: { backgroundColor: '#eaf6ed', borderRadius: 8, padding: 12 },
-  statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 12 },
   // Admin / simples
   simpleHeader: { paddingTop: 54, paddingHorizontal: 22, paddingBottom: 16, backgroundColor: '#0d4730', gap: 10 },
-  simpleTitle: { color: '#fff', fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  simpleTitle: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_600SemiBold' },
   simpleContent: { padding: 20, gap: 12 },
   label: { color: '#183126', fontFamily: 'Poppins_600SemiBold' },
-  input: { minHeight: 48, borderWidth: 1, borderColor: '#cddbd0', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  input: { minHeight: 48, borderWidth: 1, borderColor: '#cddbd0', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   multilineInput: { minHeight: 130, textAlignVertical: 'top' },
   btn: { backgroundColor: '#236b46', borderRadius: 8, padding: 14, alignItems: 'center' },
   btnText: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },

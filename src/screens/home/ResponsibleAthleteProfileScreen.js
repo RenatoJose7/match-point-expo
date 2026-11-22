@@ -91,7 +91,7 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
       {loading ? <View style={styles.state}><ActivityIndicator color="#126b35" /><Text style={styles.stateText}>Carregando perfil...</Text></View> : error && !athlete ? (
         <View style={styles.state}><Text accessibilityRole="alert" style={styles.error}>{error}</Text></View>
       ) : athlete ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.description}>Você pode editar somente este atleta, que está vinculado à sua conta.</Text>
           {fields.map(([key, label]) => (
             <View key={key} style={styles.field}>
@@ -120,13 +120,13 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f5f8f7' },
   header: { gap: 12, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, backgroundColor: '#ffffff' },
-  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 20 },
   content: { gap: 12, padding: 20, paddingBottom: 28 },
-  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 18 },
   field: { gap: 5 },
   label: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 13 },
-  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   stateText: { color: '#526770', fontFamily: 'Poppins_400Regular' },
   error: { color: '#8c2721', fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },

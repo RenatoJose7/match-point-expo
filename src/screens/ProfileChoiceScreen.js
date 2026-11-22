@@ -5,28 +5,28 @@ import { assets } from '../theme/assets'
 import { styles } from '../theme/styles'
 
 const profiles = [
-  ['Sou um ', 'atleta', 'Quero criar meu perfil esportivo,\nencontrar oportunidades e enviar\ncandidaturas.'],
-  ['Sou um ', 'treinador', 'Quero publicar oportunidades,\nencontrar atletas e acompanhar\nprocessos seletivos.'],
-  ['Sou uma ', 'instituição', 'Quero investir em atletas, fortalecer\nminha marca e acompanhar os\nresultados da parceria.'],
+  ['Atleta', 'Quero criar meu perfil esportivo,\nencontrar oportunidades e enviar\ncandidaturas.'],
+  ['Treinador', 'Quero publicar oportunidades,\nencontrar atletas e acompanhar\nprocessos seletivos.'],
+  ['Instituição', 'Quero investir em atletas, fortalecer\nminha marca e acompanhar os\nresultados da parceria.'],
 ]
 
 export function ProfileChoiceScreen({ go, back, routeParams = {} }) {
   const destinations = ['signupAthlete', 'signupTrainer', 'signupInstitution']
 
   return (
-    <Shell background={assets.court} back={back}>
+    <Shell background={assets.choiceCourt} back={back}>
       <View style={styles.choicePanel}>
         <ScrollView
           style={styles.choiceScroll}
-          contentContainerStyle={styles.choiceContent}
+          contentContainerStyle={[styles.choiceContent, localStyles.choiceContent]}
           showsVerticalScrollIndicator={false}
         >
           <Text style={[styles.choiceHeading, localStyles.choiceHeading]}>Como você quer usar o</Text>
           <Text style={[styles.choiceBrand, localStyles.choiceBrand]}>Match Point?</Text>
           <View style={styles.profileList}>
-            {profiles.map(([prefix, accent, copy], index) => (
+            {profiles.map(([accent, copy], index) => (
               <Pressable key={accent} onPress={() => go(destinations[index], routeParams)} style={({ pressed }) => [styles.profileCard, localStyles.profileCard, pressed && styles.pressed]}>
-                <Text style={[styles.profileTitle, localStyles.profileTitle]}>{prefix}<Text style={styles.profileAccent}>{accent}</Text></Text>
+                <Text style={[styles.profileTitle, styles.profileAccent, localStyles.profileTitle]}>{accent}</Text>
                 <Text style={styles.profileCopy}>{copy}</Text>
               </Pressable>
             ))}
@@ -38,6 +38,10 @@ export function ProfileChoiceScreen({ go, back, routeParams = {} }) {
 }
 
 const localStyles = StyleSheet.create({
+  // Os três cartões cabem na tela: sem folga extra que gere rolagem à toa.
+  choiceContent: {
+    paddingBottom: 8,
+  },
   choiceHeading: {
     fontSize: 40,
     lineHeight: 46,

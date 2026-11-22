@@ -7,6 +7,7 @@ import { assets } from '../../theme/assets'
 import { BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 import { withGriffithsWeight } from '../../theme/typography'
+import { computeMatchScore } from '../../domain/matchScore.js'
 
 export function AthleteHomeScreen({ go, repositories, session }) {
   const [profile, setProfile] = useState(null)
@@ -38,19 +39,21 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           setApplications(applicationsResult.data ?? [])
         }
 
-        const opp = opportunitiesResult?.ok ? opportunitiesResult.data[0] ?? null : null
-        setOpportunity(opp)
-
-        if (opp && athleteResult?.ok && athleteResult.data?.id) {
-          try {
-            const scoreResult = await repositories.match.calcularMatchScore(athleteResult.data.id, opp.id)
-            if (active && scoreResult?.ok) {
-              setOpportunityScore(scoreResult.data.percentualTotal)
-            }
-          } catch {
-            if (active) setOpportunityScore(null)
-          }
+        let openOpportunities = opportunitiesResult?.ok ? opportunitiesResult.data ?? [] : []
+        if (openOpportunities.length === 0 && repositories.demo) {
+          const demoResult = await repositories.demo.opportunities.listarOportunidades({ status: 'ativa', prazoAberto: true })
+          openOpportunities = demoResult?.ok ? demoResult.data ?? [] : []
         }
+        if (!active) return
+
+        // Destaca a oportunidade mais compatível com o perfil de quem está logado.
+        const ranked = athleteResult?.ok
+          ? openOpportunities
+            .map((item) => ({ item, score: computeMatchScore(athleteResult.data, item).percentualTotal }))
+            .sort((first, second) => second.score - first.score)
+          : openOpportunities.map((item) => ({ item, score: null }))
+        setOpportunity(ranked[0]?.item ?? null)
+        setOpportunityScore(ranked[0]?.score ?? null)
       } catch {
         // Preserva fallback limpo em caso de erro
       }
@@ -245,7 +248,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           <View style={localStyles.applicationsStatsRow}>
             <View style={localStyles.appStatCol}>
               <Text style={localStyles.appStatNumber}>{displayedAppsCount}</Text>
-              <Text numberOfLines={1} style={localStyles.appStatLabel}>Enviadas</Text>
+              <Text numberOfLines={1} style={localStyles.appStatLabel}>Candidaturas</Text>
             </View>
             <View style={localStyles.vDivider} />
             <View style={localStyles.appStatCol}>
@@ -300,20 +303,23 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   },
   performanceCard: {
     width: 280,
-    height: 150,
-    padding: 10,
+    height: 140,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
   },
   profileCard: {
     width: 185,
-    height: 150,
-    padding: 10,
+    height: 140,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    overflow: 'hidden',
     justifyContent: 'space-between',
   },
   cardHeading: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 7,
-    minHeight: 52,
+    minHeight: 36,
     overflow: 'visible',
   },
   oppHeading: {
@@ -349,14 +355,16 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     flexShrink: 1,
     paddingTop: 3,
     paddingBottom: 3,
+    // Folga para o último traço inclinado da fonte não ser cortado.
+    paddingRight: 6,
   },
   performanceBody: {
-    paddingTop: 2,
+    marginTop: -3,
   },
   rankingLabel: {
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
+    fontSize: 14, lineHeight: 18,
   },
   rankingRow: {
     flexDirection: 'row',
@@ -366,20 +374,20 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   rankingValue: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 36,
+    fontSize: 34,
+    lineHeight: 34,
   },
   rankingTotal: {
     color: '#6d7884',
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 10,
     marginLeft: 6,
     marginBottom: 2,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'flex-start',
-    gap: 36,
+    gap: 92,
     marginTop: 0,
   },
   statCol: {
@@ -388,13 +396,13 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   statLabel: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 11, lineHeight: 14,
   },
   statNumber: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 29,
+    fontSize: 24,
+    lineHeight: 25,
   },
   gaugeWrapper: {
     width: 84,
@@ -422,14 +430,14 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   gaugeValue: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 25,
+    fontSize: 20,
+    lineHeight: 24,
     textAlign: 'center',
   },
   gaugeLabel: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 11, lineHeight: 13,
     textAlign: 'center',
     marginTop: -1,
   },
@@ -437,7 +445,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     padding: 10,
     position: 'relative',
     overflow: 'hidden',
-    minHeight: 190,
+    minHeight: 178,
   },
   matchBadge: {
     position: 'absolute',
@@ -455,15 +463,15 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   matchBadgeLabel: {
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 17,
     textAlign: 'center',
   },
   matchBadgeValue: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 32,
+    fontSize: 31,
+    lineHeight: 34,
     textAlign: 'center',
   },
   oppRow: {
@@ -487,8 +495,8 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   oppTitle: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 18,
+    fontSize: 15,
+    lineHeight: 19,
     marginBottom: 1,
   },
   metaIcon: {
@@ -516,12 +524,12 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   oppSeeAll: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
+    fontSize: 14,
     textAlign: 'center',
   },
   applicationsCard: {
     padding: 10,
-    minHeight: 118,
+    minHeight: 110,
   },
   seeAllRightButton: {
     marginLeft: 'auto',
@@ -548,13 +556,13 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   appStatNumber: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 31,
+    fontSize: 24,
+    lineHeight: 30,
   },
   appStatLabel: {
     color: '#4a6175',
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 11,
     textAlign: 'center',
     marginTop: 0,
   },
@@ -564,7 +572,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     backgroundColor: '#e2e7eb',
   },
   heroBanner: {
-    height: 132,
+    height: 126,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#ffffff',
@@ -584,7 +592,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     zIndex: 2,
     color: '#ffffff',
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 14,
     lineHeight: 17,
     marginTop: 2,
   },
@@ -593,14 +601,14 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     marginTop: 5,
     borderRadius: 10,
     backgroundColor: GREEN,
-    paddingHorizontal: 13,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 1,
     alignSelf: 'flex-start',
   },
   bannerCtaText: {
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
+    fontSize: 9, lineHeight: 12,
   },
   bannerPerson: {
     position: 'absolute',

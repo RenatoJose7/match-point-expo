@@ -21,6 +21,9 @@ const browseFilters = [
   { value: 'criadas', label: 'Criadas' },
 ]
 
+// Datas relativas a hoje: os exemplos nunca aparecem como ativos com prazo vencido.
+const daysFromNow = (days) => new Date(Date.now() + days * 86400000).toISOString()
+
 const visualDemoOpportunities = [
   {
     id: 'oportunidade-demo-bolsa-parceiro',
@@ -28,9 +31,10 @@ const visualDemoOpportunities = [
     modalidade: 'Tênis',
     localizacao: 'Suzano - SP',
     beneficio: 'Bolsa esportiva',
-    fimInscricoes: '2026-08-19T23:59:59.000Z',
+    fimInscricoes: daysFromNow(24),
     status: 'ativa',
-    criadoEm: '2026-06-04T12:00:00.000Z',
+    criadoEm: daysFromNow(-20),
+    inscricoesExemplo: 18,
   },
   {
     id: 'oportunidade-demo-avaliacao-parceiro',
@@ -38,9 +42,10 @@ const visualDemoOpportunities = [
     modalidade: 'Tênis',
     localizacao: 'São Paulo - SP',
     beneficio: 'Avaliação técnica',
-    fimInscricoes: '2026-08-19T23:59:59.000Z',
+    fimInscricoes: daysFromNow(24),
     status: 'ativa',
-    criadoEm: '2026-06-03T12:00:00.000Z',
+    criadoEm: daysFromNow(-21),
+    inscricoesExemplo: 12,
   },
   {
     id: 'oportunidade-demo-campeonato-parceiro',
@@ -48,9 +53,10 @@ const visualDemoOpportunities = [
     modalidade: 'Tênis',
     localizacao: 'Mogi das Cruzes - SP',
     beneficio: 'Competição regional',
-    fimInscricoes: '2026-08-20T23:59:59.000Z',
+    fimInscricoes: daysFromNow(25),
     status: 'ativa',
-    criadoEm: '2026-06-02T12:00:00.000Z',
+    criadoEm: daysFromNow(-22),
+    inscricoesExemplo: 9,
   },
   {
     id: 'oportunidade-demo-clinica-parceiro',
@@ -58,14 +64,15 @@ const visualDemoOpportunities = [
     modalidade: 'Tênis',
     localizacao: 'Itaquaquecetuba - SP',
     beneficio: 'Treinamento técnico',
-    fimInscricoes: '2026-08-21T23:59:59.000Z',
+    fimInscricoes: daysFromNow(26),
     status: 'ativa',
-    criadoEm: '2026-06-01T12:00:00.000Z',
+    criadoEm: daysFromNow(-23),
+    inscricoesExemplo: 7,
   },
 ]
 
 const formatDate = (value) => {
-  if (!value || Number.isNaN(new Date(value).getTime())) return 'Inscrições até 19/08/26'
+  if (!value || Number.isNaN(new Date(value).getTime())) return 'Inscrições abertas'
   return `Inscrições até ${new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit', timeZone: 'UTC' })}`
 }
 
@@ -91,7 +98,7 @@ function OpportunityCard({ item, index, applicationsCount, onOpen, role }) {
       <Image source={trainerOpportunityImage(item, index, role)} style={styles.cardImage} resizeMode="cover" />
       <View style={styles.cardCopy}>
         <Text style={styles.cardTitle}>{item.titulo}</Text>
-        <View style={styles.metaRow}><Ionicons name="people" size={12} color={BLUE} /><Text style={styles.meta}>{applicationsCount || 18} inscrições</Text></View>
+        <View style={styles.metaRow}><Ionicons name="people" size={12} color={BLUE} /><Text style={styles.meta}>{applicationsCount === 1 ? '1 inscrição' : `${applicationsCount} inscrições`}</Text></View>
         <View style={styles.metaRow}><Ionicons name="briefcase" size={11} color={BLUE} /><Text style={styles.meta}>{venue}</Text></View>
         <View style={styles.metaRow}><Ionicons name="calendar" size={11} color={BLUE} /><Text style={styles.meta}>{formatDate(item.fimInscricoes)}</Text></View>
       </View>
@@ -173,7 +180,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         <View style={styles.headerTop}>
           <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.iconButton}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
           <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
-          <Pressable accessibilityRole="button" accessibilityLabel="Filtrar oportunidades" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.iconButton}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
+          <Pressable accessibilityRole="button" accessibilityLabel="Filtrar oportunidades" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.iconButton}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
         </View>
         <Text style={[styles.heading, created && styles.createdHeading]}>{heading}</Text>
         <View style={styles.searchWrap}>
@@ -191,7 +198,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
-          {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id]} onOpen={() => openOpportunity(item)} role={role} />)}
+          {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id] ?? item.inscricoesExemplo ?? 0} onOpen={() => openOpportunity(item)} role={role} />)}
           {visibleItems.length === 0 ? <Text style={styles.empty}>Nenhuma oportunidade encontrada.</Text> : null}
         </ScrollView>
       )}
@@ -210,15 +217,15 @@ const styles = StyleSheet.create(withGriffithsWeight({
   headerTop: { height: 91, paddingTop: 27, paddingHorizontal: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between' },
   iconButton: { width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   mark: { width: 56, height: 60 },
-  heading: { alignSelf: 'center', color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 49, marginTop: 4, textAlign: 'center' },
+  heading: { alignSelf: 'center', color: LIME, fontFamily: 'Griffiths', fontSize: 48, lineHeight: 54, marginTop: 4, textAlign: 'center' },
   createdHeading: { fontSize: 40, lineHeight: 46, marginTop: 0 },
   searchWrap: { height: 44, marginHorizontal: 14, marginTop: 20, paddingHorizontal: 12, borderRadius: 24, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center' },
-  searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 9, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  searchInput: { flex: 1, minWidth: 0, paddingHorizontal: 9, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   statusChips: { position: 'absolute', left: 18, right: 18, bottom: 14, flexDirection: 'row', alignItems: 'center', gap: 10 },
   createdStatusChips: { bottom: 16 },
   statusChip: { minWidth: 88, height: 31, borderRadius: 18, alignItems: 'center', justifyContent: 'center', backgroundColor: '#477bc2', paddingHorizontal: 12 },
   statusChipSelected: { backgroundColor: '#fff' },
-  statusText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  statusText: { color: '#fff', fontFamily: 'Poppins_500Medium', fontSize: 14 },
   statusTextSelected: { color: BLUE, fontFamily: 'Poppins_600SemiBold' },
   filterMenu: { position: 'absolute', top: 60, right: 17, zIndex: 8, borderRadius: 12, backgroundColor: '#fff', padding: 8, elevation: 4 },
   filterMenuItem: { paddingHorizontal: 12, paddingVertical: 6 },
@@ -228,11 +235,11 @@ const styles = StyleSheet.create(withGriffithsWeight({
   card: { minHeight: 124, padding: 9, borderRadius: 18, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(26, 56, 92, .16)' }, default: { elevation: 3 } }) },
   cardImage: { width: 88, height: 104, borderRadius: 10 },
   cardCopy: { flex: 1, minWidth: 0, paddingLeft: 16, gap: 4 },
-  cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
+  cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20 },
   metaRow: { minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  meta: { flex: 1, color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
+  meta: { flex: 1, color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
   createButton: { position: 'absolute', left: 20, right: 20, bottom: 83, height: 45, borderRadius: 23, backgroundColor: BLUE, zIndex: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
-  createText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  createText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
   state: { flex: 1, justifyContent: 'center', padding: 22, gap: 14 },
   retry: { height: 43, borderRadius: 22, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   retryText: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },

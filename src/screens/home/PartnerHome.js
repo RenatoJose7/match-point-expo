@@ -28,9 +28,14 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
       const candidates = await Promise.all(opportunities.map(async (item) => repositories.applications.listarCandidatosDaOportunidade(item.id)))
       if (!active) return
       setDisplayName(partnerResult.data.nomeExibicao || name)
+      const candidateLists = candidates.map((result) => (result.ok ? result.data : []))
       setSummary({
         activeCount: opportunities.filter((item) => item.status === 'ativa').length,
-        candidateCount: candidates.reduce((total, result) => total + (result.ok ? result.data.length : 0), 0),
+        candidateCount: candidateLists.reduce((total, list) => total + list.length, 0),
+        // Candidaturas que ainda esperam uma decisão do treinador ou da instituição.
+        reviewCount: candidateLists.flat().filter((item) => ['inscrita', 'documentos_enviados', 'em_analise'].includes(item.status ?? item.candidatura?.status)).length,
+        // Oportunidades ativas que ainda não receberam nenhum candidato.
+        waitingCount: opportunities.filter((item, index) => item.status === 'ativa' && candidateLists[index].length === 0).length,
       })
     })
     return () => { active = false }
@@ -60,17 +65,17 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotGreen, localStyles.statusDot]} />
                   <Text style={localStyles.statusNumber}>{summary.activeCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Ativas</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Divulgadas</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue, localStyles.statusDot]} />
-                  <Text style={styles.trainerStatusNumber}>{summary.candidateCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Análise</Text>
+                  <Text style={localStyles.statusNumber}>{summary.reviewCount ?? 0}</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Em análise</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange, localStyles.statusDot]} />
-                  <Text style={styles.trainerStatusNumber}>—</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Sem info.</Text>
+                  <Text style={localStyles.statusNumber}>{summary.waitingCount ?? 0}</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Aguardando inscrições</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.trainerCreateShortcut}>
@@ -120,7 +125,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
   return (
     <View style={styles.home}>
       <Header initials={initials} name={displayName} photoUrl={session?.fotoUrl} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
-      <ScrollView contentContainerStyle={[styles.homeScroll, localStyles.partnerHomeScroll]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.homeScroll, localStyles.partnerHomeScroll]}>
         <View style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
@@ -190,13 +195,13 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 13,
-    lineHeight: 22,
+    lineHeight: 15,
   },
   countValue: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 38,
   },
   cardDivider: {
     width: 1,
@@ -220,18 +225,18 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     marginRight: 5,
   },
   statusNumber: {
-    width: 23,
+    width: 26,
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
+    fontSize: 16, lineHeight: 20,
   },
   statusLabel: {
     flex: 1,
     minWidth: 0,
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
   },
   createShortcut: {
     width: 58,
@@ -240,15 +245,15 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   createLabel: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
     marginTop: 4,
   },
   candidateCaption: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
     marginTop: 6,
     textAlign: 'center',
     paddingHorizontal: 4,
@@ -305,7 +310,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     marginLeft: 'auto',
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
+    fontSize: 11,
   },
   bannerTitle: {
     zIndex: 2,
@@ -321,21 +326,21 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     color: '#ffffff',
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    lineHeight: 22,
+    lineHeight: 16,
     marginTop: 4,
   },
   bannerCta: {
     zIndex: 2,
     marginTop: 6,
-    minWidth: 108,
-    height: 30,
-    borderRadius: 15,
+    minWidth: 72,
+    height: 15,
+    borderRadius: 8,
     backgroundColor: GREEN,
     alignSelf: 'flex-start',
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
-    lineHeight: 30,
+    fontSize: 9,
+    lineHeight: 15,
     textAlign: 'center',
   },
   bannerPerson: {
