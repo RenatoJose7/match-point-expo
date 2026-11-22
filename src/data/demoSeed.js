@@ -45,6 +45,18 @@ export const demoAthletes = [
     equipeAtual: 'Equipe MatchPoint',
     tempoDePratica: '8 anos',
     perfilCompleto: true,
+    // Dados de apresentação: não entram nos critérios de Match Score das oportunidades de demonstração.
+    posicao: 'Simples',
+    localizacao: 'Suzano - SP',
+    torneiosDisputados: '23',
+    titulos: '12',
+    biografia: 'Atleta de tênis há 8 anos, com foco em desempenho e evolução constante.',
+    resultadosEsportivos: 'Campeã regional universitária 2025 e vice-campeã estadual 2024.',
+    objetivos: 'Conquistar uma bolsa universitária e disputar o circuito nacional.',
+    necessidades: 'Treino técnico, preparação física e apoio para viagens.',
+    disponibilidade: 'Tarde e noite',
+    possibilidadeViagem: 'Sim, no Brasil',
+    distanciaMaxima: 'Até 100 km',
   },
   {
     id: 'atleta-menor',
@@ -57,6 +69,17 @@ export const demoAthletes = [
     equipeAtual: 'Equipe Juvenil Demo',
     tempoDePratica: '3 anos',
     perfilCompleto: true,
+    posicao: 'Simples e duplas',
+    localizacao: 'Mogi das Cruzes - SP',
+    torneiosDisputados: '9',
+    titulos: '3',
+    biografia: 'Atleta juvenil em evolução, treina cinco vezes por semana.',
+    resultadosEsportivos: 'Semifinalista do estadual Sub-16 em 2025.',
+    objetivos: 'Entrar em um centro de treinamento de alto rendimento.',
+    necessidades: 'Acompanhamento técnico e transporte para torneios.',
+    disponibilidade: 'Manhã e tarde',
+    possibilidadeViagem: 'Sim, dentro do estado',
+    distanciaMaxima: 'Até 50 km',
   },
 ]
 
@@ -77,6 +100,12 @@ export const demoPartners = [
     tipo: USER_TYPES.TRAINER,
     nomeExibicao: 'Treinador Demo',
     verificado: true,
+    modalidade: 'Tênis',
+    experiencia: '12 anos',
+    cref: '123321-G/SP',
+    localizacao: 'São Paulo - SP',
+    descricao: 'Treinador de tênis há 12 anos, com foco em desempenho e evolução constante.',
+    especialidades: 'Tática, Físico, Mental, Treino, Personal',
   },
   {
     id: 'instituicao-demo',
@@ -84,6 +113,10 @@ export const demoPartners = [
     tipo: USER_TYPES.INSTITUTION,
     nomeExibicao: 'Instituição Demo',
     verificado: true,
+    tipoInstituicao: 'Universidade',
+    documento: '02.961.362/0001-74',
+    localizacao: 'São Paulo - SP',
+    descricao: 'www.universidadedoesporte.com.br',
   },
 ]
 
@@ -139,7 +172,7 @@ export const demoOpportunities = [
     beneficio: 'Avaliacao tecnica',
     requisitos: ['Perfil esportivo completo', 'Disponibilidade para os treinos'],
     criteriosElegibilidade: [
-      { codigo: 'modalidade', nome: 'Modalidade compativel', obrigatorio: true, valor: 'Tenis', peso: 40 },
+      { codigo: 'modalidade', nome: 'Modalidade compatível', obrigatorio: true, valor: 'Tenis', peso: 40 },
       { codigo: 'perfil-completo', nome: 'Perfil completo', obrigatorio: true, valor: true, peso: 40 },
       { codigo: 'tempoDePratica', nome: 'Experiência esportiva', obrigatorio: false, valor: '10 anos', peso: 20, percentualQuandoNaoAtendido: 25 },
     ],
@@ -159,7 +192,7 @@ export const demoOpportunities = [
     beneficio: 'Participacao no circuito',
     requisitos: ['Inscricao ativa no torneio'],
     criteriosElegibilidade: [
-      { codigo: 'modalidade', nome: 'Modalidade compativel', obrigatorio: true, valor: 'Tenis', peso: 40 },
+      { codigo: 'modalidade', nome: 'Modalidade compatível', obrigatorio: true, valor: 'Tenis', peso: 40 },
       { codigo: 'perfil-completo', nome: 'Perfil completo', obrigatorio: true, valor: true, peso: 40 },
       { codigo: 'ranking', nome: 'Ranking competitivo', obrigatorio: false, valor: 'top-20', peso: 20, percentualQuandoNaoAtendido: 0 },
     ],

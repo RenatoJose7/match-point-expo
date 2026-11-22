@@ -1,3 +1,4 @@
+import { evaluateMatchEligibility, scoreFromEligibility } from '../../domain/matchScore.js'
 import {
   APPLICATION_STATUS,
   OPPORTUNITY_STATUS,
@@ -85,27 +86,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou oportunidade não encontrado.')
     }
 
-    const criteria = opportunity.criteriosElegibilidade ?? []
-    const evaluatedCriteria = criteria.map((criterion) => {
-      const athleteValue = criterion.codigo === 'perfil-completo'
-        ? athlete.perfilCompleto
-        : athlete[criterion.codigo]
-      const matched = athleteValue === criterion.valor
-
-      return {
-        ...criterion,
-        atendido: matched,
-        motivo: matched ? undefined : `${criterion.nome}: requisito não atendido.`,
-      }
-    })
-    const blockingCriteria = evaluatedCriteria.filter((criterion) => criterion.obrigatorio && !criterion.atendido)
-
-    return success({
-      elegivel: blockingCriteria.length === 0,
-      criterios: evaluatedCriteria,
-      motivosBloqueio: blockingCriteria.map((criterion) => criterion.motivo),
-      avaliadoEm: now(),
-    })
+    return success(evaluateMatchEligibility(athlete, opportunity, now()))
   }
 
   const authentication = {
@@ -470,22 +451,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     calcularMatchScore: async (athleteId, opportunityId) => {
       const eligibility = evaluateEligibility(athleteId, opportunityId)
       if (!eligibility.ok) return eligibility
-      const criteria = eligibility.data.criterios
-      const weightedCriteria = criteria.map((criterion) => {
-        const weight = Number(criterion.peso)
-        const percentual = criterion.atendido
-          ? 100
-          : Math.max(0, Math.min(100, Number(criterion.percentualQuandoNaoAtendido) || 0))
-        return { criterion, percentual, weight: Number.isFinite(weight) && weight > 0 ? weight : 1 }
-      })
-      const totalWeight = weightedCriteria.reduce((total, item) => total + item.weight, 0)
-      const totalScore = weightedCriteria.reduce((total, item) => total + (item.percentual * item.weight), 0)
-      return success({
-        percentualTotal: totalWeight === 0 ? 100 : Math.round(totalScore / totalWeight),
-        criterios: weightedCriteria.map(({ criterion, percentual }) => ({ nome: criterion.nome, percentual })),
-        calculadoEm: now(),
-        versaoDoCalculo: 'p0-memory-v2',
-      })
+      return success(scoreFromEligibility(eligibility.data, findAthlete(athleteId) ?? {}, now(), 'p0-memory-v2'))
     },
     obterMatchScore: async (athleteId, opportunityId) => match.calcularMatchScore(athleteId, opportunityId),
   }

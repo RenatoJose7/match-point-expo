@@ -1,3 +1,4 @@
+import { evaluateMatchEligibility, scoreFromEligibility } from '../../domain/matchScore.js'
 import {
   createUserWithEmailAndPassword,
   deleteUser,
@@ -217,50 +218,11 @@ function filterOpportunities(opportunities, filters = {}) {
 }
 
 function evaluateEligibility(athlete, opportunity, evaluatedAt = now()) {
-  const criteria = opportunity.criteriosElegibilidade ?? []
-  const evaluatedCriteria = criteria.map((criterion) => {
-    const athleteValue = criterion.codigo === 'perfil-completo'
-      ? athlete.perfilCompleto
-      : athlete[criterion.codigo]
-    const matched = athleteValue === criterion.valor
-
-    return {
-      ...criterion,
-      atendido: matched,
-      ...(matched ? {} : { motivo: `${criterion.nome}: requisito não atendido.` }),
-    }
-  })
-  const blockingCriteria = evaluatedCriteria.filter((criterion) => criterion.obrigatorio && !criterion.atendido)
-
-  return {
-    elegivel: blockingCriteria.length === 0,
-    criterios: evaluatedCriteria,
-    motivosBloqueio: blockingCriteria.map((criterion) => criterion.motivo),
-    avaliadoEm: evaluatedAt,
-  }
+  return evaluateMatchEligibility(athlete, opportunity, evaluatedAt)
 }
 
-function calculateMatchScore(eligibility, calculatedAt = now()) {
-  const criteria = eligibility.criterios
-  const weightedCriteria = criteria.map((criterion) => {
-    const weight = Number(criterion.peso)
-    const percentual = criterion.atendido
-      ? 100
-      : Math.max(0, Math.min(100, Number(criterion.percentualQuandoNaoAtendido) || 0))
-    return { criterion, percentual, weight: Number.isFinite(weight) && weight > 0 ? weight : 1 }
-  })
-  const totalWeight = weightedCriteria.reduce((total, item) => total + item.weight, 0)
-  const totalScore = weightedCriteria.reduce((total, item) => total + (item.percentual * item.weight), 0)
-
-  return {
-    percentualTotal: totalWeight === 0 ? 100 : Math.round(totalScore / totalWeight),
-    criterios: weightedCriteria.map(({ criterion, percentual }) => ({
-      nome: criterion.nome,
-      percentual,
-    })),
-    calculadoEm: calculatedAt,
-    versaoDoCalculo: 'p0-firebase-v2',
-  }
+function calculateMatchScore(eligibility, calculatedAt = now(), athlete = {}) {
+  return scoreFromEligibility(eligibility, athlete, calculatedAt, 'p0-firebase-v3')
 }
 
 export function createFirebaseRepositories() {
@@ -1011,10 +973,15 @@ export function createFirebaseRepositories() {
       return success(evaluateEligibility(athleteResult.data, opportunityResult.data))
     },
     calcularMatchScore: async (athleteId, opportunityId) => {
-      const eligibility = await match.avaliarElegibilidade(athleteId, opportunityId)
-      return eligibility.ok
-        ? success(calculateMatchScore(eligibility.data))
-        : eligibility
+      const [athleteResult, opportunityResult] = await Promise.all([
+        getAthleteById(athleteId),
+        getOpportunityById(opportunityId),
+      ])
+      if (!athleteResult.ok || !opportunityResult.ok) {
+        return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou oportunidade não encontrado.')
+      }
+      const eligibility = evaluateEligibility(athleteResult.data, opportunityResult.data)
+      return success(calculateMatchScore(eligibility, now(), athleteResult.data))
     },
     obterMatchScore: async (athleteId, opportunityId) => match.calcularMatchScore(athleteId, opportunityId),
   }
@@ -1133,8 +1100,9 @@ export function createFirebaseRepositories() {
             return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou oportunidade não encontrado.')
           }
 
+          const athleteData = normalizeDocument(athleteSnapshot)
           const eligibility = evaluateEligibility(
-            normalizeDocument(athleteSnapshot),
+            athleteData,
             normalizeDocument(opportunitySnapshot),
             createdAt,
           )
@@ -1166,7 +1134,7 @@ export function createFirebaseRepositories() {
             oportunidadeId: opportunityId,
             atletaId: athleteId,
             status: APPLICATION_STATUS.SUBMITTED,
-            matchScore: calculateMatchScore(eligibility, createdAt).percentualTotal,
+            matchScore: calculateMatchScore(eligibility, createdAt, athleteData).percentualTotal,
             documentos: data.documentos ?? [],
             historico: [event],
             criadoEm: createdAt,
