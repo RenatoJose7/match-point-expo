@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Feather, Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { ListHeader } from '../../components/ListHeader'
@@ -197,8 +198,8 @@ export function AthleteOpportunitiesScreen(props) {
               <View style={localStyles.metaRow}><Ionicons name="calendar" size={13} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{formatDeadline(opportunity.fimInscricoes)}</Text></View>
             </View>
             <View style={localStyles.matchBadge}>
-              <Text style={localStyles.matchBadgeLabel}>Match{`\n`}Score</Text>
-              <Text style={localStyles.matchBadgeValue}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
+              <Text fixedSize style={localStyles.matchBadgeLabel}>Match{`\n`}Score</Text>
+              <Text fixedSize style={localStyles.matchBadgeValue}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
             </View>
           </Pressable>
         ))}

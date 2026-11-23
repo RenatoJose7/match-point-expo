@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { BackButton } from '../components/ui/BackButton'
 import { DecorativeCurves } from '../components/ui/DecorativeCurves'
 import { assets } from '../theme/assets'
 import { styles } from '../theme/styles'
+import { useHeightFit } from '../theme/layout'
 
 const predefinedNotifications = [
   {
@@ -46,6 +48,7 @@ function formatDate(value) {
 }
 
 export function NotificationsScreen({ back, repositories, session }) {
+  const fit = useHeightFit()
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -91,9 +94,9 @@ export function NotificationsScreen({ back, repositories, session }) {
       <Image source={assets.monogram} style={[styles.notificationMark, localStyles.mark]} resizeMode="contain" />
       <Text style={[styles.notificationsTitle, localStyles.heading]}>Notificações</Text>
       <Text style={[styles.notificationsSubtitle, localStyles.subtitle]}>Acompanhe atualizações{`\n`}importantes da sua conta</Text>
-      <ScrollView style={localStyles.scroll} contentContainerStyle={[styles.noticeList, localStyles.list]} showsVerticalScrollIndicator={false}>
+      <ScrollView style={localStyles.scroll} contentContainerStyle={[styles.noticeList, localStyles.list, { paddingTop: fit(28, 14), gap: fit(14, 6) }]} showsVerticalScrollIndicator={false}>
         {loading ? <Text style={localStyles.state}>Carregando notificações...</Text> : null}
-        {!loading && error ? <View style={localStyles.state}><Text accessibilityRole="alert" style={localStyles.error}>{error}</Text><Pressable onPress={() => setRetryKey((value) => value + 1)}><Text style={localStyles.action}>Tentar novamente</Text></Pressable></View> : null}
+        {!loading && error ? <View style={localStyles.state}><Text accessibilityRole="alert" style={localStyles.error}>{error}</Text><Pressable accessibilityRole="button" onPress={() => setRetryKey((value) => value + 1)}><Text style={localStyles.action}>Tentar novamente</Text></Pressable></View> : null}
         {!loading && !error && notifications.length === 0 ? <View style={localStyles.state}><Text style={localStyles.emptyTitle}>Você está em dia</Text><Text style={localStyles.state}>Novas atualizações das suas candidaturas aparecerão aqui.</Text></View> : null}
         {!loading && !error && notifications.map((notification) => (
           <Pressable key={notification.id} accessibilityRole="button" onPress={() => markAsRead(notification)} style={[styles.notice, localStyles.notice, notification.lida && localStyles.readNotice]}>

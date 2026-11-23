@@ -28,7 +28,8 @@
     "plugins": [
       "expo-web-browser",
       "expo-font",
-      "expo-status-bar"
+      "expo-status-bar",
+      "./plugins/withFontScaleLimit"
     ],
     "extra": {
       "eas": {

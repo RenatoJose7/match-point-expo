@@ -1,9 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Animated, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Animated, Easing, Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { computeMatchScore, evaluateMatchEligibility } from '../domain/matchScore.js'
 import { assets } from '../theme/assets'
+import { useReduceMotion } from '../components/accessibility/AccessibilityContext'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -43,6 +45,7 @@ export function MatchScoreScreen({ go, back, repositories, routeParams = {}, ses
   const [displayedPercent, setDisplayedPercent] = useState(0)
   const animation = useRef(new Animated.Value(0)).current
   const pulse = useRef(new Animated.Value(0)).current
+  const reduceMotion = useReduceMotion()
 
   useEffect(() => {
     let active = true
@@ -85,6 +88,13 @@ export function MatchScoreScreen({ go, back, repositories, routeParams = {}, ses
   useEffect(() => {
     if (!score) return undefined
     animation.stopAnimation()
+    // Com "Reduzir animações" o resultado aparece pronto, sem o anel se preencher.
+    if (reduceMotion) {
+      animation.setValue(1)
+      pulse.setValue(0)
+      setDisplayedPercent(score.percentualTotal)
+      return undefined
+    }
     animation.setValue(0)
     pulse.setValue(0)
     setDisplayedPercent(0)
@@ -98,7 +108,7 @@ export function MatchScoreScreen({ go, back, repositories, routeParams = {}, ses
       sequence.stop()
       animation.removeListener(listener)
     }
-  }, [animation, pulse, score])
+  }, [animation, pulse, reduceMotion, score])
 
   const displayCriteria = buildDisplayCriteria(score, eligibility)
   const partnerName = opportunity?.instituicao || opportunity?.nomeParceiro
@@ -179,7 +189,7 @@ function Reason({ criterion, animation, index }) {
 }
 
 function State({ label, retry }) {
-  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
+  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable accessibilityRole="button" onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
 }
 
 const halfRingBase = {

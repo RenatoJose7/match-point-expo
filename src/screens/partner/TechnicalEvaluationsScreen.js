@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { FeedbackMessage, getPartnerProfile, LoadingState, PartnerHeader, partnerColors, partnerStyles } from './partnerOpportunityUi'
@@ -92,12 +93,12 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
                   <View style={styles.scores}>{scoreFields.map(([key, label]) => <View key={key} style={styles.scoreField}><Text style={partnerStyles.fieldLabel}>{label} (1–5)</Text><SelectField accessibilityLabel={`Nota de ${label}`} options={SELECT_OPTIONS.notas} value={scores[key]} onChange={(value) => setScores((current) => ({ ...current, [key]: value }))} placeholder="Selecione a nota" /></View>)}</View>
                   <Text style={partnerStyles.fieldLabel}>Parecer técnico</Text>
                   <TextInput value={parecer} onChangeText={setParecer} multiline style={[partnerStyles.input, partnerStyles.multilineInput]} placeholder="Pontos fortes e próximos passos" placeholderTextColor={partnerColors.muted} />
-                  <Pressable disabled={saving} onPress={() => submitEvaluation(request)} style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Registrar avaliação'}</Text></Pressable>
+                  <Pressable accessibilityRole="button" disabled={saving} onPress={() => submitEvaluation(request)} style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Registrar avaliação'}</Text></Pressable>
                 </> : <Text style={styles.done}>Avaliação concluída</Text>}
               </View>
             )) : <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Nenhuma avaliação pendente</Text><Text style={styles.copy}>As solicitações de instituições aparecerão aqui.</Text></View>
           ) : !routeParams.athleteId ? <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Selecione um candidato</Text><Text style={styles.copy}>Abra o perfil de um candidato para solicitar uma avaliação técnica.</Text></View> : (
-            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores verificados</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador verificado'}</Text></Pressable>)}<Pressable disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
+            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores verificados</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable accessibilityRole="button" key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador verificado'}</Text></Pressable>)}<Pressable accessibilityRole="button" disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
           )}
         </ScrollView>
       )}

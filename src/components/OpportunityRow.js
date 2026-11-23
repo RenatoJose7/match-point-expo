@@ -1,5 +1,6 @@
 import React from 'react'
-import { Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, StyleSheet, View } from 'react-native'
+import { Text } from './accessibility/AppText'
 import { Reveal } from './motion'
 import { getOpportunityImage } from '../theme/opportunityImages'
 import { styles } from '../theme/styles'
@@ -7,7 +8,7 @@ import { styles } from '../theme/styles'
 export function OpportunityRow({ item, athlete = false, onPress, delay = 0, index = 0 }) {
   return (
     <Reveal delay={delay}>
-      <Pressable onPress={onPress} style={[styles.listCard, localStyles.card]}>
+      <Pressable accessibilityRole="button" onPress={onPress} style={[styles.listCard, localStyles.card]}>
         <Image source={getOpportunityImage({ titulo: item[0] }, index)} style={[styles.listThumb, localStyles.thumb]} resizeMode="cover" />
         <View style={[styles.listCopy, localStyles.copy]}>
           <Text style={[styles.listName, localStyles.name]}>{item[0]}</Text>

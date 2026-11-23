@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'

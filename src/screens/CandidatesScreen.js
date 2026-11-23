@@ -1,5 +1,6 @@
 import React from 'react'
-import { Image, Pressable, ScrollView, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { BackButton } from '../components/ui/BackButton'
@@ -21,12 +22,12 @@ export function CandidatesScreen({ go, back }) {
         <Image source={assets.monogram} style={styles.opportunityCandidatesMark} resizeMode="contain" />
         <Ionicons name="funnel-outline" size={22} color="#fff" style={styles.opportunityCandidatesFilter} />
         <Text style={styles.opportunityCandidatesTitle}>Bolsas de Estudos</Text>
-        <Text style={styles.opportunityCandidatesPill}>Candidatos</Text>
+        <Text fixedSize style={styles.opportunityCandidatesPill}>Candidatos</Text>
       </View>
 
       <ScrollView style={styles.opportunityCandidatesBody} contentContainerStyle={styles.opportunityCandidatesContent} showsVerticalScrollIndicator={false}>
         {opportunityCandidates.map(candidate => (
-          <Pressable key={candidate.name} onPress={() => go('perfilAtletaTecnico')} style={styles.opportunityCandidateCard}>
+          <Pressable accessibilityRole="button" key={candidate.name} onPress={() => go('perfilAtletaTecnico')} style={styles.opportunityCandidateCard}>
             <Image source={candidate.photo} style={styles.opportunityCandidatePhoto} />
             <View style={styles.opportunityCandidateCopy}>
               <Text style={styles.opportunityCandidateName}>{candidate.name}</Text>

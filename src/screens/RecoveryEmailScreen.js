@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Platform, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Platform, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../components/accessibility/AppText'
 import { Button } from '../components/ui/Button'
 import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'

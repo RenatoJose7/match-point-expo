@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { assets } from '../../theme/assets'
 
@@ -89,6 +91,7 @@ export function InstitutionProfileScreen({ go, back, repositories, session, rout
       <View style={styles.header}>
         {onboarding ? null : <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>}
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <View style={styles.identity}>
           <ProfilePhotoPicker compact repositories={repositories} session={session} size={58} />
           <View style={styles.identityCopy}><Text numberOfLines={2} style={styles.name}>{values.nomeExibicao}</Text><Text style={styles.role}>Instituição</Text></View>
@@ -145,7 +148,8 @@ const styles = StyleSheet.create({
   infoRow: { minHeight: 63, paddingHorizontal: 4, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   lastRow: { borderTopWidth: 1, borderTopColor: '#9db6d3' },
   label: { width: '45%', color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  value: { flex: 1, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'left' },
+  // Endereços longos (site, CNPJ) quebram dentro da linha em vez de passar da tela.
+  value: { flex: 1, minWidth: 0, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'left', ...Platform.select({ web: { wordBreak: 'break-word', overflowWrap: 'anywhere' } }) },
   editButton: { minHeight: 52, marginTop: 8, borderRadius: 18, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
   editText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
   form: { gap: 14 },

@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Text, TextInput } from '../components/accessibility/AppText'
 import * as WebBrowser from 'expo-web-browser'
 import { Ionicons } from '@expo/vector-icons'
 import { GoogleLoginButton } from '../components/auth/GoogleLoginButton'
@@ -7,6 +8,7 @@ import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'
 import { BLUE, GREEN } from '../theme/colors'
 import { styles } from '../theme/styles'
+import { getFrameWidth } from '../theme/layout'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -22,10 +24,13 @@ function Feedback({ status, children }) {
 export function LoginScreen({ go, back, repositories }) {
   const { width, height } = useWindowDimensions()
   // A logo fica no fluxo da tela, proporcional à largura: o cartão começa sempre abaixo dela.
-  const frameWidth = Math.min(width, 430)
-  const logoWidth = Math.min(frameWidth * 0.76, 310)
-  const topSpace = Math.min(Math.max(Math.round(height * 0.105), 56), 92)
+  const frameWidth = getFrameWidth(width, height)
+  // Em telas baixas a logo também é limitada pela altura, para o cartão caber sem rolar.
+  const logoWidth = Math.min(frameWidth * 0.76, 310, height * (height < 720 ? 0.17 : 0.25) * (600 / 422))
+  // A logo começa abaixo dos botões do topo (voltar e acessibilidade), sem passar por baixo deles.
+  const topSpace = Math.min(Math.max(Math.round(height * 0.09), 78), 92)
   const compact = frameWidth < 380
+  const shortScreen = height < 720
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -74,8 +79,8 @@ export function LoginScreen({ go, back, repositories }) {
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-      <Image source={assets.logo} style={[localStyles.loginLogo, { width: logoWidth, height: logoWidth * (422 / 600) }]} resizeMode="contain" />
-      <View style={[styles.card, localStyles.loginCard, compact && localStyles.loginCardCompact]}>
+      <Image source={assets.logo} style={[localStyles.loginLogo, { width: logoWidth, height: logoWidth * (422 / 600) }, shortScreen && { marginBottom: 12 }]} resizeMode="contain" />
+      <View style={[styles.card, localStyles.loginCard, compact && localStyles.loginCardCompact, shortScreen && localStyles.loginCardShort]}>
         <Text style={[styles.title, localStyles.title]}>Login</Text>
         <Text style={styles.helper}>
           Não possui conta?{' '}
@@ -127,7 +132,7 @@ export function LoginScreen({ go, back, repositories }) {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => go('recovery1')}>
+        <Pressable accessibilityRole="button" onPress={() => go('recovery1')}>
           <Text style={localStyles.forgotPassword}>Esqueci minha senha</Text>
         </Pressable>
 
@@ -206,6 +211,10 @@ const localStyles = StyleSheet.create({
   loginLogo: {
     alignSelf: 'center',
     marginBottom: 20,
+  },
+  loginCardShort: {
+    paddingTop: 14,
+    paddingBottom: 14,
   },
   loginCardCompact: {
     marginHorizontal: 12,

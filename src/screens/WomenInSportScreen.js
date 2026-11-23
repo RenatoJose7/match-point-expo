@@ -1,5 +1,6 @@
 import React from 'react'
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { BackButton } from '../components/ui/BackButton'
 import { DecorativeCurves } from '../components/ui/DecorativeCurves'
 import { BottomNav } from '../components/navigation/BottomNav'

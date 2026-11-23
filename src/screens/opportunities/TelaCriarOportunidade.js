@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Image, ScrollView, Text, TextInput, View } from 'react-native'
+import { Image, ScrollView, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BackButton } from '../../components/ui/BackButton'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { Button } from '../../components/ui/Button'

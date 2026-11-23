@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
@@ -47,7 +48,7 @@ function CandidateCard({ candidate, onPress }) {
         <Text style={styles.category}>{candidate.category}</Text>
         <View style={styles.dateRow}><Ionicons name="calendar" size={12} color={BLUE} /><Text style={styles.date}>{candidate.date}</Text></View>
       </View>
-      {candidate.score ? <View style={styles.score}><Text style={styles.scoreCaption}>Match{`\n`}Score</Text><Text style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
+      {candidate.score ? <View style={styles.score}><Text fixedSize style={styles.scoreCaption}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
     </Pressable>
   )
 }
@@ -116,8 +117,8 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
         <Text numberOfLines={2} style={styles.title}>{title}</Text>
-        <Text style={styles.pill}>Candidatos</Text>
-        {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
+        <Text fixedSize style={styles.pill}>Candidatos</Text>
+        {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
       </View>
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (

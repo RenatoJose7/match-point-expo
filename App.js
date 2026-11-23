@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { BackHandler, KeyboardAvoidingView, Platform, Text, View, useWindowDimensions } from 'react-native'
+import { BackHandler, KeyboardAvoidingView, Platform, View, useWindowDimensions } from 'react-native'
+import { Text } from './src/components/accessibility/AppText'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { StatusBar } from 'expo-status-bar'
 import { useFonts } from 'expo-font'
 import { ScreenTransition } from './src/components/motion'
 import { LoadingScreen } from './src/components/ui/LoadingScreen'
 import { LoadingOverlay } from './src/components/ui/LoadingOverlay'
+import { AccessibilityProvider } from './src/components/accessibility/AccessibilityContext'
+import { AccessibilityPanel } from './src/components/accessibility/AccessibilityPanel'
 import { getHomeRouteForUser } from './src/core/session'
 import { createRepositories } from './src/repositories'
 import {
@@ -51,6 +54,7 @@ import {
   WomenInSportScreen,
 } from './src/screens'
 import { styles } from './src/theme/styles'
+import { getFrameWidth } from './src/theme/layout'
 
 // Na versão web o app imita a tela do celular: sem barras de rolagem do navegador
 // e sem o "puxa e volta" que não existe no aplicativo.
@@ -66,6 +70,14 @@ if (Platform.OS === 'web' && typeof document !== 'undefined' && !document.getEle
 }
 
 const KEYBOARD_AREA = { flex: 1, width: '100%' }
+// Com internet ruim, a consulta do perfil na abertura não pode prender a tela de carregamento.
+const withTimeout = (promise, ms = 5000) => Promise.race([
+  promise,
+  new Promise((resolve) => setTimeout(() => resolve({ ok: false, timeout: true }), ms)),
+])
+
+// Fora do quadro do app (tablets e telas largas) aparece o azul da marca.
+const ROOT_STYLE = Platform.OS === 'web' ? undefined : { flex: 1, backgroundColor: '#0d4a85' }
 
 // Ao abrir a escolha de perfil e os cadastros, a bolinha de tênis aparece por um instante.
 const LOADER_ROUTES = new Set(['choice', 'signupAthlete', 'signupTrainer', 'signupInstitution', 'signupResponsible'])
@@ -204,8 +216,10 @@ const TAB_POSITION = {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <MatchPointApp />
+    <SafeAreaProvider style={ROOT_STYLE}>
+      <AccessibilityProvider>
+        <MatchPointApp />
+      </AccessibilityProvider>
     </SafeAreaProvider>
   )
 }
@@ -232,10 +246,11 @@ function MatchPointApp() {
   const transitionDirection = useRef(1)
   const [loaderTrigger, setLoaderTrigger] = useState(0)
   const isPhoneViewport = width <= 430
-  const frameWidth = isPhoneViewport ? width : Math.min(height * (402 / 874), 430)
+  const frameWidth = getFrameWidth(width, height)
   const frameHeight = isPhoneViewport ? height : frameWidth * (874 / 402)
-  // No celular o quadro ocupa a tela inteira; o tamanho fixo de 402x874 vale só para a web.
-  const frameSize = Platform.OS === 'web' ? { width: frameWidth, height: frameHeight } : { flexGrow: 1, flexShrink: 1, width: '100%', alignSelf: 'stretch' }
+  // No celular o quadro ocupa a tela inteira; em tablets fica centralizado com largura de celular.
+  // O tamanho fixo de 402x874 vale só para a web.
+  const frameSize = Platform.OS === 'web' ? { width: frameWidth, height: frameHeight } : { flexGrow: 1, flexShrink: 1, width: frameWidth, alignSelf: 'center' }
 
   const sessionUserId = useRef(null)
 
@@ -262,7 +277,7 @@ function MatchPointApp() {
       // Atleta sem modalidade ainda não preencheu a Área do Atleta: começa por ela.
       if (destination === 'homeAthlete') {
         try {
-          const profile = await repositories.users.obterPerfilAtletaPorUsuario(nextSession.id)
+          const profile = await withTimeout(repositories.users.obterPerfilAtletaPorUsuario(nextSession.id))
           if (profile.ok && !profile.data.modalidade) destination = 'athleteArea1'
         } catch {
           // Sem conseguir ler o perfil, segue para o início normalmente.
@@ -274,7 +289,7 @@ function MatchPointApp() {
       let params = {}
       if (destination === 'homeTrainer' || destination === 'homeInstitution') {
         try {
-          const partner = await repositories.users.obterPerfilParceiroPorUsuario(nextSession.id)
+          const partner = await withTimeout(repositories.users.obterPerfilParceiroPorUsuario(nextSession.id))
           const incomplete = destination === 'homeTrainer' ? !partner.data?.modalidade : !partner.data?.localizacao
           if (partner.ok && incomplete) {
             params = { onboarding: true }
@@ -369,6 +384,7 @@ function MatchPointApp() {
         </ScreenTransition>
       </KeyboardAvoidingView>
       <LoadingOverlay trigger={loaderTrigger} />
+      <AccessibilityPanel />
     </View>
   )
 }

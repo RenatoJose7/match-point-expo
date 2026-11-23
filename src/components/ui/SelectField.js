@@ -1,6 +1,8 @@
 import React, { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Text, TextInput } from '../accessibility/AppText'
+import { getFrameWidth } from '../../theme/layout'
 
 const BLUE = '#10579b'
 
@@ -22,7 +24,7 @@ export const SELECT_OPTIONS = Object.freeze({
 
 export function SelectField({ accessibilityLabel, options, placeholder = 'Selecione uma opção', value, onChange, triggerStyle, textStyle }) {
   const { width, height } = useWindowDimensions()
-  const appFrameWidth = width <= 430 ? width : Math.min(height * (402 / 874), 430)
+  const appFrameWidth = getFrameWidth(width, height)
   const [visible, setVisible] = useState(false)
   const [search, setSearch] = useState('')
   const label = accessibilityLabel || placeholder
@@ -101,7 +103,7 @@ const styles = StyleSheet.create({
   trigger: { minHeight: 48, borderWidth: 1, borderColor: '#c8d5d8', borderRadius: 8, backgroundColor: '#ffffff', alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
   triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 16, marginRight: 8 },
   placeholder: { color: '#6a7d86' },
-  backdrop: { flex: 1, alignSelf: 'flex-start', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
+  backdrop: { flex: 1, alignSelf: 'center', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
   backdropDismiss: { ...StyleSheet.absoluteFillObject },
   menu: { width: '100%', maxHeight: '70%', backgroundColor: '#ffffff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 28 },
   menuHeader: { alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e1e8eb', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 17 },

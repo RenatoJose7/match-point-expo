@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Feather, Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { Header } from '../../components/Header'
@@ -8,8 +9,14 @@ import { BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 import { withGriffithsWeight } from '../../theme/typography'
 import { computeMatchScore } from '../../domain/matchScore.js'
+import { useFrameSize } from '../../theme/layout'
 
 export function AthleteHomeScreen({ go, repositories, session }) {
+  // Em telas um pouco mais baixas que o modelo, os espaços extras cedem (até 80 px)
+  // para a tela inicial caber inteira, sem rolagem à toa.
+  const frame = useFrameSize()
+  const squeeze = Math.min(1, Math.max(0, 874 - frame.height) / 40)
+  const fit = (value, reduction) => Math.round(value - reduction * squeeze)
   const [profile, setProfile] = useState(null)
   const [applications, setApplications] = useState([])
   const [opportunity, setOpportunity] = useState(null)
@@ -117,7 +124,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
         go={go}
         repositories={repositories}
       />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={localStyles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[localStyles.scrollContent, { paddingTop: fit(10, 6), gap: fit(9, 4) }]}>
         {/* Carrossel de Cards: Desempenho e Perfil */}
         <View style={localStyles.carouselContainer}>
           <ScrollView
@@ -182,7 +189,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
         </View>
 
         {/* Card: Oportunidades para você */}
-        <View style={[localStyles.whiteCard, localStyles.oppCard]}>
+        <View style={[localStyles.whiteCard, localStyles.oppCard, { minHeight: fit(178, 18) }]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIconCircle}>
               <Ionicons name="star" size={17} color={BLUE} />
@@ -191,12 +198,12 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           </View>
 
           <View style={localStyles.matchBadge}>
-            <Text style={localStyles.matchBadgeLabel}>Match{'\n'}Score</Text>
-            <Text style={localStyles.matchBadgeValue}>{displayedScore}</Text>
+            <Text fixedSize style={localStyles.matchBadgeLabel}>Match{'\n'}Score</Text>
+            <Text fixedSize style={localStyles.matchBadgeValue}>{displayedScore}</Text>
           </View>
 
           <View style={localStyles.oppRow}>
-            <Image source={assets.opportunityMountains} style={localStyles.oppImage} />
+            <Image source={assets.opportunityMountains} style={[localStyles.oppImage, { width: fit(98, 22), height: fit(98, 22) }]} />
             <View style={localStyles.oppCopy}>
               <Text numberOfLines={2} style={localStyles.oppTitle}>
                 {opportunity?.titulo || 'Bolsa de Estudos'}
@@ -229,7 +236,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
         </View>
 
         {/* Card: Minhas candidaturas */}
-        <View style={[localStyles.whiteCard, localStyles.applicationsCard]}>
+        <View style={[localStyles.whiteCard, localStyles.applicationsCard, { minHeight: fit(110, 10) }]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIconCircle}>
               <Feather name="calendar" size={17} color={BLUE} />
@@ -268,12 +275,12 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           accessibilityRole="button"
           accessibilityLabel="Saiba mais sobre Mulheres no esporte"
           onPress={() => go('women')}
-          style={localStyles.heroBanner}
+          style={[localStyles.heroBanner, { height: fit(126, 36) }]}
         >
           <Text numberOfLines={1} style={localStyles.bannerTitle}>Mulheres no esporte</Text>
           <Text style={localStyles.bannerCopy}>Incentivando talentos.{'\n'}Transformando o futuro</Text>
           <View style={localStyles.bannerCtaBadge}>
-            <Text style={localStyles.bannerCtaText}>Saiba mais</Text>
+            <Text fixedSize style={localStyles.bannerCtaText}>Saiba mais</Text>
           </View>
           <Image source={assets.athleteBanner} style={localStyles.bannerPerson} resizeMode="contain" />
         </Pressable>
@@ -301,15 +308,16 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     backgroundColor: '#ffffff',
     borderRadius: 18,
   },
+  // Altura mínima: com texto maior (acessibilidade) o cartão cresce em vez de cortar.
   performanceCard: {
     width: 280,
-    height: 140,
+    minHeight: 140,
     paddingHorizontal: 10,
     paddingVertical: 8,
   },
   profileCard: {
     width: 185,
-    height: 140,
+    minHeight: 140,
     paddingHorizontal: 10,
     paddingVertical: 8,
     overflow: 'hidden',

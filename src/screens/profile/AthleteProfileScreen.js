@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BackButton } from '../../components/ui/BackButton'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
@@ -191,6 +193,7 @@ export function AthleteProfileScreen(props) {
       <View style={localStyles.header}>
         <View style={localStyles.headerStripe} />
         <BackButton onPress={back} />
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <View style={localStyles.identity}>
           <ProfilePhotoPicker compact repositories={repositories} session={session} size={58} />
           <View style={localStyles.identityCopy}>

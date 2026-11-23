@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
@@ -190,12 +191,12 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         <View style={[styles.statusChips, created && styles.createdStatusChips]}>{statusFilters.map((filter) => <Pressable key={filter.value} accessibilityRole="button" accessibilityState={{ selected: status === filter.value }} onPress={() => chooseStatus(filter.value)} style={[styles.statusChip, status === filter.value && styles.statusChipSelected]}><Text style={[styles.statusText, status === filter.value && styles.statusTextSelected]}>{filter.label}</Text></Pressable>)}</View>
         {filterOpen ? <View style={styles.filterMenu}>
           {!created ? <Pressable accessibilityRole="button" onPress={() => { setFilterOpen(false); go('opportunitiesCreated') }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>Oportunidades criadas</Text></Pressable> : null}
-          {statusFilters.map((filter) => <Pressable key={filter.value} onPress={() => { chooseStatus(filter.value); setFilterOpen(false) }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>{filter.label}</Text></Pressable>)}
+          {statusFilters.map((filter) => <Pressable accessibilityRole="button" key={filter.value} onPress={() => { chooseStatus(filter.value); setFilterOpen(false) }} style={styles.filterMenuItem}><Text style={styles.filterMenuText}>{filter.label}</Text></Pressable>)}
         </View> : null}
       </View>
 
       {loading ? <LoadingState label="Carregando oportunidades..." /> : error ? (
-        <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
+        <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
           {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id] ?? item.inscricoesExemplo ?? 0} onOpen={() => openOpportunity(item)} role={role} />)}

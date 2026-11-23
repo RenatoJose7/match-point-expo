@@ -1,5 +1,6 @@
 import React from 'react'
-import { StyleSheet, Text, View } from 'react-native'
+import { StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Button } from '../components/ui/Button'
 import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'

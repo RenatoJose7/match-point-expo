@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { Header } from '../../components/Header'
@@ -7,9 +8,11 @@ import { StatIcon } from '../../components/StatIcon'
 import { assets } from '../../theme/assets'
 import { BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
+import { useHeightFit } from '../../theme/layout'
 import { withGriffithsWeight } from '../../theme/typography'
 
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
+  const fit = useHeightFit()
   const [summary, setSummary] = useState({ activeCount, candidateCount })
   const [displayName, setDisplayName] = useState(name)
   const Banner = bannerPressable ? Pressable : View
@@ -45,12 +48,12 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
     return (
       <View style={styles.trainerHomeScreen}>
         <Header initials={initials} name={displayName} photoUrl={session?.fotoUrl} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
-        <ScrollView contentContainerStyle={[styles.trainerHomeScroll, localStyles.trainerHomeScroll]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.trainerHomeScroll, localStyles.trainerHomeScroll, { paddingTop: fit(9, 5), gap: fit(9, 4) }]} showsVerticalScrollIndicator={false}>
           <View style={[styles.trainerOpportunityCard, localStyles.trainerCard]}>
             <View style={localStyles.cardHeading}>
               <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
               <Text numberOfLines={1} style={localStyles.cardTitle}>Oportunidades</Text>
-              <Pressable onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
+              <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
                 <Text style={localStyles.seeAll}>Ver mais</Text>
               </Pressable>
             </View>
@@ -85,7 +88,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </View>
 
-          <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.trainerCandidatesCard, localStyles.trainerCard]}>
+          <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} style={[styles.trainerCandidatesCard, localStyles.trainerCard]}>
             <View style={localStyles.cardHeading}>
               <View style={localStyles.cardIcon}><Ionicons name="people" size={18} color={BLUE} /></View>
               <Text numberOfLines={1} style={localStyles.cardTitle}>Candidatos</Text>
@@ -110,10 +113,10 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </Pressable>
 
-          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner]}>
+          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner, { height: fit(152, 26), minHeight: fit(152, 26) }]}>
             <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
             <Text style={localStyles.bannerCopy}>Acompanhe e avalie os{`\n`}próximos talentos.</Text>
-            <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
+            <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
             <Image source={assets.trainerBanner} style={[styles.trainerBannerPerson, localStyles.bannerPerson]} resizeMode="contain" />
           </Banner>
         </ScrollView>
@@ -130,7 +133,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
             <Text numberOfLines={1} style={localStyles.cardTitle}>Oportunidades</Text>
-            <Pressable onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
+            <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
               <Text style={localStyles.seeAll}>Ver mais</Text>
             </Pressable>
           </View>
@@ -143,7 +146,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </Pressable>
           </View>
         </View>
-        <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
+        <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIcon}><Ionicons name="people" size={18} color={BLUE} /></View>
             <Text numberOfLines={1} style={localStyles.cardTitle}>Candidatos</Text>
@@ -157,7 +160,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
         <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.heroBanner, styles.trainerBanner, localStyles.partnerBanner]}>
           <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
           <Text style={localStyles.bannerCopy}>Acompanhe, avalie e{`\n`}descubra o próximo{`\n`}destaque do esporte.</Text>
-          <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
+          <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
           <Image source={assets.trainerBanner} style={styles.bannerPerson} resizeMode="contain" />
         </Banner>
       </ScrollView>

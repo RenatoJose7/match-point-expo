@@ -1,9 +1,11 @@
 import React, { useEffect, useRef } from 'react'
-import { Animated, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native'
+import { Animated, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Text } from '../accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { USE_NATIVE_DRIVER } from '../motion'
 import { BLUE } from '../../theme/colors'
 import { styles } from '../../theme/styles'
+import { getFrameWidth } from '../../theme/layout'
 
 function NavButton({ item, isActive, onPress, partner = false, compact = false }) {
   const scale = useRef(new Animated.Value(1)).current
@@ -43,7 +45,7 @@ function NavButton({ item, isActive, onPress, partner = false, compact = false }
         <Animated.View style={{ transform: [{ scale: iconScale }] }}>
           <Ionicons name={item.icon} size={22} color={BLUE} />
         </Animated.View>
-        <Text numberOfLines={1} style={[styles.navText, localStyles.label, compact && localStyles.labelCompact]}>{item.label}</Text>
+        <Text fixedSize numberOfLines={1} style={[styles.navText, localStyles.label, compact && localStyles.labelCompact]}>{item.label}</Text>
       </Animated.View>
     </Pressable>
   )
@@ -51,8 +53,8 @@ function NavButton({ item, isActive, onPress, partner = false, compact = false }
 
 export function BottomNav({ go, role = 'athlete', active = 'home' }) {
   // Em celulares estreitos (até ~350 px) o rótulo diminui um pouco para caber inteiro.
-  const { width } = useWindowDimensions()
-  const compact = Math.min(width, 430) < 350
+  const { width, height } = useWindowDimensions()
+  const compact = getFrameWidth(width, height) < 350
   const partner = role !== 'athlete'
   const home = role === 'trainer' ? 'homeTrainer' : role === 'institution' ? 'homeInstitution' : 'homeAthlete'
   const opportunities = role === 'athlete' ? 'opportunitiesAthlete' : role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'

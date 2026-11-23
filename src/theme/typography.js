@@ -78,3 +78,11 @@ export function withGriffithsOverhang(styleDefinitions) {
     ]),
   )
 }
+
+// Tamanho da Griffiths para um texto de uma linha caber em `availableWidth`.
+// A largura média de cada caractere fica perto de 0,45 do tamanho da fonte.
+export function fitGriffithsSize(text, availableWidth, maxSize, minSize = 22) {
+  const characters = Math.max(String(text ?? '').length, 1)
+  const fitted = Math.floor(availableWidth / (characters * 0.45))
+  return Math.max(minSize, Math.min(maxSize, fitted))
+}

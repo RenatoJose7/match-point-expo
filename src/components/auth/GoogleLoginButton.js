@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Alert, Platform, Pressable, Text } from 'react-native'
+import { Alert, Platform, Pressable } from 'react-native'
+import { Text } from '../accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { isGoogleIdTokenConfigured, useGoogleIdToken } from './googleIdToken'
 
@@ -22,9 +23,12 @@ function GoogleButtonFrame({ label, busy, disabled, onPress, variant, style }) {
       onPress={onPress}
       style={({ pressed }) => [
         {
+          // Altura e largura mínimas: com texto maior (acessibilidade) o botão cresce em vez de cortar.
           minHeight: isSignup ? 40 : 44,
-          height: isSignup ? 40 : 44,
-          width: isSignup ? 240 : '100%',
+          minWidth: isSignup ? 240 : undefined,
+          maxWidth: '100%',
+          width: isSignup ? undefined : '100%',
+          paddingVertical: 6,
           alignSelf: isSignup ? 'center' : undefined,
           paddingHorizontal: 16,
           justifyContent: 'center',

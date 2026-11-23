@@ -1,20 +1,27 @@
 import React, { useEffect, useRef } from 'react'
 import { Animated, Easing, Platform } from 'react-native'
 import { styles } from '../theme/styles'
+import { useReduceMotion } from './accessibility/AccessibilityContext'
 
 export const USE_NATIVE_DRIVER = Platform.OS !== 'web'
 
 export function ScreenTransition({ children, direction = 1 }) {
-  const progress = useRef(new Animated.Value(0)).current
+  // Com "Reduzir animações" a tela aparece direto, sem deslizar.
+  const reduceMotion = useReduceMotion()
+  const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current
 
   useEffect(() => {
+    if (reduceMotion) {
+      progress.setValue(1)
+      return
+    }
     Animated.timing(progress, {
       toValue: 1,
       duration: 360,
       easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start()
-  }, [progress])
+  }, [progress, reduceMotion])
 
   return (
     <Animated.View
@@ -35,9 +42,14 @@ export function ScreenTransition({ children, direction = 1 }) {
 }
 
 export function Reveal({ children, delay = 0 }) {
-  const progress = useRef(new Animated.Value(0)).current
+  const reduceMotion = useReduceMotion()
+  const progress = useRef(new Animated.Value(reduceMotion ? 1 : 0)).current
 
   useEffect(() => {
+    if (reduceMotion) {
+      progress.setValue(1)
+      return
+    }
     Animated.timing(progress, {
       toValue: 1,
       duration: 440,
@@ -45,7 +57,7 @@ export function Reveal({ children, delay = 0 }) {
       easing: Easing.bezier(0.22, 1, 0.36, 1),
       useNativeDriver: USE_NATIVE_DRIVER,
     }).start()
-  }, [delay, progress])
+  }, [delay, progress, reduceMotion])
 
   return (
     <Animated.View

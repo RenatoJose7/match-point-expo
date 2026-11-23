@@ -1,33 +1,56 @@
 import React from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'
+import { getFrameWidth } from '../theme/layout'
 import { styles } from '../theme/styles'
 
+// Frases curtas e sem quebras manuais: o texto se ajusta a qualquer largura de tela.
 const profiles = [
-  ['Atleta', 'Quero criar meu perfil esportivo,\nencontrar oportunidades e enviar\ncandidaturas.'],
-  ['Treinador', 'Quero publicar oportunidades,\nencontrar atletas e acompanhar\nprocessos seletivos.'],
-  ['Instituição', 'Quero investir em atletas, fortalecer\nminha marca e acompanhar os\nresultados da parceria.'],
+  ['Atleta', 'Crie seu perfil esportivo, encontre oportunidades e candidate-se.'],
+  ['Treinador', 'Publique oportunidades, encontre atletas e acompanhe as seleções.'],
+  ['Instituição', 'Invista em atletas, fortaleça sua marca e acompanhe os resultados.'],
 ]
+
+const DESIGN_WIDTH = 402
+const DESIGN_HEIGHT = 874
 
 export function ProfileChoiceScreen({ go, back, routeParams = {} }) {
   const destinations = ['signupAthlete', 'signupTrainer', 'signupInstitution']
+  const { width, height } = useWindowDimensions()
+  const insets = useSafeAreaInsets()
+  const frameWidth = getFrameWidth(width, height)
+  const frameHeight = Platform.OS === 'web'
+    ? (width <= 430 ? height : frameWidth * (DESIGN_HEIGHT / DESIGN_WIDTH))
+    : height - insets.top - insets.bottom
+  // Tudo encolhe na mesma proporção em telas menores que o modelo (402x874),
+  // para os três cartões caberem sem rolagem; em telas maiores fica no tamanho do modelo.
+  const scale = Math.max(0.6, Math.min(1, frameWidth / DESIGN_WIDTH, frameHeight / DESIGN_HEIGHT))
+  const size = (value) => Math.round(value * scale)
 
   return (
     <Shell background={assets.choiceCourt} back={back}>
-      <View style={styles.choicePanel}>
+      <View style={[styles.choicePanel, { top: Math.max(76, size(106)), bottom: size(67), paddingTop: size(40), paddingHorizontal: size(28) }]}>
         <ScrollView
           style={styles.choiceScroll}
           contentContainerStyle={[styles.choiceContent, localStyles.choiceContent]}
           showsVerticalScrollIndicator={false}
         >
-          <Text style={[styles.choiceHeading, localStyles.choiceHeading]}>Como você quer usar o</Text>
-          <Text style={[styles.choiceBrand, localStyles.choiceBrand]}>Match Point?</Text>
-          <View style={styles.profileList}>
+          <Text style={[styles.choiceHeading, { fontSize: size(40), lineHeight: size(46) }]}>Como você quer usar o</Text>
+          <Text style={[styles.choiceBrand, { fontSize: size(40), lineHeight: size(46) }]}>Match Point?</Text>
+          <View style={[styles.profileList, { marginTop: size(40), gap: size(16) }]}>
             {profiles.map(([accent, copy], index) => (
-              <Pressable key={accent} onPress={() => go(destinations[index], routeParams)} style={({ pressed }) => [styles.profileCard, localStyles.profileCard, pressed && styles.pressed]}>
-                <Text style={[styles.profileTitle, styles.profileAccent, localStyles.profileTitle]}>{accent}</Text>
-                <Text style={styles.profileCopy}>{copy}</Text>
+              <Pressable
+                key={accent}
+                accessibilityRole="button"
+                accessibilityLabel={`${accent}: ${copy}`}
+                onPress={() => go(destinations[index], routeParams)}
+                style={({ pressed }) => [styles.profileCard, localStyles.profileCard, { minHeight: size(150), paddingVertical: size(14), paddingHorizontal: size(16) }, pressed && styles.pressed]}
+              >
+                <Text style={[styles.profileTitle, styles.profileAccent, { fontSize: size(40), lineHeight: size(46) }]}>{accent}</Text>
+                <Text style={[styles.profileCopy, { fontSize: Math.max(13, size(15)), lineHeight: Math.max(17, size(19)) }]}>{copy}</Text>
               </Pressable>
             ))}
           </View>
@@ -42,21 +65,7 @@ const localStyles = StyleSheet.create({
   choiceContent: {
     paddingBottom: 8,
   },
-  choiceHeading: {
-    fontSize: 40,
-    lineHeight: 46,
-  },
-  choiceBrand: {
-    fontSize: 40,
-    lineHeight: 46,
-  },
   profileCard: {
-    minHeight: 158,
     height: 'auto',
-    paddingVertical: 12,
-  },
-  profileTitle: {
-    fontSize: 40,
-    lineHeight: 46,
   },
 })

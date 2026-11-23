@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import * as DocumentPicker from 'expo-document-picker'
-import { Alert, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BLUE } from '../../theme/colors'
 

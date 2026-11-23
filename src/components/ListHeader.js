@@ -1,5 +1,6 @@
 import React from 'react'
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from './accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { assets } from '../theme/assets'
 import { BLUE } from '../theme/colors'

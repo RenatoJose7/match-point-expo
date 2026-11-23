@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'

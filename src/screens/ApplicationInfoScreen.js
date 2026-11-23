@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import * as DocumentPicker from 'expo-document-picker'
 import { BackButton } from '../components/ui/BackButton'
 import { BottomNav } from '../components/navigation/BottomNav'
@@ -124,9 +125,10 @@ export function ApplicationInfoScreen({ go, back, repositories, session, routePa
     return () => { active = false }
   }, [repositories, session?.id, session?.tipo, currentOpportunityId, requestedAthleteId, retryToken])
 
-  const opportunityClosed = opportunity && (
+  // Sempre booleano: uma string vazia renderizada fora de <Text> derruba o app no Android.
+  const opportunityClosed = Boolean(opportunity) && (
     opportunity.status !== 'ativa'
-    || (opportunity.fimInscricoes && new Date(opportunity.fimInscricoes) < new Date())
+    || Boolean(opportunity.fimInscricoes && new Date(opportunity.fimInscricoes) < new Date())
   )
   const requiredDocumentTypes = opportunity?.documentosNecessarios ?? []
   const allDocumentsSent = requiredDocumentTypes.length > 0

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { assets } from '../theme/assets'
@@ -61,7 +62,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
                 <Text numberOfLines={2} style={styles.title}>{opportunity.titulo}</Text>
                 <Text style={styles.subtitle}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
               </View>
-              <View style={styles.score}><Text style={styles.scoreLabel}>Match{`\n`}Score</Text><Text style={styles.scoreValue}>{score}%</Text></View>
+              <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{score}%</Text></View>
             </View>
             <View style={styles.institution}>
               <Ionicons name="home" size={28} color={BLUE} />
@@ -88,7 +89,7 @@ function BulletList({ items = [], empty }) {
 }
 
 function State({ label, retry }) {
-  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
+  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable accessibilityRole="button" onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
 }
 
 const styles = StyleSheet.create({

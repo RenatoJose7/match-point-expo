@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../accessibility/AppText'
 import { GoogleReauthenticationButton, isGoogleLoginConfigured } from '../auth/GoogleLoginButton'
 
 export function DeleteAccountSection({ repositories }) {

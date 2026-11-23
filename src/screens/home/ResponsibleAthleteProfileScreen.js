@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BackButton } from '../../components/ui/BackButton'
 import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
@@ -108,7 +109,7 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
           {editing ? (
             <>
               <Button wide disabled={saving} onPress={save}>{saving ? 'Salvando...' : 'Salvar alterações'}</Button>
-              <Pressable onPress={() => { setEditing(false); setValues(Object.fromEntries(fields.map(([key]) => [key, String(athlete[key] ?? '')]))) }}><Text style={styles.cancel}>Cancelar</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => { setEditing(false); setValues(Object.fromEntries(fields.map(([key]) => [key, String(athlete[key] ?? '')]))) }}><Text style={styles.cancel}>Cancelar</Text></Pressable>
             </>
           ) : <Button wide onPress={() => { setEditing(true); setNotice('') }}>Editar perfil</Button>}
         </ScrollView>

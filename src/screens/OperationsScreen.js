@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native'
+import { Text, TextInput } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { withGriffithsWeight } from '../theme/typography'
@@ -133,20 +134,20 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             <>
               <Text style={localStyles.label}>Novo recurso da plataforma</Text>
               <TextInput value={title} onChangeText={setTitle} style={localStyles.input} placeholder="Título do recurso" />
-              <Pressable onPress={saveResource} style={localStyles.btn}><Text style={localStyles.btnText}>Salvar recurso</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={saveResource} style={localStyles.btn}><Text style={localStyles.btnText}>Salvar recurso</Text></Pressable>
               {resources.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.titulo}</Text></View>)}
               <Text style={localStyles.label}>Auditar Match Score</Text>
               <TextInput value={athleteId} onChangeText={setAthleteId} style={localStyles.input} placeholder="ID do atleta" />
               <TextInput value={opportunityId} onChangeText={setOpportunityId} style={localStyles.input} placeholder="ID da oportunidade" />
-              <Pressable onPress={audit} style={localStyles.btn}><Text style={localStyles.btnText}>Auditar cálculo</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={audit} style={localStyles.btn}><Text style={localStyles.btnText}>Auditar cálculo</Text></Pressable>
               <Text style={localStyles.label}>Contas parceiras</Text>
               {accounts.map((item) => (
                 <View key={item.id} style={localStyles.card}>
                   <Text>{item.nomeExibicao || item.id}</Text>
                   <Text style={localStyles.muted}>{item.statusAdministrativo || 'sem decisão'}</Text>
                   <View style={localStyles.actions}>
-                    <Pressable onPress={() => decide(item.id, 'aprovada')}><Text style={localStyles.action}>Aprovar</Text></Pressable>
-                    <Pressable onPress={() => decide(item.id, 'suspensa')}><Text style={localStyles.action}>Suspender</Text></Pressable>
+                    <Pressable accessibilityRole="button" onPress={() => decide(item.id, 'aprovada')}><Text style={localStyles.action}>Aprovar</Text></Pressable>
+                    <Pressable accessibilityRole="button" onPress={() => decide(item.id, 'suspensa')}><Text style={localStyles.action}>Suspender</Text></Pressable>
                   </View>
                 </View>
               ))}
@@ -157,7 +158,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             <>
               <Text style={localStyles.label}>Descreva o problema ou sugestão</Text>
               <TextInput value={message} onChangeText={setMessage} multiline style={[localStyles.input, localStyles.multilineInput]} placeholder="Escreva aqui" />
-              <Pressable onPress={sendReport} style={localStyles.btn}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={sendReport} style={localStyles.btn}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
               {reports.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.mensagem}</Text><Text style={localStyles.muted}>{item.status}</Text></View>)}
             </>
           )}

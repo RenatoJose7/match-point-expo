@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
-import { withGriffithsOverhang } from '../../theme/typography'
+import { fitGriffithsSize, withGriffithsOverhang } from '../../theme/typography'
+import { useFrameSize } from '../../theme/layout'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -62,6 +65,9 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
   const displayName = String(profileName).trim() || 'Instituição'
   // Como no cabeçalho do atleta e do treinador, a saudação usa só o primeiro nome.
   const greetingName = displayName.split(/\s+/)[0]
+  // A saudação encolhe em telas estreitas ou com nomes longos, em vez de ser cortada.
+  const frame = useFrameSize()
+  const greetingSize = fitGriffithsSize(`Olá, ${greetingName}`, frame.width - 190, 40)
   const profileInitials = displayName
     .split(/\s+/)
     .filter(Boolean)
@@ -77,10 +83,11 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
         <View style={styles.identity}>
           <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
           <View style={styles.identityCopy}>
-            <Text numberOfLines={1} style={styles.greeting}>Olá, <Text style={styles.greetingAccent}>{greetingName}</Text></Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.greeting, { fontSize: greetingSize, lineHeight: Math.round(greetingSize * 1.16) }]}>Olá, <Text style={styles.greetingAccent}>{greetingName}</Text></Text>
             <Text style={styles.welcome}>Bem-vindo de volta</Text>
           </View>
         </View>
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <Pressable accessibilityRole="button" accessibilityLabel="Sair da conta" onPress={signOut} style={styles.logout}>
           <Ionicons name="log-out-outline" size={22} color="#fff" />
         </Pressable>
@@ -136,7 +143,7 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
         <Pressable accessibilityRole="button" onPress={() => go('opportunitiesInstitution')} style={styles.banner}>
           <Text numberOfLines={1} style={styles.bannerTitle}>Transforme talentos</Text>
           <Text numberOfLines={3} style={styles.bannerCopy}>Acompanhe, avalie e{'\n'}descubra o próximo{'\n'}destaque do esporte.</Text>
-          <Text style={styles.bannerCta}>Saiba mais</Text>
+          <Text fixedSize style={styles.bannerCta}>Saiba mais</Text>
           <Image source={assets.trainerBanner} style={styles.bannerImage} resizeMode="contain" />
         </Pressable>
       </ScrollView>

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton'
 import { Button } from '../../components/ui/Button'
 import { BackButton } from '../../components/ui/BackButton'
@@ -8,6 +9,8 @@ import { BLUE } from '../../theme/colors'
 import { assets } from '../../theme/assets'
 import { USER_TYPES, calculateAge, isMinor } from '../../domain/contracts.js'
 import { withGriffithsOverhang } from '../../theme/typography'
+import { frameScale, getFrameWidth, useFrameSize } from '../../theme/layout'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
 
 const BRAZIL_DDDS = [
   '11', '12', '13', '14', '15', '16', '17', '18', '19',
@@ -83,7 +86,7 @@ function formatPhone(ddd, number) {
 
 function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
   const { width, height } = useWindowDimensions()
-  const appFrameWidth = width <= 430 ? width : Math.min(height * (402 / 874), 430)
+  const appFrameWidth = getFrameWidth(width, height)
 
   return (
     <Modal
@@ -92,7 +95,7 @@ function DddPicker({ visible, selectedDdd, onSelect, onClose }) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <View style={{ flex: 1, width: appFrameWidth, alignSelf: 'flex-start', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.55)', padding: 24 }}>
+      <View style={{ flex: 1, width: appFrameWidth, alignSelf: 'center', justifyContent: 'center', backgroundColor: 'rgba(0, 0, 0, 0.55)', padding: 24 }}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="Fechar seleção de DDD"
@@ -204,6 +207,15 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
     && !(isAthlete && field.toLowerCase().includes('respons') && !minor)
   ))
   const compactForm = visibleFields.length >= 7
+  // Espaçamentos proporcionais à tela: em celulares mais baixos o formulário cabe sem rolar à toa.
+  const frame = useFrameSize()
+  const scale = frameScale(frame, 0.62)
+  const space = (value) => Math.round(value * scale)
+  const shortScreen = scale < 0.85
+  const inputHeight = Math.max(40, space(50))
+  const wrapSpacing = { paddingTop: Math.max(shortScreen ? 78 : 92, space(compactForm ? 104 : 112)), paddingBottom: shortScreen ? 24 : space(compactForm ? 92 : 110) }
+  const titleSpacing = titleBreak ? null : { marginBottom: space(compactForm ? 24 : 50) }
+  const fieldsSpacing = { gap: space(compactForm ? 11 : 20) }
   const passwordValue = values[passwordField] ?? ''
   const hasStrongPassword = passwordValue.length >= 8
     && /[a-z]/.test(passwordValue)
@@ -367,6 +379,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
       <View pointerEvents="none" style={localStyles.dim} />
       <View style={localStyles.safe}>
         {back ? <BackButton onPress={back} /> : null}
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <Image source={assets.monogram} resizeMode="contain" style={localStyles.monogram} />
         <ScrollView
           keyboardShouldPersistTaps="handled"
@@ -374,8 +387,8 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
           style={localStyles.scroll}
           contentContainerStyle={localStyles.scrollContent}
         >
-          <View style={[localStyles.signupWrap, compactForm && localStyles.signupWrapCompact]}>
-          <Text style={[localStyles.title, compactForm && localStyles.titleCompact, titleBreak && localStyles.titleTwoLine]}>
+          <View style={[localStyles.signupWrap, compactForm && localStyles.signupWrapCompact, wrapSpacing]}>
+          <Text style={[localStyles.title, compactForm && localStyles.titleCompact, titleBreak && localStyles.titleTwoLine, titleSpacing]}>
             Cadastro{titleBreak ? '\n' : ' '}<Text style={localStyles.accent}>{accent}</Text>
           </Text>
           {googleSignup && (
@@ -383,7 +396,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
               Conta Google conectada. Complete os dados abaixo.
             </Text>
           )}
-          <View style={[localStyles.fields, compactForm && localStyles.fieldsCompact]}>
+          <View style={[localStyles.fields, compactForm && localStyles.fieldsCompact, fieldsSpacing]}>
             {visibleFields.map(field => {
               const isBirthDate = field === birthDateField
               const normalizedField = field.toLowerCase()
@@ -404,7 +417,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                       value={values[field] ?? ''}
                       onChange={value => updateValue(field, value)}
                       placeholder={field}
-                      triggerStyle={localStyles.select}
+                      triggerStyle={[localStyles.select, { height: inputHeight, minHeight: inputHeight }]}
                       textStyle={localStyles.selectText}
                     />
                   ) : isPhone ? (
@@ -415,7 +428,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                         accessibilityState={{ expanded: dddPickerVisible }}
                         onPress={() => setDddPickerVisible(true)}
                         style={{
-                          height: 50,
+                          height: inputHeight,
                           minWidth: 96,
                           borderRadius: 8,
                           backgroundColor: '#fff',
@@ -432,7 +445,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                         accessibilityLabel="Telefone sem DDD"
                         placeholder="Número"
                         placeholderTextColor={BLUE}
-                        style={[localStyles.input, { flex: 1, minWidth: 0 }]}
+                        style={[localStyles.input, { flex: 1, minWidth: 0, height: inputHeight }]}
                         value={values[field] ?? ''}
                         onChangeText={value => updateValue(field, value)}
                         keyboardType="phone-pad"
@@ -442,10 +455,10 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                     </View>
                   ) : (
                     <TextInput
-                      placeholder={isBirthDate ? 'Data de nascimento (DD/MM/AAAA)' : isGuardianCode ? 'Código do responsável' : field}
+                      placeholder={isBirthDate ? 'Data de nascimento' : isGuardianCode ? 'Código do responsável' : field}
                       placeholderTextColor={BLUE}
                       secureTextEntry={isPassword}
-                      style={localStyles.input}
+                      style={[localStyles.input, { height: inputHeight }]}
                       value={values[field] ?? ''}
                       onChangeText={value => updateValue(field, value)}
                       keyboardType={isBirthDate || isDocument ? 'numeric' : normalizedField.includes('email') ? 'email-address' : 'default'}
@@ -520,7 +533,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
             </View>
           )}
           {isAthlete && (
-          <Pressable onPress={() => go('signupResponsible')}>
+          <Pressable accessibilityRole="button" onPress={() => go('signupResponsible')}>
             <Text style={localStyles.minorLink}>Cadastro de responsável</Text>
           </Pressable>
           )}

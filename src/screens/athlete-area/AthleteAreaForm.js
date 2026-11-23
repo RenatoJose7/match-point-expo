@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { Shell } from '../../components/ui/Shell'
 import { isMinor } from '../../domain/contracts.js'
