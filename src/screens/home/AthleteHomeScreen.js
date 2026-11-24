@@ -275,7 +275,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           accessibilityRole="button"
           accessibilityLabel="Saiba mais sobre Mulheres no esporte"
           onPress={() => go('women')}
-          style={[localStyles.heroBanner, { height: fit(126, 36) }]}
+          style={[localStyles.heroBanner, { minHeight: fit(126, 12) }]}
         >
           <Text numberOfLines={1} style={localStyles.bannerTitle}>Mulheres no esporte</Text>
           <Text style={localStyles.bannerCopy}>Incentivando talentos.{'\n'}Transformando o futuro</Text>
@@ -579,8 +579,9 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     height: 34,
     backgroundColor: '#e2e7eb',
   },
+  // Altura mínima (não fixa): título, texto e botão nunca se sobrepõem em telas baixas.
   heroBanner: {
-    height: 126,
+    minHeight: 126,
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#ffffff',

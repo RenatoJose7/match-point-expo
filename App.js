@@ -55,6 +55,7 @@ import {
 } from './src/screens'
 import { styles } from './src/theme/styles'
 import { getFrameWidth } from './src/theme/layout'
+import { AppCanvas } from './src/theme/canvas'
 
 // Na versão web o app imita a tela do celular: sem barras de rolagem do navegador
 // e sem o "puxa e volta" que não existe no aplicativo.
@@ -248,9 +249,9 @@ function MatchPointApp() {
   const isPhoneViewport = width <= 430
   const frameWidth = getFrameWidth(width, height)
   const frameHeight = isPhoneViewport ? height : frameWidth * (874 / 402)
-  // No celular o quadro ocupa a tela inteira; em tablets fica centralizado com largura de celular.
-  // O tamanho fixo de 402x874 vale só para a web.
-  const frameSize = Platform.OS === 'web' ? { width: frameWidth, height: frameHeight } : { flexGrow: 1, flexShrink: 1, width: frameWidth, alignSelf: 'center' }
+  // Na web o quadro imita um celular de 402x874. No celular ele ocupa a tela inteira e o
+  // AppCanvas (src/theme/canvas.js) encaixa o layout do modelo em qualquer tamanho de tela.
+  const frameSize = Platform.OS === 'web' ? { width: frameWidth, height: frameHeight } : { flexGrow: 1, flexShrink: 1, width: '100%', alignSelf: 'center' }
 
   const sessionUserId = useRef(null)
 
@@ -373,15 +374,17 @@ function MatchPointApp() {
       {/* Com edge-to-edge o Android não encolhe mais a janela quando o teclado abre:
           o KeyboardAvoidingView faz isso, para o campo digitado não ficar escondido. */}
       <KeyboardAvoidingView enabled={Platform.OS !== 'web'} behavior="padding" style={KEYBOARD_AREA}>
-        <ScreenTransition key={screen} direction={transitionDirection.current}>
-          <CurrentScreen
-            go={go}
-            back={back}
-            repositories={repositories}
-            session={session}
-            routeParams={route.params}
-          />
-        </ScreenTransition>
+        <AppCanvas>
+          <ScreenTransition key={screen} direction={transitionDirection.current}>
+            <CurrentScreen
+              go={go}
+              back={back}
+              repositories={repositories}
+              session={session}
+              routeParams={route.params}
+            />
+          </ScreenTransition>
+        </AppCanvas>
       </KeyboardAvoidingView>
       <LoadingOverlay trigger={loaderTrigger} />
       <AccessibilityPanel />

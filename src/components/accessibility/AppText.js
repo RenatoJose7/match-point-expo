@@ -64,10 +64,10 @@ function adaptStyle(style, accessibility, fixedSize = false) {
 // Eles recebem negrito e contraste, mas não crescem, para não vazar da caixa.
 export const Text = forwardRef(function AppText({ style, fixedSize = false, ...props }, ref) {
   const accessibility = useAccessibility()
-  return <NativeText ref={ref} maxFontSizeMultiplier={fixedSize ? 1 : 1.2} {...props} style={adaptStyle(style, accessibility, fixedSize)} />
+  return <NativeText ref={ref} maxFontSizeMultiplier={1} {...props} style={adaptStyle(style, accessibility, fixedSize)} />
 })
 
 export const TextInput = forwardRef(function AppTextInput({ style, ...props }, ref) {
   const accessibility = useAccessibility()
-  return <NativeTextInput ref={ref} maxFontSizeMultiplier={1.2} {...props} style={adaptStyle(style, accessibility)} />
+  return <NativeTextInput ref={ref} maxFontSizeMultiplier={1} {...props} style={adaptStyle(style, accessibility)} />
 })

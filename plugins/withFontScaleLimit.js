@@ -1,10 +1,10 @@
-// Limita a escala de fonte do sistema Android dentro do app.
-// Com "fonte grande" nas configurações do celular, os textos cresciam sem limite
-// e estouravam botões, cartões e campos de altura fixa. Aqui a ampliação vai até
-// MAX_FONT_SCALE: quem usa fonte maior ainda vê o texto maior, sem quebrar a tela.
+// Trava a escala de fonte do sistema Android dentro do app.
+// As telas seguem o modelo do Figma (src/theme/canvas.js); com "fonte grande" no celular
+// os textos estouravam botões, cartões e campos e sumiam atrás de outros elementos.
+// Quem precisa de letra maior usa o painel de acessibilidade do próprio app.
 const { withMainActivity } = require('expo/config-plugins')
 
-const MAX_FONT_SCALE = '1.2f'
+const MAX_FONT_SCALE = '1.0f'
 
 const IMPORTS = ['import android.content.Context', 'import android.content.res.Configuration']
 

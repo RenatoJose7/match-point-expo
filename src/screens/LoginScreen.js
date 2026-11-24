@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../components/accessibility/AppText'
 import * as WebBrowser from 'expo-web-browser'
 import { Ionicons } from '@expo/vector-icons'
@@ -9,6 +9,7 @@ import { assets } from '../theme/assets'
 import { BLUE, GREEN } from '../theme/colors'
 import { styles } from '../theme/styles'
 import { getFrameWidth } from '../theme/layout'
+import { useAppWindow } from '../theme/canvas'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -22,7 +23,7 @@ function Feedback({ status, children }) {
 }
 
 export function LoginScreen({ go, back, repositories }) {
-  const { width, height } = useWindowDimensions()
+  const { width, height } = useAppWindow()
   // A logo fica no fluxo da tela, proporcional à largura: o cartão começa sempre abaixo dela.
   const frameWidth = getFrameWidth(width, height)
   // Em telas baixas a logo também é limitada pela altura, para o cartão caber sem rolar.

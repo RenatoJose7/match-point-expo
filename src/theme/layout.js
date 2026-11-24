@@ -1,5 +1,6 @@
 import { Platform, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useCanvas } from './canvas'
 
 // Largura máxima do app no celular. Em tablets e telas largas o app fica
 // centralizado com essa largura, em vez de esticar os layouts feitos para celular.
@@ -15,8 +16,11 @@ export function getFrameWidth(width, height) {
 // Tamanho útil do quadro do app (sem as barras do sistema no celular).
 // Usado pelas telas que encolhem proporcionalmente em celulares pequenos.
 export function useFrameSize() {
+  const canvas = useCanvas()
   const { width, height } = useWindowDimensions()
   const insets = useSafeAreaInsets()
+  // No celular as telas vivem dentro do quadro em escala (src/theme/canvas.js).
+  if (canvas) return { width: canvas.width, height: canvas.height }
   const frameWidth = getFrameWidth(width, height)
   const frameHeight = Platform.OS === 'web'
     ? (width <= 430 ? height : frameWidth * (874 / 402))

@@ -1,10 +1,9 @@
 import React from 'react'
-import { Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text } from '../components/accessibility/AppText'
-import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'
-import { getFrameWidth } from '../theme/layout'
+import { useFrameSize } from '../theme/layout'
 import { styles } from '../theme/styles'
 
 // Frases curtas e sem quebras manuais: o texto se ajusta a qualquer largura de tela.
@@ -19,12 +18,8 @@ const DESIGN_HEIGHT = 874
 
 export function ProfileChoiceScreen({ go, back, routeParams = {} }) {
   const destinations = ['signupAthlete', 'signupTrainer', 'signupInstitution']
-  const { width, height } = useWindowDimensions()
-  const insets = useSafeAreaInsets()
-  const frameWidth = getFrameWidth(width, height)
-  const frameHeight = Platform.OS === 'web'
-    ? (width <= 430 ? height : frameWidth * (DESIGN_HEIGHT / DESIGN_WIDTH))
-    : height - insets.top - insets.bottom
+  // Mesmo quadro usado pelo resto do app (no celular, já em escala do modelo).
+  const { width: frameWidth, height: frameHeight } = useFrameSize()
   // Tudo encolhe na mesma proporção em telas menores que o modelo (402x874),
   // para os três cartões caberem sem rolagem; em telas maiores fica no tamanho do modelo.
   const scale = Math.max(0.6, Math.min(1, frameWidth / DESIGN_WIDTH, frameHeight / DESIGN_HEIGHT))

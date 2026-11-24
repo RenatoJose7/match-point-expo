@@ -113,7 +113,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </Pressable>
 
-          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner, { height: fit(152, 26), minHeight: fit(152, 26) }]}>
+          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner, { minHeight: fit(152, 12) }]}>
             <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
             <Text style={localStyles.bannerCopy}>Acompanhe e avalie os{`\n`}próximos talentos.</Text>
             <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
@@ -184,9 +184,10 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     paddingTop: 1,
     paddingBottom: 9,
   },
+  // Altura mínima (não fixa): o texto nunca se sobrepõe em telas baixas.
   trainerBanner: {
     minHeight: 152,
-    height: 152,
+    height: 'auto',
     paddingTop: 11,
     paddingBottom: 10,
     overflow: 'hidden',
