@@ -1,11 +1,38 @@
 import React, { forwardRef } from 'react'
-import { StyleSheet, Text as NativeText, TextInput as NativeTextInput } from 'react-native'
+import { Platform, StyleSheet, Text as NativeText, TextInput as NativeTextInput } from 'react-native'
 import { useAccessibility } from './AccessibilityContext'
 
 // Text e TextInput do app: aplicam o tamanho de texto, o negrito e o alto contraste
 // escolhidos no painel de acessibilidade. Com tudo no padrão, não mudam nada.
 
 const BOLD_FAMILY = 'Poppins_600SemiBold'
+
+// O Android põe um respiro extra acima e abaixo de cada linha (includeFontPadding). Com a Poppins
+// isso deixava os textos mais altos que no modelo e cortados em caixas de altura fixa.
+const ANDROID_TEXT = { includeFontPadding: false }
+// A Griffiths tem traços longos abaixo da linha (j, ç, g): ela mantém o respiro para não ser cortada.
+const isGriffiths = (style) => StyleSheet.flatten(style)?.fontFamily === 'Griffiths'
+// Griffiths com altura de linha menor que a letra: no Android os traços de baixo (j, ç, g) eram
+// cortados. A caixa cresce para baixo e a margem negativa compensa, sem mexer no layout.
+function griffithsRoom(style) {
+  const flat = StyleSheet.flatten(style) || {}
+  const size = typeof flat.fontSize === 'number' ? flat.fontSize : 14
+  if (typeof flat.lineHeight !== 'number') return null
+  const extra = Math.ceil(size * 1.25 - flat.lineHeight)
+  if (extra <= 0) return null
+  return { paddingBottom: (flat.paddingBottom || 0) + extra, marginBottom: (flat.marginBottom || 0) - extra }
+}
+// Antes do estilo da tela (pode ser sobrescrito) e depois dele (precisa valer), respectivamente.
+const androidBase = (style) => (Platform.OS === 'android' && !isGriffiths(style) ? ANDROID_TEXT : null)
+const androidAfter = (style) => (Platform.OS === 'android' && isGriffiths(style) ? griffithsRoom(style) : null)
+
+// No Android a última letra da Griffiths (inclinada) passa da largura que o sistema reserva e era
+// cortada ("Seu perfi", "desempenh"). Um espaço fixo invisível no fim reserva a área do traço.
+const GRIFFITHS_TAIL = ' '
+function withGriffithsTail(children, style) {
+  if (Platform.OS !== 'android' || children === null || children === undefined || children === '' || !isGriffiths(style)) return children
+  return Array.isArray(children) ? [...children, GRIFFITHS_TAIL] : [children, GRIFFITHS_TAIL]
+}
 const CONTRAST_DARK = '#0b2540'
 
 function parseColor(value) {
@@ -62,12 +89,12 @@ function adaptStyle(style, accessibility, fixedSize = false) {
 
 // `fixedSize`: para textos dentro de caixas de tamanho fixo (selos numéricos, barra de navegação).
 // Eles recebem negrito e contraste, mas não crescem, para não vazar da caixa.
-export const Text = forwardRef(function AppText({ style, fixedSize = false, ...props }, ref) {
+export const Text = forwardRef(function AppText({ style, fixedSize = false, children, ...props }, ref) {
   const accessibility = useAccessibility()
-  return <NativeText ref={ref} maxFontSizeMultiplier={1} {...props} style={adaptStyle(style, accessibility, fixedSize)} />
+  return <NativeText ref={ref} maxFontSizeMultiplier={1} {...props} style={[androidBase(style), adaptStyle(style, accessibility, fixedSize), androidAfter(style)]}>{withGriffithsTail(children, style)}</NativeText>
 })
 
 export const TextInput = forwardRef(function AppTextInput({ style, ...props }, ref) {
   const accessibility = useAccessibility()
-  return <NativeTextInput ref={ref} maxFontSizeMultiplier={1} {...props} style={adaptStyle(style, accessibility)} />
+  return <NativeTextInput ref={ref} maxFontSizeMultiplier={1} {...props} style={[androidBase(style), adaptStyle(style, accessibility)]} />
 })

@@ -5,9 +5,9 @@ import { Feather, Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { Header } from '../../components/Header'
 import { assets } from '../../theme/assets'
-import { BLUE, GREEN } from '../../theme/colors'
+import { ABSOLUTE_FILL, BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
-import { withGriffithsWeight } from '../../theme/typography'
+import { fitValue, isNumericValue, withGriffithsWeight } from '../../theme/typography'
 import { computeMatchScore } from '../../domain/matchScore.js'
 import { useFrameSize } from '../../theme/layout'
 
@@ -17,6 +17,10 @@ export function AthleteHomeScreen({ go, repositories, session }) {
   const frame = useFrameSize()
   const squeeze = Math.min(1, Math.max(0, 874 - frame.height) / 40)
   const fit = (value, reduction) => Math.round(value - reduction * squeeze)
+  // Os dois cartões do topo cabem lado a lado em qualquer largura (antes o segundo ficava cortado).
+  const topCardsWidth = frame.width - 32 - 9
+  const profileCardWidth = Math.round(Math.min(150, topCardsWidth * 0.37))
+  const performanceCardWidth = topCardsWidth - profileCardWidth
   const [profile, setProfile] = useState(null)
   const [applications, setApplications] = useState([])
   const [opportunity, setOpportunity] = useState(null)
@@ -74,9 +78,13 @@ export function AthleteHomeScreen({ go, repositories, session }) {
   const rejectedCount = applications.filter((item) => item.status === 'rejeitada').length
 
   const hasRanking = Boolean(profile?.ranking)
-  const rankingDisplay = hasRanking ? `#${profile.ranking}` : (profile?.perfilCompleto ? '#24' : '—')
+  // O ranking pode ser digitado como frase ("Não possuo ranking"): aí não leva # nem "de 146".
+  const numericRanking = hasRanking && isNumericValue(String(profile.ranking).replace(/[º°]/g, ''))
+  const rankingDisplay = hasRanking
+    ? (numericRanking ? `#${String(profile.ranking).replace(/[#º°]/g, '').trim()}` : String(profile.ranking).trim())
+    : (profile?.perfilCompleto ? '#24' : '—')
   const rankingTotal = hasRanking
-    ? `de ${profile.totalRanking || 146}`
+    ? (numericRanking ? `de ${profile.totalRanking || 146}` : '')
     : (profile?.perfilCompleto ? 'de 146' : '')
 
   const vitorias = profile?.vitorias ?? (profile?.perfilCompleto ? 3 : 0)
@@ -136,7 +144,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
             snapToAlignment="start"
           >
             {/* Card 1: Seu desempenho */}
-            <View style={[localStyles.whiteCard, localStyles.performanceCard]}>
+            <View style={[localStyles.whiteCard, localStyles.performanceCard, { width: performanceCardWidth }]}>
               <View style={localStyles.cardHeading}>
                 <View style={localStyles.cardIconCircle}>
                   <View style={localStyles.barChartIcon}>
@@ -145,42 +153,39 @@ export function AthleteHomeScreen({ go, repositories, session }) {
                     <View style={[localStyles.barItem, { height: 9 }]} />
                   </View>
                 </View>
-                <Text numberOfLines={1} style={localStyles.cardScript}>Seu desempenho</Text>
+                <Text style={[localStyles.cardScript, localStyles.topCardScript]}>Seu desempenho</Text>
               </View>
 
               <View style={localStyles.performanceBody}>
                 <Text style={localStyles.rankingLabel}>Ranking Regional</Text>
                 <View style={localStyles.rankingRow}>
-                  <Text style={localStyles.rankingValue}>{rankingDisplay}</Text>
+                  <Text numberOfLines={2} style={[localStyles.rankingValue, fitValue(rankingDisplay, 34, { fits: 5, textSize: 16 })]}>{rankingDisplay}</Text>
                   {rankingTotal ? <Text style={localStyles.rankingTotal}>{rankingTotal}</Text> : null}
                 </View>
 
                 <View style={localStyles.statsRow}>
                   <View style={localStyles.statCol}>
                     <Text style={localStyles.statLabel}>Vitórias</Text>
-                    <Text style={localStyles.statNumber}>{vitorias}</Text>
+                    <Text numberOfLines={2} style={[localStyles.statNumber, fitValue(vitorias, 24, { fits: 3, textSize: 13 })]}>{vitorias}</Text>
                   </View>
                   <View style={localStyles.statCol}>
                     <Text style={localStyles.statLabel}>Derrotas</Text>
-                    <Text style={localStyles.statNumber}>{derrotas}</Text>
+                    <Text numberOfLines={2} style={[localStyles.statNumber, fitValue(derrotas, 24, { fits: 3, textSize: 13 })]}>{derrotas}</Text>
                   </View>
                 </View>
               </View>
             </View>
 
             {/* Card 2: Seu perfil */}
-            <View style={[localStyles.whiteCard, localStyles.profileCard]}>
+            <View style={[localStyles.whiteCard, localStyles.profileCard, { width: profileCardWidth }]}>
               <View style={localStyles.cardHeading}>
-                <View style={localStyles.cardIconCircle}>
-                  <Ionicons name="person" size={17} color={BLUE} />
-                </View>
-                <Text numberOfLines={1} style={localStyles.cardScript}>Seu perfil</Text>
+                <Text style={[localStyles.cardScript, localStyles.topCardScript]}>Seu perfil</Text>
               </View>
 
               <View style={localStyles.gaugeWrapper}>
                 <View style={localStyles.gaugeRing} />
                 <View style={localStyles.gaugeCenter}>
-                  <Text style={localStyles.gaugeValue}>{displayedCompletion}</Text>
+                  <Text numberOfLines={1} style={[localStyles.gaugeValue, fitValue(displayedCompletion, 20, { fits: 3 })]}>{displayedCompletion}</Text>
                   <Text style={localStyles.gaugeLabel}>completo</Text>
                 </View>
               </View>
@@ -199,7 +204,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
 
           <View style={localStyles.matchBadge}>
             <Text fixedSize style={localStyles.matchBadgeLabel}>Match{'\n'}Score</Text>
-            <Text fixedSize style={localStyles.matchBadgeValue}>{displayedScore}</Text>
+            <Text fixedSize numberOfLines={1} style={[localStyles.matchBadgeValue, fitValue(displayedScore, 31, { fits: 3 })]}>{displayedScore}</Text>
           </View>
 
           <View style={localStyles.oppRow}>
@@ -297,6 +302,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     paddingBottom: 94,
     gap: 9,
   },
+  topCardScript: { fontSize: 20, lineHeight: 26, paddingRight: 14 },
   carouselContainer: {
     marginHorizontal: -16,
   },
@@ -431,7 +437,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     transform: [{ rotate: '-35deg' }],
   },
   gaugeCenter: {
-    ...StyleSheet.absoluteFillObject,
+    ...ABSOLUTE_FILL,
     alignItems: 'center',
     justifyContent: 'center',
   },

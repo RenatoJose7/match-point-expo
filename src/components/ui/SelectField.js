@@ -3,6 +3,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Text, TextInput } from '../accessibility/AppText'
 import { getFrameWidth } from '../../theme/layout'
+import { ABSOLUTE_FILL } from '../../theme/colors'
 
 const BLUE = '#10579b'
 
@@ -104,7 +105,7 @@ const styles = StyleSheet.create({
   triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 16, marginRight: 8 },
   placeholder: { color: '#6a7d86' },
   backdrop: { flex: 1, alignSelf: 'center', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
-  backdropDismiss: { ...StyleSheet.absoluteFillObject },
+  backdropDismiss: { ...ABSOLUTE_FILL },
   menu: { width: '100%', maxHeight: '70%', backgroundColor: '#ffffff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 28 },
   menuHeader: { alignItems: 'center', borderBottomWidth: 1, borderBottomColor: '#e1e8eb', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 20, paddingVertical: 17 },
   menuTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },

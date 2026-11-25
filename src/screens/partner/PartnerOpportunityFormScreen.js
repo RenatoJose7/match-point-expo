@@ -236,11 +236,12 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
               <FormField label="Localização" value={form.localizacao} onChangeText={(value) => change('localizacao', value)} options={SELECT_OPTIONS.locais} placeholder="Selecione a cidade" required />
               <FormField label="Descrição" value={form.descricao} onChangeText={(value) => change('descricao', value)} placeholder="Descreva a oportunidade, o processo e o que será oferecido" multiline required />
 
-              <View style={localStyles.twoColumns}>
-                <View style={localStyles.column}>
+              {/* Um abaixo do outro: lado a lado, o texto do benefício ficava cortado no celular. */}
+              <View>
+                <View>
                   <FormField label="Instituição" value={form.instituicao} onChangeText={(value) => change('instituicao', value)} placeholder="Nome da instituição" />
                 </View>
-                <View style={localStyles.column}>
+                <View>
                   <FormField label="Benefício" value={form.beneficio} onChangeText={(value) => change('beneficio', value)} options={SELECT_OPTIONS.beneficios} placeholder="Selecione o benefício" />
                 </View>
               </View>

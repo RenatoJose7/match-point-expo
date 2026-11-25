@@ -6,6 +6,8 @@ import { BottomNav } from '../components/navigation/BottomNav'
 import { computeMatchScore, evaluateMatchEligibility } from '../domain/matchScore.js'
 import { assets } from '../theme/assets'
 import { useReduceMotion } from '../components/accessibility/AccessibilityContext'
+import { fitValue } from '../theme/typography'
+import { ABSOLUTE_FILL } from '../theme/colors'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -161,7 +163,7 @@ function ScoreRing({ animation, pulse, fraction, percent }) {
           <Animated.View style={[styles.halfRing, { opacity: leftOpacity, transform: [{ rotate: leftRotation }] }]} />
         </View>
         <Animated.View style={[styles.ringCenter, { transform: [{ scale: popScale }] }]}>
-          <Text style={styles.percent}>{percent}%</Text>
+          <Text numberOfLines={1} style={[styles.percent, fitValue(`${percent}%`, 60, { fits: 3, lineRatio: 1.13 })]}>{percent}%</Text>
         </Animated.View>
       </Animated.View>
     </View>
@@ -223,8 +225,8 @@ const styles = StyleSheet.create({
   leftClip: { left: 0 },
   halfRing: { ...halfRingBase, left: 0 },
   rightRing: { left: -RING_SIZE / 2 },
-  ringCenter: { ...StyleSheet.absoluteFillObject, alignItems: 'center', justifyContent: 'center' },
-  percent: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 60, lineHeight: 68, letterSpacing: -2 },
+  ringCenter: { ...ABSOLUTE_FILL, alignItems: 'center', justifyContent: 'center' },
+  percent: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 60, lineHeight: 68, letterSpacing: -2, textAlign: 'center', includeFontPadding: false, textAlignVertical: 'center' },
   compatibility: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, lineHeight: 20, textAlign: 'center', marginTop: 4 },
   notice: { color: '#5d7590', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 17, textAlign: 'center', marginTop: 6, paddingHorizontal: 12 },
   sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 24, marginTop: 24, marginBottom: 14 },

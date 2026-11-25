@@ -9,6 +9,7 @@ import { DeleteAccountSection } from '../../components/profile/DeleteAccountSect
 import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { BLUE } from '../../theme/colors'
+import { fitValue, isNumericValue } from '../../theme/typography'
 
 const fields = [
   { key: 'modalidade', label: 'Modalidade', options: SELECT_OPTIONS.modalidades, required: true },
@@ -63,7 +64,14 @@ function calculateAge(value) {
 
 function displayValue(value, suffix = '', emptyText = 'Não informado') {
   if (value === null || value === undefined || String(value).trim() === '') return emptyText
-  return `${value}${suffix}`
+  // Sufixos como "º" e " torneios" só fazem sentido em números ("Ainda não participei" fica como está).
+  const text = String(value).trim()
+  return isNumericValue(text) ? `${text}${suffix}` : text
+}
+
+// Número grande quando é número; frase em tamanho de leitura, sem sair do cartão.
+function StatValue({ value }) {
+  return <Text numberOfLines={3} style={[localStyles.statValue, { textAlign: 'center' }, fitValue(value, 28, { fits: 5, textSize: 15 })]}>{value}</Text>
 }
 
 export function AthleteProfileScreen(props) {
@@ -293,15 +301,15 @@ export function AthleteProfileScreen(props) {
             <View style={localStyles.statsGrid}>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Ranking MatchPoint</Text>
-              <Text style={localStyles.statValue}>{displayValue(profile?.ranking, 'º', '—')}</Text>
+              <StatValue value={displayValue(profile?.ranking, 'º', '—')} />
             </View>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Torneios disputados</Text>
-              <Text style={localStyles.statValue}>{displayValue(profile?.torneiosDisputados, '', '—')}</Text>
+              <StatValue value={displayValue(profile?.torneiosDisputados, '', '—')} />
             </View>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Títulos</Text>
-              <Text style={localStyles.statValue}>{displayValue(profile?.titulos, '', '—')}</Text>
+              <StatValue value={displayValue(profile?.titulos, '', '—')} />
             </View>
             </View>
 

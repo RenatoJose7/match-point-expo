@@ -114,7 +114,7 @@ const localStyles = StyleSheet.create({
   screen: { overflow: 'hidden' },
   mark: { top: 18, width: 51, height: 56 },
   heading: { fontSize: 48, lineHeight: 54 },
-  subtitle: { fontSize: 16, lineHeight: 17 },
+  subtitle: { fontSize: 14, lineHeight: 19, marginTop: 4 },
   scroll: { flex: 1 },
   list: { paddingHorizontal: 22, paddingTop: 28, paddingBottom: 40, gap: 14 },
   notice: { minHeight: 122, paddingHorizontal: 14, paddingVertical: 14, borderRadius: 14, backgroundColor: '#fff', justifyContent: 'center' },

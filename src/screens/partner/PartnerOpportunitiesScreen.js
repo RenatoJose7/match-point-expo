@@ -204,6 +204,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         </ScrollView>
       )}
 
+      <View pointerEvents="none" style={styles.createBackdrop} />
       <Pressable accessibilityRole="button" accessibilityLabel="Criar nova oportunidade" onPress={() => go('partnerOpportunityForm')} style={styles.createButton}><Ionicons name="add-circle" size={23} color="#fff" /><Text style={styles.createText}>Criar nova oportunidade</Text></Pressable>
       <BottomNav go={go} role={role} active="opportunities" />
     </View>
@@ -239,6 +240,8 @@ const styles = StyleSheet.create(withGriffithsWeight({
   cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20 },
   metaRow: { minHeight: 14, flexDirection: 'row', alignItems: 'center', gap: 3 },
   meta: { flex: 1, color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  // Faixa atrás do botão fixo: o cartão que rola some por baixo dela, sem aparecer cortado.
+  createBackdrop: { position: 'absolute', left: 0, right: 0, bottom: 72, height: 66, backgroundColor: '#f1f3f3', zIndex: 3 },
   createButton: { position: 'absolute', left: 20, right: 20, bottom: 83, height: 45, borderRadius: 23, backgroundColor: BLUE, zIndex: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
   createText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
   state: { flex: 1, justifyContent: 'center', padding: 22, gap: 14 },

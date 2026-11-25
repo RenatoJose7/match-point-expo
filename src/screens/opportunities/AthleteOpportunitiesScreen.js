@@ -7,7 +7,7 @@ import { ListHeader } from '../../components/ListHeader'
 import { BLUE } from '../../theme/colors'
 import { getOpportunityImage } from '../../theme/opportunityImages'
 import { styles } from '../../theme/styles'
-import { withGriffithsWeight } from '../../theme/typography'
+import { fitValue, withGriffithsWeight } from '../../theme/typography'
 import { computeMatchScore } from '../../domain/matchScore.js'
 
 const statusFilters = [
@@ -199,7 +199,7 @@ export function AthleteOpportunitiesScreen(props) {
             </View>
             <View style={localStyles.matchBadge}>
               <Text fixedSize style={localStyles.matchBadgeLabel}>Match{`\n`}Score</Text>
-              <Text fixedSize style={localStyles.matchBadgeValue}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
+              <Text fixedSize numberOfLines={1} style={[localStyles.matchBadgeValue, fitValue(`${opportunity.matchScore ?? '—'}%`, 30, { fits: 3 })]}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
             </View>
           </Pressable>
         ))}

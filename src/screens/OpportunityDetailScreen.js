@@ -6,6 +6,7 @@ import { BottomNav } from '../components/navigation/BottomNav'
 import { assets } from '../theme/assets'
 import { getOpportunityImage } from '../theme/opportunityImages'
 import { documentLabel } from '../components/ui/documentLabels'
+import { fitValue } from '../theme/typography'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -62,7 +63,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
                 <Text numberOfLines={2} style={styles.title}>{opportunity.titulo}</Text>
                 <Text style={styles.subtitle}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
               </View>
-              <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{score}%</Text></View>
+              <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize numberOfLines={1} style={[styles.scoreValue, fitValue(`${score}%`, 30, { fits: 3 })]}>{score}%</Text></View>
             </View>
             <View style={styles.institution}>
               <Ionicons name="home" size={28} color={BLUE} />
@@ -78,6 +79,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
           </View>
         </> : null}
       </ScrollView>
+      {!loading && opportunity ? <View pointerEvents="none" style={styles.applyBackdrop} /> : null}
       {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityLabel="Quero me candidatar" onPress={() => go('applicationInfo', { oportunidadeId: opportunityId })} style={styles.applyButton}><Text style={styles.applyText}>Quero me candidatar</Text></Pressable> : null}
       <BottomNav go={go} active="opportunities" />
     </View>
@@ -122,6 +124,8 @@ const styles = StyleSheet.create({
   factValue: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, lineHeight: 18 },
   requirements: { paddingHorizontal: 19, paddingTop: 18, gap: 4 },
   deadline: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, marginTop: 12 },
+  // Faixa branca atrás do botão fixo: o conteúdo que rola some por baixo dela, sem aparecer cortado.
+  applyBackdrop: { position: 'absolute', left: 0, right: 0, bottom: 72, height: 108, backgroundColor: '#fff', zIndex: 2 },
   applyButton: { position: 'absolute', left: 12, right: 12, bottom: 110, height: 54, borderRadius: 27, backgroundColor: LIME, alignItems: 'center', justifyContent: 'center', zIndex: 3 },
   applyText: { color: '#0b5b26', fontFamily: 'Poppins_500Medium', fontSize: 15 },
   state: { padding: 28, alignItems: 'center', gap: 12 },

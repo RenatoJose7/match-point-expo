@@ -5,7 +5,7 @@ import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton'
 import { Button } from '../../components/ui/Button'
 import { BackButton } from '../../components/ui/BackButton'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
-import { BLUE } from '../../theme/colors'
+import { ABSOLUTE_FILL, BLUE } from '../../theme/colors'
 import { assets } from '../../theme/assets'
 import { USER_TYPES, calculateAge, isMinor } from '../../domain/contracts.js'
 import { withGriffithsOverhang } from '../../theme/typography'
@@ -561,12 +561,12 @@ const localStyles = StyleSheet.create(withGriffithsOverhang({
     backgroundColor: BLUE,
   },
   background: {
-    ...StyleSheet.absoluteFillObject,
+    ...ABSOLUTE_FILL,
     width: '100%',
     height: '100%',
   },
   dim: {
-    ...StyleSheet.absoluteFillObject,
+    ...ABSOLUTE_FILL,
     backgroundColor: 'rgba(0, 30, 5, .08)',
   },
   safe: {
