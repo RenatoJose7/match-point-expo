@@ -188,7 +188,7 @@ export const demoOpportunities = [
     descricao: 'Competicao regional para atletas em desenvolvimento.',
     modalidade: 'Tenis',
     categoria: 'Universitario',
-    localizacao: 'Sao Paulo - SP',
+    localizacao: 'São Paulo - SP',
     beneficio: 'Participacao no circuito',
     requisitos: ['Inscricao ativa no torneio'],
     criteriosElegibilidade: [

@@ -37,6 +37,7 @@ import {
 } from '../../domain/contracts'
 import { getFirebaseAuth } from '../../services/firebase/auth'
 import { getFirebaseDatabase, getFirebaseStorage } from '../../services/firebase/config'
+import { compressProfilePhoto, isInlinePhoto, MAX_PHOTO_DATA_URI_LENGTH } from '../../services/profilePhoto'
 
 const USERS_COLLECTION = 'usuarios'
 const ATHLETES_COLLECTION = 'atletas'
@@ -84,6 +85,10 @@ function mapFirebaseError(error) {
     }
 
     return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível concluir a autenticação.', { firebaseCode: code })
+  }
+
+  if (code === 'invalid-argument') {
+    return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Alguns dados não puderam ser salvos. Revise os campos e tente novamente.', { firebaseCode: code })
   }
 
   if (code === 'permission-denied') {
@@ -623,7 +628,7 @@ export function createFirebaseRepositories() {
         if (profileReference) batch.delete(profileReference)
         batch.delete(doc(database, USERS_COLLECTION, firebaseUser.uid))
 
-        if (userResult.data.fotoUrl) {
+        if (userResult.data.fotoUrl && !isInlinePhoto(userResult.data.fotoUrl)) {
           try {
             await deleteObject(ref(storage, `perfis/${firebaseUser.uid}/foto-perfil`))
           } catch (photoError) {
@@ -1030,20 +1035,19 @@ export function createFirebaseRepositories() {
       }
 
       try {
-        const file = source.uri
-          ? await (await fetch(source.uri)).blob()
-          : source
-        const contentType = source.mimeType ?? source.type ?? file.type ?? 'image/jpeg'
+        const contentType = source.mimeType ?? source.type ?? 'image/jpeg'
         if (!contentType.startsWith('image/')) {
           return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O arquivo selecionado precisa ser uma imagem.')
         }
-        if (file.size > 5 * 1024 * 1024) {
-          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'A foto do perfil deve ter no máximo 5 MB.')
+        if (!source.uri) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível ler a imagem selecionada.')
         }
-
-        const storageReference = ref(storage, `perfis/${auth.currentUser.uid}/foto-perfil`)
-        await uploadBytes(storageReference, file, { contentType })
-        return success({ fotoUrl: await getDownloadURL(storageReference) })
+        // Sem Cloud Storage (plano gratuito): a foto reduzida vai no próprio registro do usuário.
+        const fotoUrl = await compressProfilePhoto(source.uri)
+        if (fotoUrl.length > MAX_PHOTO_DATA_URI_LENGTH) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível reduzir esta imagem. Escolha outra foto.')
+        }
+        return success({ fotoUrl })
       } catch (error) {
         return mapFirebaseError(error)
       }

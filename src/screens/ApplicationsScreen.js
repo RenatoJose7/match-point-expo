@@ -6,6 +6,7 @@ import { BottomNav } from '../components/navigation/BottomNav'
 import { assets } from '../theme/assets'
 import { getOpportunityImage } from '../theme/opportunityImages'
 import { withGriffithsWeight } from '../theme/typography'
+import { displayStatus, loadAthleteApplications, sampleExtra } from './applications/athleteApplications'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -14,33 +15,6 @@ const filters = [
   { id: 'tecnicos', label: 'Técnicos' },
   { id: 'bolsas', label: 'Bolsas' },
 ]
-
-const sampleExtra = {
-  id: 'demonstracao-apoio-financeiro',
-  status: 'nao_selecionado',
-  demo: true,
-  opportunity: {
-    titulo: 'Apoio Financeiro',
-    modalidade: 'Atletas Universitários',
-    categoria: 'Instituto Atleta do Futuro',
-  },
-  criadoEm: '2026-08-05T10:00:00.000Z',
-  atualizadoEm: '2026-08-05T10:00:00.000Z',
-}
-
-const statusText = {
-  inscrita: 'Inscrita',
-  documentos_enviados: 'Docs enviados',
-  em_analise: 'Em análise',
-  aprovada: 'Aprovada',
-  rejeitada: 'Não selecionado',
-  nao_selecionado: 'Não selecionado',
-}
-
-function displayStatus(application, index) {
-  if (application.demo) return ['Em análise', 'Em análise', 'Analisada', 'Não selecionado'][index] || 'Em análise'
-  return statusText[application.status] || application.status || 'Em análise'
-}
 
 function isScholarship(application) {
   const text = `${application.opportunity?.titulo || ''} ${application.opportunity?.beneficio || ''}`.toLocaleLowerCase('pt-BR')
@@ -91,36 +65,7 @@ export function ApplicationsScreen({ go, back, repositories, session }) {
       setLoading(true)
       setError('')
       try {
-        let source = repositories
-        let athlete = await source.users.obterPerfilAtletaPorUsuario(session?.id)
-        if ((!athlete.ok || !athlete.data) && repositories.demo) {
-          source = repositories.demo
-          athlete = await source.users.obterPerfilAtletaPorUsuario('usuario-atleta-adulto')
-        }
-        if (!athlete.ok) throw new Error(athlete.mensagem || 'Não foi possível identificar o atleta.')
-        let result = await source.applications.listarCandidaturasDoAtleta(athlete.data.id)
-        if ((result.ok && result.data.length === 0) && repositories.demo) {
-          source = repositories.demo
-          result = await source.applications.listarCandidaturasDoAtleta('atleta-adulto')
-        }
-        if (!result.ok) throw new Error(result.mensagem || 'Não foi possível carregar suas candidaturas.')
-        const resolved = await Promise.all(result.data.map(async (application) => {
-          const opportunity = await source.opportunities.obterOportunidade(application.oportunidadeId)
-          return { ...application, opportunity: opportunity.ok ? opportunity.data : null, demo: source === repositories.demo }
-        }))
-        let completeList = resolved
-        if (repositories.demo && source !== repositories.demo) {
-          const demoResult = await repositories.demo.applications.listarCandidaturasDoAtleta('atleta-adulto')
-          if (demoResult.ok) {
-            const demoResolved = await Promise.all(demoResult.data.map(async (application) => {
-              const opportunity = await repositories.demo.opportunities.obterOportunidade(application.oportunidadeId)
-              return { ...application, opportunity: opportunity.ok ? opportunity.data : null, demo: true }
-            }))
-            const existingOpportunities = new Set(resolved.map((item) => item.oportunidadeId))
-            completeList = [...resolved, ...demoResolved.filter((item) => !existingOpportunities.has(item.oportunidadeId))]
-          }
-        }
-        if (completeList.length < 4) completeList = [...completeList, sampleExtra]
+        const completeList = await loadAthleteApplications(repositories, session?.id)
         if (active) setApplications(completeList)
       } catch (loadError) {
         if (active) setError(loadError.message || 'Não foi possível carregar suas candidaturas.')

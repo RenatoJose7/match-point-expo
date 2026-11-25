@@ -42,6 +42,18 @@ const predefinedNotifications = [
   },
 ]
 
+// Exemplos para quem publica oportunidades (treinador e instituição): os do atleta falam de
+// candidaturas próprias e não fariam sentido para esses perfis.
+const partnerPredefinedNotifications = [
+  { id: 'demo-new-candidate', titulo: 'Novo candidato', mensagem: 'Um atleta se candidatou à oportunidade “Bolsa de Estudos”.', tempo: 'Há 2 horas', lida: false, demo: true },
+  { id: 'demo-documents', titulo: 'Documentos recebidos', mensagem: 'Um candidato enviou os documentos da “Avaliação Técnica”.', tempo: 'Há 5 horas', lida: false, demo: true },
+  { id: 'demo-deadline', titulo: 'Prazo terminando', mensagem: 'As inscrições do “Campeonato” terminam em 3 dias.', tempo: 'Ontem', lida: true, demo: true },
+]
+
+function predefinedFor(session) {
+  return ['treinador', 'instituicao'].includes(session?.tipo) ? partnerPredefinedNotifications : predefinedNotifications
+}
+
 function formatDate(value) {
   const date = new Date(value)
   return Number.isNaN(date.getTime()) ? 'Agora' : date.toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
@@ -62,9 +74,9 @@ export function NotificationsScreen({ back, repositories, session }) {
       try {
         const result = await repositories.notifications.listarNotificacoesDoUsuario(session?.id)
         if (!result.ok) throw new Error(result.mensagem || 'Não foi possível carregar suas notificações.')
-        if (active) setNotifications(result.data.length > 0 ? result.data : predefinedNotifications)
+        if (active) setNotifications(result.data.length > 0 ? result.data : predefinedFor(session))
       } catch (loadError) {
-        if (active) setNotifications(predefinedNotifications)
+        if (active) setNotifications(predefinedFor(session))
       } finally {
         if (active) setLoading(false)
       }

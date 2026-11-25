@@ -10,6 +10,7 @@ import { BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 import { useHeightFit } from '../../theme/layout'
 import { withGriffithsWeight } from '../../theme/typography'
+import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
 
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
   const fit = useHeightFit()
@@ -25,21 +26,11 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
     Promise.resolve().then(async () => {
       const partnerResult = await repositories.users.obterPerfilParceiroPorUsuario(session?.id)
       if (!partnerResult.ok) return
-      const opportunitiesResult = await repositories.opportunities.listarOportunidadesDoParceiro(partnerResult.data.id)
-      if (!opportunitiesResult.ok || !active) return
-      const opportunities = opportunitiesResult.data
-      const candidates = await Promise.all(opportunities.map(async (item) => repositories.applications.listarCandidatosDaOportunidade(item.id)))
-      if (!active) return
+      // Mesma lista da tela Oportunidades (com os exemplos): os números sempre batem.
+      const data = await loadPartnerOpportunities(repositories, session).catch(() => null)
+      if (!data || !active) return
       setDisplayName(partnerResult.data.nomeExibicao || name)
-      const candidateLists = candidates.map((result) => (result.ok ? result.data : []))
-      setSummary({
-        activeCount: opportunities.filter((item) => item.status === 'ativa').length,
-        candidateCount: candidateLists.reduce((total, list) => total + list.length, 0),
-        // Candidaturas que ainda esperam uma decisão do treinador ou da instituição.
-        reviewCount: candidateLists.flat().filter((item) => ['inscrita', 'documentos_enviados', 'em_analise'].includes(item.status ?? item.candidatura?.status)).length,
-        // Oportunidades ativas que ainda não receberam nenhum candidato.
-        waitingCount: opportunities.filter((item, index) => item.status === 'ativa' && candidateLists[index].length === 0).length,
-      })
+      setSummary(summarizePartnerOpportunities(data))
     })
     return () => { active = false }
   }, [repositories, session?.id, name])
@@ -101,14 +92,17 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
               </View>
               <View style={styles.trainerCandidatePreview}>
                 <View style={styles.trainerCandidateFaces}>
-                  {[assets.coco, assets.mirra, assets.ariana].map((photo, index) => (
+                  {/* Quantas fotos aparecem e o "+N" vêm do total de candidatos, para nunca contradizer o número. */}
+                  {[assets.coco, assets.mirra, assets.ariana].slice(0, Math.min(3, summary.candidateCount ?? 0)).map((photo, index) => (
                     <Image key={index} source={photo} style={[styles.trainerCandidateFace, index > 0 && styles.trainerCandidateFaceOverlap]} />
                   ))}
-                  <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
-                    <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount}</Text>
-                  </View>
+                  {(summary.candidateCount ?? 0) > 3 ? (
+                    <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
+                      <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount - 3}</Text>
+                    </View>
+                  ) : null}
                 </View>
-                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>Novos candidatos aguardando análise</Text>
+                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>{(summary.candidateCount ?? 0) > 0 ? 'Novos candidatos aguardando análise' : 'Nenhum candidato ainda'}</Text>
               </View>
             </View>
           </Pressable>

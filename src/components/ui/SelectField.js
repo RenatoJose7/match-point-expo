@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { Ionicons } from '@expo/vector-icons'
-import { Modal, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native'
 import { Text, TextInput } from '../accessibility/AppText'
 import { getFrameWidth } from '../../theme/layout'
 import { ABSOLUTE_FILL } from '../../theme/colors'
@@ -10,7 +10,8 @@ const BLUE = '#10579b'
 export const SELECT_OPTIONS = Object.freeze({
   modalidades: ['Tênis', 'Beach Tennis', 'Tênis de Mesa', 'Padel', 'Pickleball'],
   categorias: ['Sub-12', 'Sub-14', 'Sub-16', 'Sub-18', 'Adulto', '35+'],
-  locais: ['Rio Branco - AC', 'Maceió - AL', 'Macapá - AP', 'Manaus - AM', 'Salvador - BA', 'Fortaleza - CE', 'Brasília - DF', 'Vitória - ES', 'Goiânia - GO', 'São Luís - MA', 'Cuiabá - MT', 'Campo Grande - MS', 'Belo Horizonte - MG', 'Belém - PA', 'João Pessoa - PB', 'Curitiba - PR', 'Recife - PE', 'Teresina - PI', 'Rio de Janeiro - RJ', 'Natal - RN', 'Porto Alegre - RS', 'Porto Velho - RO', 'Boa Vista - RR', 'Florianópolis - SC', 'São Paulo - SP', 'Aracaju - SE', 'Palmas - TO'],
+  // Cidades da região do projeto (SENAI Suzano) primeiro: as oportunidades do TCC são nelas.
+  locais: ['Suzano - SP', 'Mogi das Cruzes - SP', 'Itaquaquecetuba - SP', 'Poá - SP', 'Ferraz de Vasconcelos - SP', 'Guarulhos - SP', 'Campinas - SP', 'Rio Branco - AC', 'Maceió - AL', 'Macapá - AP', 'Manaus - AM', 'Salvador - BA', 'Fortaleza - CE', 'Brasília - DF', 'Vitória - ES', 'Goiânia - GO', 'São Luís - MA', 'Cuiabá - MT', 'Campo Grande - MS', 'Belo Horizonte - MG', 'Belém - PA', 'João Pessoa - PB', 'Curitiba - PR', 'Recife - PE', 'Teresina - PI', 'Rio de Janeiro - RJ', 'Natal - RN', 'Porto Alegre - RS', 'Porto Velho - RO', 'Boa Vista - RR', 'Florianópolis - SC', 'São Paulo - SP', 'Aracaju - SE', 'Palmas - TO'],
   beneficios: ['Bolsa integral', 'Bolsa parcial', 'Ajuda de custo', 'Treinamentos', 'Equipamentos', 'Hospedagem', 'Transporte'],
   tipoInstituicao: ['Clube esportivo', 'Academia', 'Escola', 'Universidade', 'Empresa', 'Instituto / ONG'],
   parentescos: ['Mãe', 'Pai', 'Avó', 'Avô', 'Irmã / Irmão', 'Tutor(a) legal'],
@@ -54,6 +55,8 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
       </Pressable>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={close}>
+        {/* Sobe com o teclado: antes a busca escondia as opções encontradas atrás dele. */}
+        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.keyboardArea}>
         <View style={[styles.backdrop, { width: appFrameWidth }]}>
           <Pressable accessibilityRole="button" accessibilityLabel="Fechar opções" onPress={close} style={styles.backdropDismiss} />
           <View accessibilityRole="menu" style={styles.menu}>
@@ -71,11 +74,7 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
               placeholderTextColor="#6a7d86"
               style={styles.searchInput}
             />
-            <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false}>
-              {canUseTypedValue ? <Pressable accessibilityRole="button" onPress={() => { onChange(typedValue); close() }} style={styles.customOption}>
-                <Ionicons name="add-circle-outline" size={18} color={BLUE} />
-                <Text style={styles.customOptionText}>Usar “{typedValue}”</Text>
-              </Pressable> : null}
+            <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {filteredOptions.map((option) => {
                 const selected = option === value
                 return (
@@ -91,10 +90,15 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
                   </Pressable>
                 )
               })}
+              {canUseTypedValue ? <Pressable accessibilityRole="button" onPress={() => { onChange(typedValue); close() }} style={styles.customOption}>
+                <Ionicons name="add-circle-outline" size={18} color={BLUE} />
+                <Text style={styles.customOptionText}>Usar “{typedValue}”</Text>
+              </Pressable> : null}
               {filteredOptions.length === 0 && !canUseTypedValue ? <Text style={styles.empty}>Nenhuma opção encontrada.</Text> : null}
             </ScrollView>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </>
   )
@@ -104,6 +108,7 @@ const styles = StyleSheet.create({
   trigger: { minHeight: 48, borderWidth: 1, borderColor: '#c8d5d8', borderRadius: 8, backgroundColor: '#ffffff', alignItems: 'center', flexDirection: 'row', justifyContent: 'space-between', paddingHorizontal: 12, paddingVertical: 10 },
   triggerText: { color: '#17313c', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 16, marginRight: 8 },
   placeholder: { color: '#6a7d86' },
+  keyboardArea: { flex: 1 },
   backdrop: { flex: 1, alignSelf: 'center', backgroundColor: 'rgba(10, 31, 54, .45)', justifyContent: 'flex-end' },
   backdropDismiss: { ...ABSOLUTE_FILL },
   menu: { width: '100%', maxHeight: '70%', backgroundColor: '#ffffff', borderTopLeftRadius: 22, borderTopRightRadius: 22, paddingBottom: 28 },

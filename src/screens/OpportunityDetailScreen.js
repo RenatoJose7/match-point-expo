@@ -7,16 +7,18 @@ import { assets } from '../theme/assets'
 import { getOpportunityImage } from '../theme/opportunityImages'
 import { documentLabel } from '../components/ui/documentLabels'
 import { fitValue } from '../theme/typography'
+import { computeMatchScore } from '../domain/matchScore.js'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
-export function OpportunityDetailScreen({ go, back, repositories, routeParams = {} }) {
+export function OpportunityDetailScreen({ go, back, repositories, session, routeParams = {} }) {
   const opportunityId = routeParams.opportunityId
   const [opportunity, setOpportunity] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retryToken, setRetryToken] = useState(0)
+  const [computedScore, setComputedScore] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -29,6 +31,12 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
         if (!result.ok && repositories.demo) result = await repositories.demo.opportunities.obterOportunidade(opportunityId)
         if (!result.ok) throw new Error(result.mensagem || 'Oportunidade não encontrada.')
         if (active) setOpportunity(result.data)
+        // Sem o valor da tela anterior, calcula o Match Score com o perfil de quem está logado
+        // (mesma regra da lista), em vez de mostrar um número fixo.
+        if (routeParams.matchScore === undefined && session?.id) {
+          const athlete = await repositories.users.obterPerfilAtletaPorUsuario(session.id)
+          if (active && athlete.ok) setComputedScore(computeMatchScore(athlete.data, result.data).percentualTotal)
+        }
       } catch (loadError) {
         if (active) setError(loadError.message || 'Não foi possível carregar a oportunidade.')
       } finally {
@@ -44,7 +52,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
     ['briefcase-outline', 'Benefício', opportunity.beneficio || 'Não informado'],
     ['location-outline', 'Localização', opportunity.localizacao || 'Não informada'],
   ] : []
-  const score = routeParams.matchScore ?? 100
+  const score = routeParams.matchScore ?? computedScore
 
   return (
     <View style={styles.page}>
@@ -63,11 +71,11 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
                 <Text numberOfLines={2} style={styles.title}>{opportunity.titulo}</Text>
                 <Text style={styles.subtitle}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
               </View>
-              <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize numberOfLines={1} style={[styles.scoreValue, fitValue(`${score}%`, 30, { fits: 3 })]}>{score}%</Text></View>
+              {score === null || score === undefined ? null : <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize numberOfLines={1} style={[styles.scoreValue, fitValue(`${score}%`, 30, { fits: 3 })]}>{score}%</Text></View>}
             </View>
             <View style={styles.institution}>
               <Ionicons name="home" size={28} color={BLUE} />
-              <View><Text style={styles.institutionLabel}>Instituição</Text><Text style={styles.institutionName}>{opportunity.instituicao || 'Mireva Design'}</Text><Text style={styles.institutionLocation}>{opportunity.localizacao || 'São Paulo'}</Text></View>
+              <View><Text style={styles.institutionLabel}>Instituição</Text><Text style={styles.institutionName}>{opportunity.instituicao || 'Instituição não informada'}</Text><Text style={styles.institutionLocation}>{opportunity.localizacao || 'Local não informado'}</Text></View>
             </View>
           </View>
           <View style={styles.aboutCard}><Text style={styles.sectionTitle}>Sobre a oportunidade</Text><Text style={styles.body}>{opportunity.descricao || 'Sem descrição disponível.'}</Text></View>

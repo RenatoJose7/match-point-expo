@@ -1,5 +1,5 @@
-import React, { useEffect, useRef } from 'react'
-import { Animated, Pressable, StyleSheet, View } from 'react-native'
+import React, { useEffect, useRef, useState } from 'react'
+import { Animated, Keyboard, Platform, Pressable, StyleSheet, View } from 'react-native'
 import { Text } from '../accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { USE_NATIVE_DRIVER } from '../motion'
@@ -56,6 +56,14 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
   // Em celulares estreitos (até ~350 px) o rótulo diminui um pouco para caber inteiro.
   const { width, height } = useAppWindow()
   const compact = getFrameWidth(width, height) < 350
+  // Com o teclado aberto a barra some: antes ela subia junto e cobria o campo digitado.
+  const [keyboardOpen, setKeyboardOpen] = useState(false)
+  useEffect(() => {
+    if (Platform.OS === 'web') return undefined
+    const show = Keyboard.addListener('keyboardDidShow', () => setKeyboardOpen(true))
+    const hide = Keyboard.addListener('keyboardDidHide', () => setKeyboardOpen(false))
+    return () => { show.remove(); hide.remove() }
+  }, [])
   const partner = role !== 'athlete'
   const home = role === 'trainer' ? 'homeTrainer' : role === 'institution' ? 'homeInstitution' : 'homeAthlete'
   const opportunities = role === 'athlete' ? 'opportunitiesAthlete' : role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
@@ -66,6 +74,8 @@ export function BottomNav({ go, role = 'athlete', active = 'home' }) {
     ...(role === 'athlete' ? [{ key: 'applications', label: 'Candidatar-se', icon: 'document-text', target: 'applications' }] : []),
     { key: 'profile', label: 'Perfil', icon: 'person', target: profile },
   ]
+
+  if (keyboardOpen) return null
 
   return (
     <View style={[styles.bottomNav, partner && styles.bottomNavPartner, localStyles.nav]}>

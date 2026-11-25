@@ -147,6 +147,7 @@ export function ProfileView({ role, go, back, repositories, session, routeParams
               <Text style={localStyles.verification}>
                 {profile?.verificado ? '✓ Perfil verificado' : 'Perfil aguardando verificação'}
               </Text>
+              <DeleteAccountSection repositories={repositories} />
             </>
           )}
         </ScrollView>

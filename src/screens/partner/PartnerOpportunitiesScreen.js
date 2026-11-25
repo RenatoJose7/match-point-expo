@@ -7,12 +7,15 @@ import { assets } from '../../theme/assets'
 import { withGriffithsWeight } from '../../theme/typography'
 import { getOpportunityImage } from '../../theme/opportunityImages'
 import { FeedbackMessage, getPartnerProfile, LoadingState } from './partnerOpportunityUi'
+import { loadPartnerOpportunities } from './partnerOpportunitiesData'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
+// Rascunhos ficam visíveis aqui: perfis ainda não verificados só conseguem salvar rascunhos.
 const createdFilters = [
   { value: 'ativa', label: 'Ativas' },
+  { value: 'rascunho', label: 'Rascunhos' },
   { value: 'encerrada', label: 'Encerradas' },
 ]
 
@@ -22,55 +25,6 @@ const browseFilters = [
   { value: 'criadas', label: 'Criadas' },
 ]
 
-// Datas relativas a hoje: os exemplos nunca aparecem como ativos com prazo vencido.
-const daysFromNow = (days) => new Date(Date.now() + days * 86400000).toISOString()
-
-const visualDemoOpportunities = [
-  {
-    id: 'oportunidade-demo-bolsa-parceiro',
-    titulo: 'Bolsa de Estudos',
-    modalidade: 'Tênis',
-    localizacao: 'Suzano - SP',
-    beneficio: 'Bolsa esportiva',
-    fimInscricoes: daysFromNow(24),
-    status: 'ativa',
-    criadoEm: daysFromNow(-20),
-    inscricoesExemplo: 18,
-  },
-  {
-    id: 'oportunidade-demo-avaliacao-parceiro',
-    titulo: 'Avaliação Técnica',
-    modalidade: 'Tênis',
-    localizacao: 'São Paulo - SP',
-    beneficio: 'Avaliação técnica',
-    fimInscricoes: daysFromNow(24),
-    status: 'ativa',
-    criadoEm: daysFromNow(-21),
-    inscricoesExemplo: 12,
-  },
-  {
-    id: 'oportunidade-demo-campeonato-parceiro',
-    titulo: 'Campeonato',
-    modalidade: 'Tênis',
-    localizacao: 'Mogi das Cruzes - SP',
-    beneficio: 'Competição regional',
-    fimInscricoes: daysFromNow(25),
-    status: 'ativa',
-    criadoEm: daysFromNow(-22),
-    inscricoesExemplo: 9,
-  },
-  {
-    id: 'oportunidade-demo-clinica-parceiro',
-    titulo: 'Clínica de Alto Rendimento',
-    modalidade: 'Tênis',
-    localizacao: 'Itaquaquecetuba - SP',
-    beneficio: 'Treinamento técnico',
-    fimInscricoes: daysFromNow(26),
-    status: 'ativa',
-    criadoEm: daysFromNow(-23),
-    inscricoesExemplo: 7,
-  },
-]
 
 const formatDate = (value) => {
   if (!value || Number.isNaN(new Date(value).getTime())) return 'Inscrições abertas'
@@ -114,7 +68,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [search, setSearch] = useState('')
-  const [status, setStatus] = useState('ativa')
+  const [status, setStatus] = useState(routeParams.status || 'ativa')
   const [filterOpen, setFilterOpen] = useState(false)
   const [refreshKey, setRefreshKey] = useState(0)
 
@@ -124,29 +78,10 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
       setLoading(true)
       setError('')
       try {
-        let source = repositories
-        let partner = await getPartnerProfile(source, session)
-        let result = await source.opportunities.listarOportunidadesDoParceiro(partner.id)
-        if ((!result.ok || result.data.length === 0) && repositories.demo) {
-          source = repositories.demo
-          const demoPartner = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
-          if (demoPartner.ok) {
-            partner = demoPartner.data
-            result = await source.opportunities.listarOportunidadesDoParceiro(partner.id)
-          }
-        }
-        if (!result.ok) throw new Error(result.mensagem || 'Não foi possível carregar as oportunidades.')
-        const entries = await Promise.all(result.data.map(async (opportunity) => {
-          const applications = await source.applications.listarCandidatosDaOportunidade(opportunity.id)
-          return [opportunity.id, applications.ok ? applications.data.length : 0]
-        }))
+        const data = await loadPartnerOpportunities(repositories, session)
         if (mounted) {
-          const existingIds = new Set(result.data.map((item) => item.id))
-          const visualItems = result.data.length < 4
-            ? [...result.data, ...visualDemoOpportunities.filter((item) => !existingIds.has(item.id)).slice(0, 4 - result.data.length)]
-            : result.data
-          setItems(visualItems)
-          setCounts(Object.fromEntries(entries))
+          setItems(data.items)
+          setCounts(data.counts)
         }
       } catch (loadError) {
         if (mounted) setError(loadError.message || 'Não foi possível carregar as oportunidades.')
@@ -199,6 +134,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
         <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          {routeParams.flashMessage ? <FeedbackMessage tone="success">{routeParams.flashMessage}</FeedbackMessage> : null}
           {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id] ?? item.inscricoesExemplo ?? 0} onOpen={() => openOpportunity(item)} role={role} />)}
           {visibleItems.length === 0 ? <Text style={styles.empty}>Nenhuma oportunidade encontrada.</Text> : null}
         </ScrollView>

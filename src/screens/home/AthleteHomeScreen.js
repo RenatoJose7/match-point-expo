@@ -8,6 +8,7 @@ import { assets } from '../../theme/assets'
 import { ABSOLUTE_FILL, BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
 import { fitValue, isNumericValue, withGriffithsWeight } from '../../theme/typography'
+import { loadAthleteApplications, summarizeApplications } from '../applications/athleteApplications'
 import { computeMatchScore } from '../../domain/matchScore.js'
 import { useFrameSize } from '../../theme/layout'
 
@@ -38,17 +39,13 @@ export function AthleteHomeScreen({ go, repositories, session }) {
           setProfile(athleteResult.data)
         }
 
-        const [applicationsResult, opportunitiesResult] = await Promise.all([
-          athleteResult?.ok
-            ? repositories.applications.listarCandidaturasDoAtleta(athleteResult.data.id)
-            : Promise.resolve({ ok: true, data: [] }),
+        // Mesma lista da tela Candidaturas (com os exemplos): os números da home sempre batem.
+        const [applicationsList, opportunitiesResult] = await Promise.all([
+          loadAthleteApplications(repositories, session?.id).catch(() => []),
           repositories.opportunities.listarOportunidades({ status: 'ativa', prazoAberto: true }),
         ])
         if (!active) return
-
-        if (applicationsResult?.ok) {
-          setApplications(applicationsResult.data ?? [])
-        }
+        setApplications(applicationsList)
 
         let openOpportunities = opportunitiesResult?.ok ? opportunitiesResult.data ?? [] : []
         if (openOpportunities.length === 0 && repositories.demo) {
@@ -74,21 +71,28 @@ export function AthleteHomeScreen({ go, repositories, session }) {
     return () => { active = false }
   }, [repositories, session?.id])
 
-  const underReview = applications.filter((item) => item.status === 'em_analise').length
-  const rejectedCount = applications.filter((item) => item.status === 'rejeitada').length
+  const applicationsSummary = summarizeApplications(applications)
 
   const hasRanking = Boolean(profile?.ranking)
   // O ranking pode ser digitado como frase ("Não possuo ranking"): aí não leva # nem "de 146".
   const numericRanking = hasRanking && isNumericValue(String(profile.ranking).replace(/[º°]/g, ''))
   const rankingDisplay = hasRanking
     ? (numericRanking ? `#${String(profile.ranking).replace(/[#º°]/g, '').trim()}` : String(profile.ranking).trim())
-    : (profile?.perfilCompleto ? '#24' : '—')
+    : '#24'
+  // Dado não informado vira exemplo; dado informado (mesmo "Não possuo ranking") vale como está.
   const rankingTotal = hasRanking
     ? (numericRanking ? `de ${profile.totalRanking || 146}` : '')
-    : (profile?.perfilCompleto ? 'de 146' : '')
+    : 'de 146'
 
-  const vitorias = profile?.vitorias ?? (profile?.perfilCompleto ? 3 : 0)
-  const derrotas = profile?.derrotas ?? (profile?.perfilCompleto ? 1 : 0)
+  // Exemplos coerentes com o perfil: quem informou que não disputou torneios fica com 0 a 0;
+  // com um número de torneios, o exemplo nunca passa desse total.
+  const tournamentsText = String(profile?.torneiosDisputados ?? '').trim()
+  const tournaments = /^\d+$/.test(tournamentsText) ? Number(tournamentsText) : null
+  const noTournaments = tournaments === 0 || (tournamentsText !== '' && tournaments === null)
+  const exampleWins = noTournaments ? 0 : Math.min(3, tournaments ?? 3)
+  const exampleLosses = noTournaments ? 0 : Math.min(1, Math.max(0, (tournaments ?? 4) - exampleWins))
+  const vitorias = profile?.vitorias ?? exampleWins
+  const derrotas = profile?.derrotas ?? exampleLosses
 
   const profileCompletionPercent = (() => {
     if (!profile) return null
@@ -98,29 +102,21 @@ export function AthleteHomeScreen({ go, repositories, session }) {
       'titulos', 'dataNascimento',
     ]
     const filled = relevantFields.filter((key) => Boolean(profile[key] && String(profile[key]).trim())).length
-    if (filled === 0) return profile.perfilCompleto ? 82 : null
+    if (filled === 0) return 82
     return Math.round((filled / relevantFields.length) * 100)
   })()
 
   const displayedCompletion = profileCompletionPercent !== null
     ? `${profileCompletionPercent}%`
-    : (profile?.perfilCompleto ? '82%' : '—')
+    : '—'
 
   const displayedScore = opportunityScore !== null
     ? `${opportunityScore}%`
-    : (opportunity && profile?.perfilCompleto ? '94%' : (opportunity ? '0%' : '—'))
+    : (opportunity ? '94%' : '—')
 
-  const displayedAppsCount = applications.length > 0
-    ? applications.length
-    : (profile?.perfilCompleto ? 3 : 0)
-
-  const displayedUnderReview = applications.length > 0
-    ? underReview
-    : (profile?.perfilCompleto ? 1 : 0)
-
-  const displayedRejected = applications.length > 0
-    ? rejectedCount
-    : (profile?.perfilCompleto ? 2 : 0)
+  const displayedAppsCount = applicationsSummary.total
+  const displayedUnderReview = applicationsSummary.underReview
+  const displayedRejected = applicationsSummary.rejected
 
   return (
     <View style={styles.home}>
@@ -218,7 +214,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
                 <Text numberOfLines={2} style={localStyles.oppMetaText}>
                   {opportunity?.instituicao
                     ? `${opportunity.instituicao}${opportunity.categoria ? ` - ${opportunity.categoria}` : ''}`
-                    : (opportunity?.categoria ? `Arena Suzy - ${opportunity.categoria}` : 'Arena Suzy - Sub 18')}
+                    : (opportunity?.categoria || 'Instituição não informada')}
                 </Text>
               </View>
               <View style={localStyles.oppMetaRow}>

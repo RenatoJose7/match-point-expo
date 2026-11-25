@@ -14,6 +14,7 @@ import {
   partnerColors,
   partnerStyles,
   dateInputValue,
+  formatDateInput,
   toIsoDate,
 } from './partnerOpportunityUi'
 
@@ -56,7 +57,7 @@ function splitLines(value) {
   return value.split('\n').map((item) => item.trim()).filter(Boolean)
 }
 
-function FormField({ label, value, onChangeText, placeholder, multiline = false, options, required = false }) {
+function FormField({ label, value, onChangeText, placeholder, multiline = false, options, required = false, keyboardType }) {
   return (
     <View style={localStyles.field}>
       <Text style={localStyles.fieldLabel}>{label}{required ? ' *' : ''}</Text>
@@ -71,6 +72,8 @@ function FormField({ label, value, onChangeText, placeholder, multiline = false,
           placeholderTextColor="#849188"
           style={[localStyles.input, multiline && localStyles.multilineInput]}
           multiline={multiline}
+          keyboardType={keyboardType}
+          maxLength={keyboardType === 'number-pad' ? 10 : undefined}
           autoCapitalize="sentences"
           textAlignVertical={multiline ? 'top' : 'center'}
         />
@@ -140,11 +143,11 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       return
     }
     if (!endDate) {
-      setError('Informe um prazo final válido no formato AAAA-MM-DD.')
+      setError('Informe um prazo final válido no formato DD/MM/AAAA.')
       return
     }
     if (form.inicioInscricoes.trim() && !startDate) {
-      setError('Informe uma data inicial válida no formato AAAA-MM-DD.')
+      setError('Informe uma data inicial válida no formato DD/MM/AAAA.')
       return
     }
     if (startDate && new Date(startDate) > new Date(endDate)) {
@@ -184,7 +187,9 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       if (editing) {
         go('partnerOpportunityDetail', { opportunityId, flashMessage: successMessage })
       } else {
-        go(listRoute, { flashMessage: partner.verificado ? 'Oportunidade criada com sucesso.' : successMessage })
+        // Rascunho abre a aba Rascunhos de "Oportunidades criadas", onde ele aparece.
+        if (publicationStatus === 'rascunho') go('opportunitiesCreated', { status: 'rascunho', flashMessage: successMessage })
+        else go(listRoute, { status: publicationStatus, flashMessage: partner.verificado ? 'Oportunidade criada com sucesso.' : successMessage })
       }
     } catch (saveError) {
       setError(saveError.message || 'Não foi possível salvar a oportunidade.')
@@ -251,10 +256,10 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
               </View>
               <View style={localStyles.twoColumns}>
                 <View style={localStyles.column}>
-                  <FormField label="Início (opcional)" value={form.inicioInscricoes} onChangeText={(value) => change('inicioInscricoes', value)} placeholder="AAAA-MM-DD" />
+                  <FormField label="Início (opcional)" value={form.inicioInscricoes} onChangeText={(value) => change('inicioInscricoes', formatDateInput(value))} placeholder="DD/MM/AAAA" keyboardType="number-pad" />
                 </View>
                 <View style={localStyles.column}>
-                  <FormField label="Prazo final" value={form.fimInscricoes} onChangeText={(value) => change('fimInscricoes', value)} placeholder="AAAA-MM-DD" required />
+                  <FormField label="Prazo final" value={form.fimInscricoes} onChangeText={(value) => change('fimInscricoes', formatDateInput(value))} placeholder="DD/MM/AAAA" keyboardType="number-pad" required />
                 </View>
               </View>
 
@@ -307,9 +312,10 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
 const localStyles = StyleSheet.create({
   page: { flex: 1, backgroundColor: BLUE },
   // Header
-  header: { height: 273, backgroundColor: BLUE, overflow: 'hidden' },
+  // Cabeçalho mais baixo: com 273 ele ocupava um terço da tela e sobrava pouco espaço para o formulário.
+  header: { height: 168, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -126, bottom: -15, width: 348, height: 70, backgroundColor: '#e4e7e8', transform: [{ rotate: '55deg' }] },
-  headerMark: { width: 57, height: 63, alignSelf: 'center', marginTop: 87 },
+  headerMark: { width: 51, height: 56, alignSelf: 'center', marginTop: 36 },
   headerTextBlock: { paddingHorizontal: 21, paddingTop: 27, paddingBottom: 16 },
   headerTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 20, lineHeight: 25 },
   headerSubtitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 14, lineHeight: 18, marginTop: 2 },

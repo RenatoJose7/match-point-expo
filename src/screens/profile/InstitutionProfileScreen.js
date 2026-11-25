@@ -117,6 +117,7 @@ export function InstitutionProfileScreen({ go, back, repositories, session, rout
             <>
               <View style={styles.infoList}>{rows.map(([label, value], index) => <View key={label} style={[styles.infoRow, index === 3 && styles.lastRow]}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View>)}</View>
               <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={({ pressed }) => [styles.editButton, styles.viewEditButton, pressed && styles.buttonPressed]}><Text style={styles.editText}>Editar perfil</Text></Pressable>
+              <DeleteAccountSection repositories={repositories} />
             </>
           )}
         </ScrollView>

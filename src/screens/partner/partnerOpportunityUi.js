@@ -145,12 +145,20 @@ export function opportunityStatus(status) {
   return values[status] ?? { label: status || 'Sem status', backgroundColor: '#eef1ed', color: partnerColors.muted }
 }
 
+// Datas no formato brasileiro (DD/MM/AAAA) na tela; no banco seguem em ISO.
+export function formatDateInput(value) {
+  const digits = String(value ?? '').replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+}
+
 export function toIsoDate(value, endOfDay = false) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
-  if (!match) return null
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
+  const text = String(value ?? '').trim()
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text)
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (!br && !iso) return null
+  const [day, month, year] = br ? [Number(br[1]), Number(br[2]), Number(br[3])] : [Number(iso[3]), Number(iso[2]), Number(iso[1])]
   const date = new Date(Date.UTC(year, month - 1, day))
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
   if (endOfDay) date.setUTCHours(23, 59, 59, 999)
@@ -161,5 +169,6 @@ export function dateInputValue(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toISOString().slice(0, 10)
+  const [year, month, day] = date.toISOString().slice(0, 10).split('-')
+  return `${day}/${month}/${year}`
 }

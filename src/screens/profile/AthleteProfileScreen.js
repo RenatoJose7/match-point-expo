@@ -10,6 +10,7 @@ import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { BLUE } from '../../theme/colors'
 import { fitValue, isNumericValue } from '../../theme/typography'
+import { dateInputValue, formatDateInput, toIsoDate } from '../partner/partnerOpportunityUi'
 
 const fields = [
   { key: 'modalidade', label: 'Modalidade', options: SELECT_OPTIONS.modalidades, required: true },
@@ -119,7 +120,7 @@ export function AthleteProfileScreen(props) {
 
         setProfile(result.data)
         setValues(profileValues(result.data))
-        setBirthDate(result.data.dataNascimento ?? '')
+        setBirthDate(dateInputValue(result.data.dataNascimento))
         setEditing(false)
       } catch {
         if (active) setError('Não foi possível carregar seu perfil esportivo. Tente novamente.')
@@ -144,10 +145,10 @@ export function AthleteProfileScreen(props) {
     const normalizedValues = Object.fromEntries(
       fields.map(({ key }) => [key, values[key].trim()]),
     )
-    const dateOfBirth = profile?.dataNascimento ?? birthDate.trim()
+    const dateOfBirth = profile?.dataNascimento ?? (toIsoDate(birthDate) ?? '').slice(0, 10)
 
     if (!dateOfBirth || !isValidIsoDate(dateOfBirth)) {
-      setError('Informe uma data de nascimento válida no formato AAAA-MM-DD.')
+      setError('Informe uma data de nascimento válida no formato DD/MM/AAAA.')
       return
     }
     if (!normalizedValues.modalidade) {
@@ -178,7 +179,7 @@ export function AthleteProfileScreen(props) {
 
       setProfile(result.data)
       setValues(profileValues(result.data))
-      setBirthDate(result.data.dataNascimento ?? dateOfBirth)
+      setBirthDate(dateInputValue(result.data.dataNascimento ?? dateOfBirth))
       setEditing(false)
       setNotice('Perfil esportivo salvo.')
     } catch {
@@ -190,7 +191,7 @@ export function AthleteProfileScreen(props) {
 
   const cancelEditing = () => {
     setValues(profileValues(profile))
-    setBirthDate(profile?.dataNascimento ?? '')
+    setBirthDate(dateInputValue(profile?.dataNascimento))
     setError('')
     setNotice('')
     setEditing(false)
@@ -231,8 +232,10 @@ export function AthleteProfileScreen(props) {
                 <TextInput
                   accessibilityLabel="Data de nascimento"
                   autoCapitalize="none"
-                  onChangeText={setBirthDate}
-                  placeholder="AAAA-MM-DD"
+                  onChangeText={(value) => setBirthDate(formatDateInput(value))}
+                  keyboardType="number-pad"
+                  maxLength={10}
+                  placeholder="DD/MM/AAAA"
                   placeholderTextColor="#6a7d86"
                   style={localStyles.input}
                   value={birthDate}
@@ -289,7 +292,7 @@ export function AthleteProfileScreen(props) {
             </View>
             <View style={localStyles.infoCard}>
               <Text style={localStyles.infoLabel}>Torneios disputados</Text>
-              <Text style={localStyles.infoValue}>{displayValue(profile?.torneiosDisputados, ' torneios')}</Text>
+              <Text style={localStyles.infoValue}>{displayValue(profile?.torneiosDisputados, ' torneios', '4 torneios')}</Text>
             </View>
             </View>
 
@@ -301,15 +304,15 @@ export function AthleteProfileScreen(props) {
             <View style={localStyles.statsGrid}>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Ranking MatchPoint</Text>
-              <StatValue value={displayValue(profile?.ranking, 'º', '—')} />
+              <StatValue value={displayValue(profile?.ranking, 'º', '24º')} />
             </View>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Torneios disputados</Text>
-              <StatValue value={displayValue(profile?.torneiosDisputados, '', '—')} />
+              <StatValue value={displayValue(profile?.torneiosDisputados, '', '4')} />
             </View>
             <View style={localStyles.statCard}>
               <Text style={localStyles.statLabel}>Títulos</Text>
-              <StatValue value={displayValue(profile?.titulos, '', '—')} />
+              <StatValue value={displayValue(profile?.titulos, '', '1')} />
             </View>
             </View>
 
