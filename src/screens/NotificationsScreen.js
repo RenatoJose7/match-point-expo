@@ -101,7 +101,8 @@ export function NotificationsScreen({ back, repositories, session }) {
 
   return (
     <View style={[styles.notifications, localStyles.screen]}>
-      <DecorativeCurves />
+      {/* Faixa mais abaixo: no topo ela passava atrás do subtítulo e o deixava ilegível. */}
+      <DecorativeCurves top={150} />
       <BackButton onPress={back} />
       <Image source={assets.monogram} style={[styles.notificationMark, localStyles.mark]} resizeMode="contain" />
       <Text style={[styles.notificationsTitle, localStyles.heading]}>Notificações</Text>

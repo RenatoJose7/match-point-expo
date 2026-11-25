@@ -53,10 +53,19 @@ function CandidateCard({ candidate, onPress }) {
   )
 }
 
+// Títulos longos diminuem para caber em até duas linhas sem partir palavras no meio.
+function titleSize(text = '') {
+  const longestWord = Math.max(...String(text).split(/\s+/).map((word) => word.length), 0)
+  const size = text.length <= 18 && longestWord <= 12 ? 46 : text.length <= 30 && longestWord <= 16 ? 38 : longestWord > 18 ? 26 : 32
+  return { fontSize: size, lineHeight: Math.round(size * 1.15) }
+}
+
 export function PartnerOpportunityCandidatesScreen({ go, back, repositories, session, routeParams = {} }) {
   const role = session?.tipo === 'treinador' ? 'trainer' : 'institution'
-  const [title, setTitle] = useState('Bolsas de Estudos')
-  const [candidates, setCandidates] = useState(demoCandidates)
+  // Candidatos de exemplo só nas oportunidades de exemplo; oportunidade real mostra só os reais.
+  const isDemo = Boolean(routeParams.demo)
+  const [title, setTitle] = useState(routeParams.title || 'Candidatos')
+  const [candidates, setCandidates] = useState(isDemo ? demoCandidates : [])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -68,6 +77,10 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
       setLoading(true)
       setError('')
       try {
+        if (isDemo) {
+          if (mounted) setCandidates(demoCandidates)
+          return
+        }
         const partner = await getPartnerProfile(repositories, session)
         if (!routeParams.opportunityId) throw new Error('Oportunidade não informada.')
         const opportunity = await getOwnedOpportunity(repositories, partner.id, routeParams.opportunityId)
@@ -89,25 +102,18 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           score: application.matchScore ?? (profile ? computeMatchScore(profile, opportunity).percentualTotal : null),
         }))
         if (mounted) {
-          const visualCandidates = mapped.length < 4
-            ? [...mapped, ...demoCandidates.filter((candidate) => !mapped.some((item) => item.name === candidate.name)).slice(0, 4 - mapped.length)]
-            : mapped
-          setTitle(opportunity.titulo || 'Bolsas de Estudos')
-          setCandidates(visualCandidates.length ? visualCandidates : demoCandidates)
+          setTitle(opportunity.titulo || 'Candidatos')
+          setCandidates(mapped)
         }
-      } catch {
-        // A conta nova recebe uma amostra visual; os dados reais assumem quando existirem.
-        if (mounted) {
-          setTitle('Bolsas de Estudos')
-          setCandidates(demoCandidates)
-        }
+      } catch (loadError) {
+        if (mounted) setError(loadError.message || 'Não foi possível carregar os candidatos.')
       } finally {
         if (mounted) setLoading(false)
       }
     }
     load()
     return () => { mounted = false }
-  }, [repositories, routeParams.opportunityId, session, refreshKey])
+  }, [repositories, routeParams.opportunityId, session, refreshKey, isDemo])
 
   return (
     <View style={styles.page}>
@@ -116,13 +122,14 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
         <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
-        <Text numberOfLines={2} style={styles.title}>{title}</Text>
+        <Text numberOfLines={2} style={[styles.title, titleSize(title)]}>{title}</Text>
         <Text fixedSize style={styles.pill}>Candidatos</Text>
         {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
       </View>
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+          {candidates.length === 0 ? <Text style={styles.emptyText}>Nenhum candidato ainda. Quando um atleta se candidatar, ele aparece aqui.</Text> : null}
           {candidates.map((candidate) => (
             <CandidateCard
               key={candidate.id}
@@ -146,6 +153,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
 }
 
 const styles = StyleSheet.create(withGriffithsWeight({
+  emptyText: { color: '#59626b', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', paddingHorizontal: 24, paddingTop: 32 },
   page: { flex: 1, backgroundColor: '#f3f4f4' },
   header: { minHeight: 243, backgroundColor: BLUE, overflow: 'hidden', position: 'relative', zIndex: 2, paddingBottom: 18 },
   stripe: { position: 'absolute', bottom: -8, left: -115, width: 337, height: 65, backgroundColor: '#e5e6e7', transform: [{ rotate: '54deg' }] },

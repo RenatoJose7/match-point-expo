@@ -99,7 +99,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
     .sort((a, b) => new Date(b.atualizadoEm ?? b.criadoEm ?? 0) - new Date(a.atualizadoEm ?? a.criadoEm ?? 0)), [items, created, search, status])
 
   const heading = created ? 'Oportunidades\ncriadas' : 'Oportunidades'
-  const openOpportunity = (item) => go('partnerOpportunityCandidates', { opportunityId: item.id, demo: Boolean(repositories.demo && item.id?.startsWith('oportunidade-')) })
+  const openOpportunity = (item) => go('partnerOpportunityCandidates', { opportunityId: item.id, title: item.titulo, demo: Boolean(item.inscricoesExemplo !== undefined || (repositories.demo && item.id?.startsWith('oportunidade-'))) })
   const statusFilters = created ? createdFilters : browseFilters
   const chooseStatus = (value) => {
     if (value === 'criadas' && !created) {

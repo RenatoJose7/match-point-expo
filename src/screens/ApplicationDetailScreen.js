@@ -46,7 +46,9 @@ function timelineDate(application, status) {
     : 'Aguardando'
 }
 
-function buildTimeline(application) {
+function buildTimeline(application, opportunity) {
+  // Oportunidade sem documentos exigidos: a etapa não fica "Aguardando" para sempre.
+  const noDocuments = Boolean(opportunity) && (opportunity.documentosNecessarios ?? []).length === 0
   const current = ['aprovada', 'rejeitada'].includes(application.status) ? 'resultado' : application.status
   const currentIndex = Math.max(statusOrder.indexOf(current), 0)
 
@@ -59,6 +61,7 @@ function buildTimeline(application) {
     const done = index <= currentIndex
     const date = timelineDate(application, step.key)
     // Etapa concluída sem data registrada não deve aparecer como "Aguardando".
+    if (noDocuments && step.key === 'documentos_enviados') return { ...step, done: true, current: false, date: 'Não exigido' }
     return { ...step, done, current: index === currentIndex, date: done && date === 'Aguardando' ? '' : date }
   })
 }
@@ -102,7 +105,7 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
     return () => { active = false }
   }, [applicationId, repositories, reloadKey])
 
-  const timeline = application ? buildTimeline(application) : []
+  const timeline = application ? buildTimeline(application, opportunity) : []
   const documents = application?.documentos?.filter(item => item.status !== 'pendente') ?? []
   // Sem registro de arquivos, a lista só aparece se a etapa de documentos já foi concluída.
   const documentsStepDone = timeline.some(step => step.key === 'documentos_enviados' && step.done)
@@ -156,7 +159,7 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
             <View style={localStyles.documentsList}>
               {visibleDocuments.length ? visibleDocuments.map((item, index) => (
                 <Text key={item.id ?? item.nome ?? index} style={localStyles.document}>{documentLabel(item.nome ?? item.tipo ?? 'Documento enviado')}</Text>
-              )) : <Text style={localStyles.emptyDocuments}>Nenhum documento enviado.</Text>}
+              )) : <Text style={localStyles.emptyDocuments}>{(opportunity.documentosNecessarios ?? []).length === 0 ? 'Esta oportunidade não exige documentos.' : 'Nenhum documento enviado.'}</Text>}
             </View>
 
             <Pressable accessibilityRole="button" onPress={() => go('opportunitiesAthlete')} style={localStyles.action}>
@@ -172,13 +175,14 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
 
 const localStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE },
-  header: { height: 149, backgroundColor: BLUE, justifyContent: 'flex-end', paddingBottom: 22, paddingHorizontal: 20 },
+  // Mais alto que antes: a seta de voltar ficava por cima do título.
+  header: { height: 186, backgroundColor: BLUE, justifyContent: 'flex-end', paddingBottom: 26, paddingHorizontal: 20 },
   headerCopy: { paddingRight: 132 },
   opportunityTitle: { color: '#ffffff', fontFamily: 'Poppins_600SemiBold', fontSize: 19, lineHeight: 24 },
   opportunitySubtitle: { color: '#ffffff', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 19, marginTop: 2 },
-  badge: { position: 'absolute', right: 10, bottom: 47, minWidth: 120, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: GREEN, borderRadius: 6, paddingHorizontal: 12 },
-  badgeText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
-  body: { position: 'absolute', top: 139, bottom: 0, left: 0, right: 0, backgroundColor: '#ffffff', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
+  badge: { position: 'absolute', right: 14, bottom: 62, minWidth: 120, height: 32, alignItems: 'center', justifyContent: 'center', backgroundColor: GREEN, borderRadius: 6, paddingHorizontal: 12 },
+  badgeText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
+  body: { position: 'absolute', top: 172, bottom: 0, left: 0, right: 0, backgroundColor: '#ffffff', borderTopLeftRadius: 18, borderTopRightRadius: 18 },
   content: { flexGrow: 1, paddingBottom: 91 },
   timelineCard: { marginHorizontal: 7, minHeight: 280, borderRadius: 17, backgroundColor: '#ffffff', paddingHorizontal: 13, paddingTop: 20, paddingBottom: 8, shadowColor: '#10284a', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.14, shadowRadius: 6, elevation: 3 },
   sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 19, lineHeight: 24, marginBottom: 19 },
@@ -194,7 +198,7 @@ const localStyles = StyleSheet.create({
   documentsList: { gap: 20, paddingHorizontal: 20 },
   document: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 15, lineHeight: 21 },
   emptyDocuments: { color: '#767676', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 21 },
-  action: { height: 40, marginHorizontal: 8, marginTop: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: '#1e3f95', borderRadius: 7 },
+  action: { height: 48, marginHorizontal: 16, marginTop: 26, alignItems: 'center', justifyContent: 'center', backgroundColor: BLUE, borderRadius: 24 },
   actionText: { color: '#ffffff', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
   centerState: { flex: 1, gap: 16, justifyContent: 'center', padding: 24 },
   state: { color: '#59626b', fontFamily: 'Poppins_400Regular', textAlign: 'center' },

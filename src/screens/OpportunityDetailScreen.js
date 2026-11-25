@@ -19,6 +19,7 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
   const [error, setError] = useState('')
   const [retryToken, setRetryToken] = useState(0)
   const [computedScore, setComputedScore] = useState(null)
+  const [existingApplicationId, setExistingApplicationId] = useState(null)
 
   useEffect(() => {
     let active = true
@@ -33,9 +34,15 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
         if (active) setOpportunity(result.data)
         // Sem o valor da tela anterior, calcula o Match Score com o perfil de quem está logado
         // (mesma regra da lista), em vez de mostrar um número fixo.
-        if (routeParams.matchScore === undefined && session?.id) {
+        if (session?.id) {
           const athlete = await repositories.users.obterPerfilAtletaPorUsuario(session.id)
-          if (active && athlete.ok) setComputedScore(computeMatchScore(athlete.data, result.data).percentualTotal)
+          if (active && athlete.ok && routeParams.matchScore === undefined) setComputedScore(computeMatchScore(athlete.data, result.data).percentualTotal)
+          // Quem já se candidatou vê a própria candidatura em vez de "Quero me candidatar".
+          if (athlete.ok) {
+            const applications = await repositories.applications.listarCandidaturasDoAtleta(athlete.data.id)
+            const existing = applications.ok ? applications.data.find((item) => item.oportunidadeId === result.data.id) : null
+            if (active) setExistingApplicationId(existing?.id ?? null)
+          }
         }
       } catch (loadError) {
         if (active) setError(loadError.message || 'Não foi possível carregar a oportunidade.')
@@ -88,7 +95,7 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
         </> : null}
       </ScrollView>
       {!loading && opportunity ? <View pointerEvents="none" style={styles.applyBackdrop} /> : null}
-      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityLabel="Quero me candidatar" onPress={() => go('applicationInfo', { oportunidadeId: opportunityId })} style={styles.applyButton}><Text style={styles.applyText}>Quero me candidatar</Text></Pressable> : null}
+      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityLabel={existingApplicationId ? "Ver minha candidatura" : "Quero me candidatar"} onPress={() => (existingApplicationId ? go('applicationDetail', { applicationId: existingApplicationId }) : go('applicationInfo', { oportunidadeId: opportunityId }))} style={styles.applyButton}><Text style={styles.applyText}>{existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'}</Text></Pressable> : null}
       <BottomNav go={go} active="opportunities" />
     </View>
   )
