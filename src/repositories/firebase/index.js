@@ -1302,7 +1302,8 @@ export function createFirebaseRepositories() {
           // O parceiro não lê o perfil do atleta (regra do banco): o destinatário vem da própria
           // candidatura; nas antigas, o id do atleta é o mesmo id do usuário (criado no cadastro).
           const athleteUserId = application.atletaUsuarioId ?? application.atletaId
-          const isDecision = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)
+          // Avisos ao atleta (e ao responsável, se menor): entrada em análise, aprovação e rejeição.
+          const isDecision = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED, APPLICATION_STATUS.UNDER_REVIEW].includes(nextStatus)
           // Leitura antes das gravações (exigência da transação): o título entra na mensagem.
           const opportunitySnapshot = isDecision
             ? await transaction.get(doc(database, OPPORTUNITIES_COLLECTION, application.oportunidadeId))
@@ -1332,8 +1333,13 @@ export function createFirebaseRepositories() {
             atualizadoEm: updated.atualizadoEm,
           })
           if (isDecision) {
-            const approved = nextStatus === APPLICATION_STATUS.APPROVED
             const target = opportunityTitle ? ` para “${opportunityTitle}”` : ''
+            const messages = {
+              [APPLICATION_STATUS.APPROVED]: ['Candidatura aprovada', 'foi aprovada.'],
+              [APPLICATION_STATUS.REJECTED]: ['Candidatura não selecionada', 'não foi selecionada desta vez.'],
+              [APPLICATION_STATUS.UNDER_REVIEW]: ['Candidatura em análise', 'está em análise pela instituição.'],
+            }
+            const [title, ending] = messages[nextStatus]
             const notify = (userId, titulo, mensagem) => {
               const notificationReference = doc(collection(database, NOTIFICATIONS_COLLECTION))
               transaction.set(notificationReference, {
@@ -1348,19 +1354,11 @@ export function createFirebaseRepositories() {
               })
             }
             if (athleteUserId) {
-              notify(
-                athleteUserId,
-                approved ? 'Candidatura aprovada' : 'Candidatura não selecionada',
-                approved ? `Sua candidatura${target} foi aprovada.` : `Sua candidatura${target} não foi selecionada desta vez.`,
-              )
+              notify(athleteUserId, title, `Sua candidatura${target} ${ending}`)
             }
             if (application.responsavelUsuarioId) {
               const name = application.atletaNome || 'o atleta vinculado'
-              notify(
-                application.responsavelUsuarioId,
-                approved ? 'Candidatura aprovada' : 'Candidatura não selecionada',
-                approved ? `A candidatura de ${name}${target} foi aprovada.` : `A candidatura de ${name}${target} não foi selecionada desta vez.`,
-              )
+              notify(application.responsavelUsuarioId, title, `A candidatura de ${name}${target} ${ending}`)
             }
           }
           return success(updated)

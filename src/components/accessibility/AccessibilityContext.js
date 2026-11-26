@@ -17,6 +17,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   boldText: false,
   highContrast: false,
   reduceMotion: false,
+  lineSpacing: false,
 })
 
 const AccessibilityContext = createContext({
@@ -92,7 +93,7 @@ export function AccessibilityProvider({ children }) {
     return {
       settings,
       textScale,
-      active: textScale !== 1 || settings.boldText || settings.highContrast,
+      active: textScale !== 1 || settings.boldText || settings.highContrast || settings.lineSpacing,
       screenReaderOn,
       update,
       reset,

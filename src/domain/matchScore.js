@@ -36,6 +36,21 @@ function rankingPosition(value) {
   return match ? Number(match[0]) : null
 }
 
+// Nível competitivo declarado (lista fixa) equivale a uma faixa de ranking, para os critérios
+// "top-N" e "alto rendimento" das oportunidades continuarem valendo.
+const LEVEL_POSITION = {
+  'competitivo nacional': 10,
+  'competitivo estadual': 40,
+  'competitivo regional': 80,
+  recreativo: 200,
+}
+
+function competitivePosition(athlete) {
+  // O nível também é gravado em "ranking" (o perfil público do candidato só tem esse campo).
+  const level = LEVEL_POSITION[normalizeText(athlete.nivelCompetitivo)] ?? LEVEL_POSITION[normalizeText(athlete.ranking)]
+  return level ?? rankingPosition(athlete.ranking)
+}
+
 function stateOf(location) {
   const match = String(location ?? '').match(/-\s*([A-Za-z]{2})\s*$/)
   return match ? match[1].toUpperCase() : null
@@ -65,7 +80,7 @@ function criterionMet(athlete, criterion) {
 
   const athleteValue = athlete[code]
   if (code === 'ranking') {
-    const position = rankingPosition(athleteValue)
+    const position = competitivePosition(athlete)
     if (position === null) return false
     const required = normalizeText(criterion.valor)
     const top = required.match(/top-?\s*(\d+)/)
@@ -107,7 +122,7 @@ const MOTIVE_BY_CODE = {
   categoria: (criterion) => `Categoria esperada: ${criterion.valor}.`,
   localizacao: (criterion) => `Oportunidade em ${criterion.valor}.`,
   tempoDePratica: (criterion) => `Pede ${criterion.valor} de prática.`,
-  ranking: (criterion) => `Pede ranking ${String(criterion.valor).replace('-', ' ')}. Informe seu ranking no perfil.`,
+  ranking: (criterion) => `Pede experiência competitiva (${String(criterion.valor).replace('-', ' ')}). Informe seu nível competitivo no perfil.`,
   idade: (criterion) => `Esta categoria é para atletas com menos de ${criterion.valor} anos.`,
 }
 

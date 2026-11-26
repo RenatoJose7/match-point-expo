@@ -56,13 +56,14 @@ function luminance([r, g, b]) {
 
 // Cinzas e azuis acinzentados de baixo contraste viram um azul-escuro bem legível.
 // Branco, verde-limão e o azul da marca ficam como estão.
+// Alto contraste de verdade: qualquer texto escuro ou médio (cinzas, azuis, verdes) vira
+// quase preto; textos claros (branco, verde-limão) ficam como estão, pois estão sobre fundo escuro.
 function contrastColor(color) {
   const rgb = parseColor(color)
   if (!rgb) return null
   const light = luminance(rgb)
-  const saturation = Math.max(...rgb) - Math.min(...rgb)
-  if (light > 0.08 && light < 0.6 && saturation < 90) return CONTRAST_DARK
-  return null
+  if (light < 0.6) return light > 0.012 ? CONTRAST_DARK : null
+  return light < 0.85 ? '#ffffff' : null
 }
 
 function adaptStyle(style, accessibility, fixedSize = false) {
@@ -77,12 +78,20 @@ function adaptStyle(style, accessibility, fixedSize = false) {
     changes.fontSize = Math.round(flat.fontSize * accessibility.textScale * 10) / 10
     if (typeof flat.lineHeight === 'number') changes.lineHeight = Math.round(flat.lineHeight * accessibility.textScale)
   }
+  // Mais espaço entre linhas: altura de linha de pelo menos 1,6× o tamanho da letra.
+  if (!decorative && !fixedSize && accessibility.settings.lineSpacing) {
+    const size = changes.fontSize ?? flat.fontSize ?? 14
+    const current = changes.lineHeight ?? flat.lineHeight ?? size * 1.25
+    changes.lineHeight = Math.round(Math.max(current, size * 1.6))
+  }
   if (accessibility.settings.boldText && typeof family === 'string' && /^Poppins_(400Regular|500Medium)$/.test(family)) {
     changes.fontFamily = BOLD_FAMILY
   }
   if (accessibility.settings.highContrast) {
     const color = contrastColor(flat.color)
     if (color) changes.color = color
+    // Textos sublinhados continuam sublinhados e ganham mais peso.
+    if (flat.textDecorationLine === 'underline') changes.fontFamily = BOLD_FAMILY
   }
   return Object.keys(changes).length ? [style, changes] : style
 }

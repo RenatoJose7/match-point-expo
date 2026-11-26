@@ -7,6 +7,7 @@ import { styles } from '../theme/styles'
 import { useFrameSize } from '../theme/layout'
 import { ACCESSIBILITY_CORNER, AccessibilityButton } from './accessibility/AccessibilityButton'
 import { fitGriffithsSize } from '../theme/typography'
+import { NotificationBell } from './navigation/NotificationBell'
 
 function shortName(name) {
   return String(name ?? '')
@@ -56,9 +57,7 @@ export function Header({ initials, name, photoUrl, subtitle, go, repositories, t
         <Pressable accessibilityRole="button" accessibilityLabel="Sair da conta" onPress={signOut} style={localStyles.iconButton}>
           <Ionicons name="log-out-outline" size={22} color="#fff" />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => go('notifications')} style={localStyles.iconButton}>
-          <Ionicons name="notifications" size={21} color="#fff" />
-        </Pressable>
+        <NotificationBell go={go} repositories={repositories} style={localStyles.iconButton} />
       </View>
       <View style={[styles.homeRule, trainer && styles.trainerHomeRule]} />
     </View>

@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react'
 import { Platform, View, useWindowDimensions } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { useAccessibility } from '../components/accessibility/AccessibilityContext'
 
 // Quadro do app no celular.
 // As telas foram desenhadas no Figma para 402x874. Em Android reais (360–412 de largura,
@@ -35,6 +36,9 @@ export function useCanvas() {
 
 export function AppCanvas({ children }) {
   const window = useWindowDimensions()
+  // Alto contraste: reforça o contraste de toda a tela (cores, fotos e bordas), além dos textos.
+  const { settings } = useAccessibility()
+  const contrastFilter = settings.highContrast ? { filter: [{ contrast: 1.45 }, { saturate: 1.15 }] } : null
   const insets = useSafeAreaInsets()
   const [box, setBox] = useState(null)
 
@@ -68,6 +72,7 @@ export function AppCanvas({ children }) {
               height: value.height,
               transformOrigin: 'top left',
               transform: [{ scale }],
+              ...contrastFilter,
             }}
           >
             {children}

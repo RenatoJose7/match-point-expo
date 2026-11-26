@@ -21,7 +21,7 @@ const profileFields = [
   { key: 'maoDominante', label: 'Mão dominante', icon: 'hand-left-outline' },
   { key: 'equipeAtual', label: 'Equipe atual', icon: 'people-outline' },
   { key: 'tempoDePratica', label: 'Tempo de prática', icon: 'time-outline' },
-  { key: 'ranking', label: 'Ranking', icon: 'podium-outline' },
+  { key: 'ranking', label: 'Nível competitivo', icon: 'podium-outline' },
   { key: 'torneiosDisputados', label: 'Torneios disputados', icon: 'trophy-outline' },
   { key: 'titulos', label: 'Títulos', icon: 'medal-outline' },
 ]
@@ -30,6 +30,9 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   const role = session?.tipo === 'treinador' ? 'trainer' : 'institution'
   const opportunityId = routeParams.opportunityId
   const athleteId = routeParams.athleteId
+  // Candidato das oportunidades de exemplo: perfil completo, funcionando como um real,
+  // mas as ações ficam só na tela (nada é gravado no banco).
+  const demo = routeParams.demoCandidate ?? null
   const [profile, setProfile] = useState(null)
   const [application, setApplication] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -45,6 +48,11 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   // Documento enviado pelo atleta: link abre fora do app; foto abre aqui mesmo.
   const openDocument = async (item) => {
     setError('')
+    if (demo) {
+      if (item.arquivoUrl) { setNotice('O vídeo de apresentação abriria no aplicativo de vídeos do celular.'); return }
+      setViewer({ title: documentLabel(item.tipo ?? item.nome), text: item.conteudoExemplo })
+      return
+    }
     if (item.arquivoUrl) {
       Linking.openURL(item.arquivoUrl).catch(() => setError('Não foi possível abrir este link.'))
       return
@@ -70,6 +78,14 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
     let active = true
     setLoading(true)
     setError('')
+
+    if (demo) {
+      setProfile(demo.profile)
+      setApplication(demo.application)
+      setEvaluations(demo.evaluations ?? [])
+      setLoading(false)
+      return () => { active = false }
+    }
 
     Promise.resolve()
       .then(async () => {
@@ -116,7 +132,9 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
     setError('')
     setNotice('')
     try {
-      const result = await repositories.applications.atualizarStatusDaCandidatura(application.id, nextStatus)
+      const result = demo
+        ? { ok: true, data: { ...application, status: nextStatus } }
+        : await repositories.applications.atualizarStatusDaCandidatura(application.id, nextStatus)
       if (!result.ok) throw new Error(result.mensagem || 'Não foi possível atualizar a candidatura.')
       setApplication(result.data)
       setPendingDecision(null)
@@ -148,8 +166,8 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
       ) : profile ? (
         <ScrollView style={partnerStyles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={[partnerStyles.card, styles.identityCard]}>
-            {profile.fotoUrl ? (
-              <Image source={{ uri: profile.fotoUrl }} style={styles.avatar} />
+            {profile.fotoUrl || profile.fotoExemplo ? (
+              <Image source={profile.fotoExemplo ?? { uri: profile.fotoUrl }} style={styles.avatar} />
             ) : (
               <View style={[styles.avatar, styles.avatarFallback]}>
                 <Ionicons name="person-outline" size={30} color={partnerColors.green} />
@@ -233,11 +251,11 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
                 ))}
                 <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
                 <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador antes da decisão.</Text>
-                <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id, athleteName: profile?.nome || '', opportunityTitle: routeParams.opportunityTitle || '' })} style={partnerStyles.secondaryButton}>
+                <Pressable accessibilityRole="button" onPress={() => (demo ? setNotice(`Avaliação técnica solicitada para ${profile?.nome}. O parecer aparece aqui quando o treinador responder.`) : go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id, athleteName: profile?.nome || '', opportunityTitle: routeParams.opportunityTitle || '' }))} style={partnerStyles.secondaryButton}>
                   <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
                 </Pressable>
               </> : <Text style={partnerStyles.sectionTitle}>Apoio ao atleta</Text>}
-              <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId, candidateName: profile?.nome || '' })} style={partnerStyles.secondaryButton}>
+              <Pressable accessibilityRole="button" onPress={() => (demo ? setNotice(`Apoio registrado para ${profile?.nome}.`) : go('operations', { opportunityId, athleteId, candidateName: profile?.nome || '' }))} style={partnerStyles.secondaryButton}>
                 <Text style={partnerStyles.secondaryButtonText}>Registrar apoio concedido</Text>
               </Pressable>
           </View>
@@ -310,7 +328,13 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
               <Ionicons name="close" size={28} color="#ffffff" />
             </Pressable>
           </View>
-          {viewer ? <Image source={{ uri: viewer.uri }} style={styles.viewerImage} resizeMode="contain" /> : null}
+          {viewer?.uri ? <Image source={{ uri: viewer.uri }} style={styles.viewerImage} resizeMode="contain" /> : null}
+          {viewer?.text ? (
+            <ScrollView contentContainerStyle={styles.viewerSheet}>
+              <Text style={styles.viewerSheetTitle}>{viewer.title}</Text>
+              <Text style={styles.viewerSheetText}>{viewer.text}</Text>
+            </ScrollView>
+          ) : null}
         </View>
       </Modal>
     </View>
@@ -325,6 +349,9 @@ const styles = StyleSheet.create({
   viewerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 12 },
   viewerTitle: { flex: 1, color: '#ffffff', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
   viewerImage: { flex: 1, width: '100%' },
+  viewerSheet: { margin: 18, padding: 22, gap: 12, borderRadius: 6, backgroundColor: '#ffffff' },
+  viewerSheetTitle: { color: '#10579b', fontFamily: 'Poppins_600SemiBold', fontSize: 18 },
+  viewerSheetText: { color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 22 },
   stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 14 },
   identityCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },

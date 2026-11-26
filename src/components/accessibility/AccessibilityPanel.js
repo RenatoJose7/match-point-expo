@@ -93,9 +93,16 @@ export function AccessibilityPanel() {
             <OptionSwitch
               icon="contrast"
               title="Alto contraste"
-              description="Escurece textos claros sobre fundo branco."
+              description="Reforça cores, textos e contornos de botões em todas as telas."
               value={settings.highContrast}
               onChange={(value) => update({ highContrast: value }, value ? 'Alto contraste ativado' : 'Alto contraste desativado')}
+            />
+            <OptionSwitch
+              icon="reorder-four-outline"
+              title="Mais espaço entre linhas"
+              description="Afasta as linhas dos textos para facilitar a leitura (bom para dislexia)."
+              value={settings.lineSpacing}
+              onChange={(value) => update({ lineSpacing: value }, value ? 'Espaçamento maior ativado' : 'Espaçamento padrão')}
             />
             <OptionSwitch
               icon="pause-circle-outline"

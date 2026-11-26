@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Image, Modal, Platform, Pressable, ScrollView, StyleSheet, useWindowDimensions, View } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
+import { Ionicons } from '@expo/vector-icons'
 import { GoogleLoginButton } from '../../components/auth/GoogleLoginButton'
 import { Button } from '../../components/ui/Button'
 import { BackButton } from '../../components/ui/BackButton'
@@ -186,6 +187,8 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
   const [feedback, setFeedback] = useState(null)
   const [selectedDdd, setSelectedDdd] = useState('')
   const [dddPickerVisible, setDddPickerVisible] = useState(false)
+  // Olho para ver a senha enquanto digita (senha e confirmação juntas).
+  const [showPasswords, setShowPasswords] = useState(false)
   const emailField = fields.find(field => field.toLowerCase().includes('email'))
   const confirmationField = fields.find(field => field.toLowerCase().includes('confirme'))
   const passwordField = fields.find(field => field.toLowerCase().includes('senha') && !field.toLowerCase().includes('confirme'))
@@ -413,6 +416,7 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                     <SelectField
                       accessibilityLabel={field}
                       options={selectOptions}
+                      allowCustom={selectOptions === SELECT_OPTIONS.locais}
                       value={values[field] ?? ''}
                       onChange={value => updateValue(field, value)}
                       placeholder={field}
@@ -453,11 +457,13 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                       />
                     </View>
                   ) : (
+                    <View style={localStyles.inputWrap}>
                     <TextInput
+                      accessibilityLabel={isBirthDate ? 'Data de nascimento' : isGuardianCode ? 'Código do responsável' : field}
                       placeholder={isBirthDate ? 'Data de nascimento' : isGuardianCode ? 'Código do responsável' : field}
                       placeholderTextColor={BLUE}
-                      secureTextEntry={isPassword}
-                      style={[localStyles.input, { height: inputHeight }]}
+                      secureTextEntry={isPassword && !showPasswords}
+                      style={[localStyles.input, { height: inputHeight }, isPassword && localStyles.inputWithIcon]}
                       value={values[field] ?? ''}
                       onChangeText={value => updateValue(field, value)}
                       keyboardType={isBirthDate || isDocument ? 'numeric' : normalizedField.includes('email') ? 'email-address' : 'default'}
@@ -467,6 +473,18 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
                       textContentType={isPassword ? 'newPassword' : undefined}
                       maxLength={isBirthDate ? 10 : isDocument ? (normalizedField.includes('cnpj') ? 18 : 14) : undefined}
                     />
+                    {isPassword ? (
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel={showPasswords ? 'Ocultar senha' : 'Mostrar senha'}
+                        hitSlop={8}
+                        onPress={() => setShowPasswords((value) => !value)}
+                        style={localStyles.eyeButton}
+                      >
+                        <Ionicons name={showPasswords ? 'eye-off-outline' : 'eye-outline'} size={22} color={BLUE} />
+                      </Pressable>
+                    ) : null}
+                    </View>
                   )}
                   {isPassword && !isPasswordConfirmation && passwordValue.length > 0 && !hasStrongPassword && (
                     <View style={{ borderRadius: 8, backgroundColor: '#fff', padding: 12 }}>
@@ -633,6 +651,9 @@ const localStyles = StyleSheet.create(withGriffithsOverhang({
     fontSize: 16,
     ...Platform.select({ web: { outlineStyle: 'none' } }),
   },
+  inputWrap: { position: 'relative', justifyContent: 'center' },
+  inputWithIcon: { paddingRight: 52 },
+  eyeButton: { position: 'absolute', right: 4, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   select: {
     minHeight: 50,
     height: 50,

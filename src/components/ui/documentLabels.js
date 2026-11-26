@@ -9,6 +9,9 @@ const DOCUMENT_LABELS = Object.freeze({
   autorizacao_responsavel: 'Autorização do responsável',
 })
 
+// Opções do formulário de oportunidade (o código fica salvo; o nome aparece na tela).
+export const DOCUMENT_OPTIONS = Object.freeze(Object.entries(DOCUMENT_LABELS).map(([value, label]) => ({ value, label })))
+
 export function documentLabel(document) {
   const value = String(document ?? '').trim()
   if (!value) return 'Documento'

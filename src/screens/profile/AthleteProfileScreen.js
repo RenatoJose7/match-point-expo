@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BackButton } from '../../components/ui/BackButton'
 import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
@@ -7,39 +7,13 @@ import { BottomNav } from '../../components/navigation/BottomNav'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { Button } from '../../components/ui/Button'
-import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
+import { SelectField } from '../../components/ui/SelectField'
+import { ChoiceChips } from '../../components/ui/ChoiceChips'
+import { NumberStepper } from '../../components/ui/NumberStepper'
+import { ProgressRing } from '../../components/ui/ProgressRing'
 import { BLUE } from '../../theme/colors'
-import { fitValue, isNumericValue } from '../../theme/typography'
 import { dateInputValue, formatDateInput, toIsoDate } from '../partner/partnerOpportunityUi'
-
-const fields = [
-  { key: 'modalidade', label: 'Modalidade', options: SELECT_OPTIONS.modalidades, required: true },
-  { key: 'categoria', label: 'Categoria', options: SELECT_OPTIONS.categorias },
-  { key: 'posicao', label: 'Posição', options: SELECT_OPTIONS.posicoes },
-  { key: 'maoDominante', label: 'Mão dominante', options: SELECT_OPTIONS.maoDominante },
-  { key: 'equipeAtual', label: 'Equipe atual' },
-  { key: 'tempoDePratica', label: 'Tempo de prática', options: SELECT_OPTIONS.tempoDePratica },
-  { key: 'localizacao', label: 'Localização', options: SELECT_OPTIONS.locais },
-  { key: 'biografia', label: 'Sobre você', multiline: true },
-  { key: 'ranking', label: 'Ranking' },
-  { key: 'torneiosDisputados', label: 'Torneios disputados' },
-  { key: 'titulos', label: 'Títulos' },
-  // Dados da Área do Atleta: também aparecem e podem ser editados aqui.
-  { key: 'resultadosEsportivos', label: 'Resultados esportivos' },
-  { key: 'objetivos', label: 'Objetivos', multiline: true },
-  { key: 'necessidades', label: 'Necessidades' },
-  { key: 'disponibilidade', label: 'Dias e períodos disponíveis', options: SELECT_OPTIONS.disponibilidade },
-  { key: 'possibilidadeViagem', label: 'Possibilidade de viagem', options: SELECT_OPTIONS.viagens },
-  { key: 'distanciaMaxima', label: 'Distância máxima', options: SELECT_OPTIONS.distancias },
-]
-
-function emptyValues() {
-  return Object.fromEntries(fields.map(({ key }) => [key, '']))
-}
-
-function profileValues(profile) {
-  return Object.fromEntries(fields.map(({ key }) => [key, String(profile?.[key] ?? '')]))
-}
+import { ATHLETE_SECTIONS, athleteCompletion, athleteFormValues, athleteSaveData, displayText } from './athleteProfileFields'
 
 function isValidIsoDate(value) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false
@@ -54,31 +28,52 @@ function formatDate(value) {
 
 function calculateAge(value) {
   if (!value || !isValidIsoDate(value)) return null
-
   const [year, month, day] = value.split('-').map(Number)
   const today = new Date()
   const birthdayHasPassed = today.getMonth() + 1 > month
     || (today.getMonth() + 1 === month && today.getDate() >= day)
-
   return today.getFullYear() - year - (birthdayHasPassed ? 0 : 1)
 }
 
-function displayValue(value, suffix = '', emptyText = 'Não informado') {
-  if (value === null || value === undefined || String(value).trim() === '') return emptyText
-  // Sufixos como "º" e " torneios" só fazem sentido em números ("Ainda não participei" fica como está).
-  const text = String(value).trim()
-  return isNumericValue(text) ? `${text}${suffix}` : text
+// Um campo do formulário, conforme o tipo (lista, múltipla escolha, número ou texto curto).
+function ProfileField({ field, value, onChange }) {
+  if (field.type === 'select') {
+    return <SelectField accessibilityLabel={field.label} options={field.options} value={value} onChange={onChange} placeholder={`Selecione ${field.label.toLowerCase()}`} allowCustom={field.allowCustom} />
+  }
+  if (field.type === 'chips') return <ChoiceChips label={field.label} options={field.options} value={value} onChange={onChange} />
+  if (field.type === 'number') return <NumberStepper label={field.label} value={value} onChange={onChange} />
+  const length = String(value ?? '').length
+  return (
+    <>
+      <TextInput
+        accessibilityLabel={field.label}
+        autoCapitalize="sentences"
+        multiline={field.multiline}
+        maxLength={field.maxLength}
+        onChangeText={onChange}
+        placeholder={field.placeholder || field.label}
+        placeholderTextColor="#6a7d86"
+        style={[localStyles.input, field.multiline && localStyles.multilineInput]}
+        value={value}
+      />
+      {field.maxLength ? <Text style={localStyles.counter}>{length}/{field.maxLength}</Text> : null}
+    </>
+  )
 }
 
-// Número grande quando é número; frase em tamanho de leitura, sem sair do cartão.
-function StatValue({ value }) {
-  return <Text numberOfLines={3} style={[localStyles.statValue, { textAlign: 'center' }, fitValue(value, 28, { fits: 5, textSize: 15 })]}>{value}</Text>
+function InfoRow({ label, value }) {
+  return (
+    <View style={localStyles.infoRow}>
+      <Text style={localStyles.infoRowLabel}>{label}</Text>
+      <Text style={localStyles.infoRowValue}>{value}</Text>
+    </View>
+  )
 }
 
 export function AthleteProfileScreen(props) {
   const { back, go, repositories, session } = props
   const [profile, setProfile] = useState(null)
-  const [values, setValues] = useState(emptyValues)
+  const [values, setValues] = useState(() => athleteFormValues({}))
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
@@ -107,7 +102,7 @@ export function AthleteProfileScreen(props) {
 
         if (!result.ok && result.codigo === 'NAO_ENCONTRADO') {
           setProfile(null)
-          setValues(emptyValues())
+          setValues(athleteFormValues({}))
           setBirthDate('')
           setEditing(true)
           return
@@ -119,7 +114,7 @@ export function AthleteProfileScreen(props) {
         }
 
         setProfile(result.data)
-        setValues(profileValues(result.data))
+        setValues(athleteFormValues(result.data))
         setBirthDate(dateInputValue(result.data.dataNascimento))
         setEditing(false)
       } catch {
@@ -142,26 +137,23 @@ export function AthleteProfileScreen(props) {
   const saveProfile = async () => {
     if (saving) return
 
-    const normalizedValues = Object.fromEntries(
-      fields.map(({ key }) => [key, values[key].trim()]),
-    )
     const dateOfBirth = profile?.dataNascimento ?? (toIsoDate(birthDate) ?? '').slice(0, 10)
-
     if (!dateOfBirth || !isValidIsoDate(dateOfBirth)) {
       setError('Informe uma data de nascimento válida no formato DD/MM/AAAA.')
       return
     }
-    if (!normalizedValues.modalidade) {
-      setError('Informe a modalidade esportiva.')
+    const fieldsData = athleteSaveData(values)
+    if (!fieldsData.modalidade) {
+      setError('Escolha a modalidade esportiva.')
       return
     }
 
     const data = {
-      ...normalizedValues,
+      ...fieldsData,
       // Mantém o nome no perfil esportivo (é o que o responsável vê na lista de vinculados).
       ...(session?.nome ? { nome: session.nome } : {}),
       dataNascimento: dateOfBirth,
-      perfilCompleto: Boolean(dateOfBirth && normalizedValues.modalidade),
+      perfilCompleto: Boolean(dateOfBirth && fieldsData.modalidade),
       atualizadoEm: new Date().toISOString(),
     }
 
@@ -180,7 +172,7 @@ export function AthleteProfileScreen(props) {
       }
 
       setProfile(result.data)
-      setValues(profileValues(result.data))
+      setValues(athleteFormValues(result.data))
       setBirthDate(dateInputValue(result.data.dataNascimento ?? dateOfBirth))
       setEditing(false)
       setNotice('Perfil esportivo salvo.')
@@ -192,18 +184,31 @@ export function AthleteProfileScreen(props) {
   }
 
   const cancelEditing = () => {
-    setValues(profileValues(profile))
+    setValues(athleteFormValues(profile))
     setBirthDate(dateInputValue(profile?.dataNascimento))
     setError('')
     setNotice('')
     setEditing(false)
   }
 
+  // Sair da edição com alterações não salvas pede confirmação, para ninguém perder o que preencheu.
+  const hasUnsavedChanges = editing && Boolean(profile) && JSON.stringify(values) !== JSON.stringify(athleteFormValues(profile))
+  const leave = () => {
+    if (!hasUnsavedChanges) { back(); return }
+    Alert.alert('Descartar alterações?', 'Você mudou o perfil e ainda não salvou.', [
+      { text: 'Continuar editando', style: 'cancel' },
+      { text: 'Descartar', style: 'destructive', onPress: back },
+    ])
+  }
+
+  const completion = athleteCompletion(profile) ?? 0
+  const level = profile?.nivelCompetitivo || profile?.ranking
+
   return (
     <View style={localStyles.screen}>
       <View style={localStyles.header}>
         <View style={localStyles.headerStripe} />
-        <BackButton onPress={back} />
+        <BackButton onPress={leave} />
         <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <View style={localStyles.identity}>
           <ProfilePhotoPicker compact repositories={repositories} session={session} size={58} />
@@ -227,10 +232,9 @@ export function AthleteProfileScreen(props) {
           </View>
         ) : editing ? (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={localStyles.content} keyboardShouldPersistTaps="handled">
-            <Text style={localStyles.sectionTitle}>Informações esportivas</Text>
             {!profile && (
               <View style={localStyles.fieldGroup}>
-                <Text style={localStyles.fieldLabel}>Data de nascimento</Text>
+                <Text style={localStyles.fieldLabel}>Data de nascimento *</Text>
                 <TextInput
                   accessibilityLabel="Data de nascimento"
                   autoCapitalize="none"
@@ -245,23 +249,15 @@ export function AthleteProfileScreen(props) {
               </View>
             )}
 
-            {fields.map(({ key, label, multiline, options, required }) => (
-              <View key={key} style={localStyles.fieldGroup}>
-                <Text style={localStyles.fieldLabel}>{label}{required ? ' *' : ''}</Text>
-                {options ? (
-                  <SelectField accessibilityLabel={label} options={options} value={values[key]} onChange={value => updateField(key, value)} placeholder={`Selecione ${label.toLowerCase()}`} />
-                ) : (
-                  <TextInput
-                    accessibilityLabel={label}
-                    autoCapitalize="sentences"
-                    multiline={multiline}
-                    onChangeText={value => updateField(key, value)}
-                    placeholder={label}
-                    placeholderTextColor="#6a7d86"
-                    style={[localStyles.input, multiline && localStyles.multilineInput]}
-                    value={values[key]}
-                  />
-                )}
+            {ATHLETE_SECTIONS.map((section) => (
+              <View key={section.title} style={localStyles.formSection}>
+                <Text accessibilityRole="header" style={localStyles.sectionTitle}>{section.title}</Text>
+                {section.fields.map((field) => (
+                  <View key={field.key} style={localStyles.fieldGroup}>
+                    <Text style={localStyles.fieldLabel}>{field.label}{field.required ? ' *' : ''}</Text>
+                    <ProfileField field={field} value={values[field.key]} onChange={(value) => updateField(field.key, value)} />
+                  </View>
+                ))}
               </View>
             ))}
 
@@ -275,69 +271,68 @@ export function AthleteProfileScreen(props) {
                 <Text style={localStyles.secondaryActionText}>Cancelar edição</Text>
               </Pressable>
             )}
-            <DeleteAccountSection repositories={repositories} />
           </ScrollView>
         ) : (
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={localStyles.content}>
-            <View style={localStyles.infoGrid}>
-            <View style={localStyles.infoCard}>
-              <Text style={localStyles.infoLabel}>Categoria</Text>
-              <Text style={localStyles.infoValue}>{displayValue(profile?.categoria)}</Text>
-            </View>
-            <View style={localStyles.infoCard}>
-              <Text style={localStyles.infoLabel}>Idade</Text>
-              <Text style={localStyles.infoValue}>{displayValue(calculateAge(profile?.dataNascimento), ' anos')}</Text>
-            </View>
-            <View style={localStyles.infoCard}>
-              <Text style={localStyles.infoLabel}>Localização</Text>
-              <Text style={localStyles.infoValue}>{displayValue(profile?.localizacao)}</Text>
-            </View>
-            <View style={localStyles.infoCard}>
-              <Text style={localStyles.infoLabel}>Torneios disputados</Text>
-              <Text style={localStyles.infoValue}>{displayValue(profile?.torneiosDisputados, ' torneios', '4 torneios')}</Text>
-            </View>
-            </View>
+            {!!notice && <Text accessibilityRole="alert" style={localStyles.successText}>{notice}</Text>}
 
-            <View style={localStyles.aboutCard}>
-            <Text style={localStyles.aboutTitle}>Sobre mim</Text>
-            <Text style={localStyles.aboutText}>{displayValue(profile?.biografia)}</Text>
+            {/* Perfil completo: o anel enche de acordo com a porcentagem real. */}
+            <View style={localStyles.completionCard}>
+              <ProgressRing percent={completion} size={74} stroke={7} color={completion === 100 ? '#2e9e4f' : BLUE}>
+                <Text style={localStyles.completionValue}>{completion}%</Text>
+              </ProgressRing>
+              <View style={localStyles.completionCopy}>
+                <Text style={localStyles.completionTitle}>{completion === 100 ? 'Perfil completo' : 'Complete seu perfil'}</Text>
+                <Text style={localStyles.completionText}>{completion === 100 ? 'As instituições veem todas as suas informações.' : 'Perfis completos têm Match Score mais preciso.'}</Text>
+              </View>
             </View>
 
             <View style={localStyles.statsGrid}>
-            <View style={localStyles.statCard}>
-              <Text style={localStyles.statLabel}>Ranking MatchPoint</Text>
-              <StatValue value={displayValue(profile?.ranking, 'º', '24º')} />
-            </View>
-            <View style={localStyles.statCard}>
-              <Text style={localStyles.statLabel}>Torneios disputados</Text>
-              <StatValue value={displayValue(profile?.torneiosDisputados, '', '4')} />
-            </View>
-            <View style={localStyles.statCard}>
-              <Text style={localStyles.statLabel}>Títulos</Text>
-              <StatValue value={displayValue(profile?.titulos, '', '1')} />
-            </View>
-            </View>
-
-            <View style={localStyles.additionalInfo}>
-            <Text style={localStyles.additionalInfoText}>Modalidade: {displayValue(profile?.modalidade)}</Text>
-            <Text style={localStyles.additionalInfoText}>Posição: {displayValue(profile?.posicao)}</Text>
-            <Text style={localStyles.additionalInfoText}>Mão dominante: {displayValue(profile?.maoDominante)}</Text>
-            <Text style={localStyles.additionalInfoText}>Equipe atual: {displayValue(profile?.equipeAtual)}</Text>
-            <Text style={localStyles.additionalInfoText}>Tempo de prática: {displayValue(profile?.tempoDePratica)}</Text>
-            <Text style={localStyles.additionalInfoText}>Nascimento: {formatDate(profile?.dataNascimento)}</Text>
-            <Text style={localStyles.additionalInfoText}>Resultados: {displayValue(profile?.resultadosEsportivos)}</Text>
+              {/* Perfil recém-criado (números nunca salvos) mostra exemplos coerentes; depois, o real. */}
+              {[
+                ['Torneios', profile?.torneiosDisputados, 4],
+                ['Vitórias', profile?.vitorias, 3],
+                ['Derrotas', profile?.derrotas, 1],
+                ['Títulos', profile?.titulos, 1],
+              ].map(([label, value, example]) => {
+                const saved = value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value))
+                return (
+                  <View key={label} style={localStyles.statCard}>
+                    <Text style={localStyles.statValue}>{saved ? Number(value) : example}</Text>
+                    <Text style={localStyles.statLabel}>{label}</Text>
+                  </View>
+                )
+              })}
             </View>
 
-            <View style={localStyles.aboutCard}>
-            <Text style={localStyles.aboutTitle}>Objetivos e disponibilidade</Text>
-            <Text style={localStyles.aboutText}>{displayValue(profile?.objetivos)}</Text>
-            <Text style={localStyles.additionalInfoText}>Necessidades: {displayValue(profile?.necessidades)}</Text>
-            <Text style={localStyles.additionalInfoText}>Disponibilidade: {displayValue(profile?.disponibilidade)}</Text>
-            <Text style={localStyles.additionalInfoText}>Viagens: {displayValue(profile?.possibilidadeViagem)}</Text>
-            <Text style={localStyles.additionalInfoText}>Distância máxima: {displayValue(profile?.distanciaMaxima)}</Text>
+            <View style={localStyles.block}>
+              <Text accessibilityRole="header" style={localStyles.blockTitle}>Esporte</Text>
+              <InfoRow label="Modalidade" value={displayText(profile?.modalidade)} />
+              <InfoRow label="Categoria" value={displayText(profile?.categoria)} />
+              <InfoRow label="Nível competitivo" value={displayText(level)} />
+              <InfoRow label="Joga em" value={displayText(profile?.posicao)} />
+              <InfoRow label="Mão dominante" value={displayText(profile?.maoDominante)} />
+              <InfoRow label="Tempo de prática" value={displayText(profile?.tempoDePratica)} />
+              <InfoRow label="Equipe ou clube" value={displayText(profile?.equipeAtual)} />
             </View>
 
-            {!!notice && <Text accessibilityRole="alert" style={localStyles.successText}>{notice}</Text>}
+            <View style={localStyles.block}>
+              <Text accessibilityRole="header" style={localStyles.blockTitle}>Sobre mim</Text>
+              <Text style={localStyles.aboutText}>{displayText(profile?.biografia, 'Escreva uma apresentação curta em "Editar perfil".')}</Text>
+              <InfoRow label="Idade" value={calculateAge(profile?.dataNascimento) !== null ? `${calculateAge(profile?.dataNascimento)} anos` : 'Não informada'} />
+              <InfoRow label="Nascimento" value={formatDate(profile?.dataNascimento)} />
+              <InfoRow label="Cidade" value={displayText(profile?.localizacao)} />
+            </View>
+
+            <View style={localStyles.block}>
+              <Text accessibilityRole="header" style={localStyles.blockTitle}>Objetivos e disponibilidade</Text>
+              <InfoRow label="Objetivos" value={displayText(profile?.objetivos)} />
+              <InfoRow label="Do que preciso" value={displayText(profile?.necessidades)} />
+              <InfoRow label="Disponibilidade" value={displayText(profile?.disponibilidade)} />
+              <InfoRow label="Viagens" value={displayText(profile?.possibilidadeViagem)} />
+              <InfoRow label="Distância máxima" value={displayText(profile?.distanciaMaxima)} />
+            </View>
+
             <Pressable accessibilityRole="button" onPress={() => go('operations')} style={localStyles.secondaryAction}>
               <Text style={localStyles.secondaryActionText}>Enviar relato ou sugestão</Text>
             </Pressable>
@@ -356,46 +351,40 @@ const localStyles = StyleSheet.create({
   header: { height: 162, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -80, top: 120, width: 200, height: 34, backgroundColor: '#e5e6e7', transform: [{ rotate: '40deg' }] },
   identity: { position: 'absolute', left: 30, right: 18, top: 72, flexDirection: 'row', alignItems: 'center', gap: 14 },
-  identityCopy: { flex: 1 },
+  // Espaço do botão "Editar perfil": nome comprido quebra a linha em vez de passar por baixo dele.
+  identityCopy: { flex: 1, paddingRight: 128 },
   name: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 18, lineHeight: 24 },
   role: { color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22 },
-  headerEditButton: { position: 'absolute', right: 12, bottom: 12, minHeight: 30, borderRadius: 8, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#c4ff32' },
-  headerEditText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  headerEditButton: { position: 'absolute', right: 12, bottom: 12, minHeight: 44, borderRadius: 10, paddingHorizontal: 16, alignItems: 'center', justifyContent: 'center', backgroundColor: '#c4ff32' },
+  headerEditText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
   body: { flex: 1, marginTop: -2, backgroundColor: '#f3f4f4', borderTopLeftRadius: 25, borderTopRightRadius: 25, overflow: 'hidden' },
-  content: { gap: 10, paddingHorizontal: 12, paddingTop: 34, paddingBottom: 100 },
-  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 18, marginTop: 8, marginBottom: 4 },
-  fieldGroup: { gap: 5 },
-  fieldLabel: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 13 },
-  input: {
-    minHeight: 46,
-    borderColor: '#c8d5d8',
-    borderRadius: 8,
-    borderWidth: 1,
-    backgroundColor: '#ffffff',
-    color: '#17313c',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 18,
-    paddingHorizontal: 12,
-  },
-  multilineInput: { minHeight: 96, paddingTop: 10, textAlignVertical: 'top' },
-  infoGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  infoCard: { backgroundColor: '#ffffff', borderColor: '#dfe5e7', borderRadius: 7, borderWidth: 1, elevation: 1, flexGrow: 1, flexBasis: '47%', gap: 6, minHeight: 74, padding: 13, shadowColor: '#17313c', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.08, shadowRadius: 2 },
-  infoLabel: { color: '#6f747a', fontFamily: 'Poppins_400Regular', fontSize: 14 },
-  infoValue: { color: '#0f4c8f', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
-  aboutCard: { backgroundColor: '#ffffff', borderColor: '#e1e5e5', borderRadius: 7, borderWidth: 1, gap: 10, padding: 15 },
-  aboutTitle: { color: '#174b8c', fontFamily: 'Poppins_600SemiBold', fontSize: 19 },
-  aboutText: { color: '#59626b', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22 },
-  statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
-  statCard: { alignItems: 'center', backgroundColor: '#ffffff', borderColor: '#e1e5e5', borderRadius: 6, borderWidth: 1, flexBasis: '48%', flexGrow: 0, flexShrink: 1, gap: 3, minHeight: 86, justifyContent: 'center', padding: 10 },
-  statLabel: { color: '#174b8c', fontFamily: 'Poppins_600SemiBold', fontSize: 14, textAlign: 'center' },
-  statValue: { color: '#174b8c', fontFamily: 'Poppins_600SemiBold', fontSize: 28, lineHeight: 34 },
-  additionalInfo: { backgroundColor: '#ffffff', borderColor: '#e1e5e5', borderRadius: 7, borderWidth: 1, gap: 5, padding: 14 },
-  additionalInfoText: { color: '#59626b', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  content: { gap: 12, paddingHorizontal: 14, paddingTop: 26, paddingBottom: 110 },
+  formSection: { gap: 12, padding: 14, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e1e5e5' },
+  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 18 },
+  fieldGroup: { gap: 6 },
+  fieldLabel: { color: '#2b3f48', fontFamily: 'Poppins_500Medium', fontSize: 14 },
+  input: { minHeight: 48, borderColor: '#c8d5d8', borderRadius: 8, borderWidth: 1, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 20, paddingHorizontal: 12 },
+  multilineInput: { minHeight: 104, paddingTop: 10, textAlignVertical: 'top' },
+  counter: { alignSelf: 'flex-end', color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  completionCard: { flexDirection: 'row', alignItems: 'center', gap: 14, padding: 14, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e1e5e5' },
+  completionValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
+  completionCopy: { flex: 1, gap: 2 },
+  completionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
+  completionText: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  statsGrid: { flexDirection: 'row', gap: 8 },
+  statCard: { flex: 1, alignItems: 'center', justifyContent: 'center', minHeight: 78, padding: 8, borderRadius: 10, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e1e5e5' },
+  statValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 24, lineHeight: 30 },
+  statLabel: { color: '#526770', fontFamily: 'Poppins_500Medium', fontSize: 12, textAlign: 'center' },
+  block: { gap: 8, padding: 14, borderRadius: 12, backgroundColor: '#ffffff', borderWidth: 1, borderColor: '#e1e5e5' },
+  blockTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 17, marginBottom: 2 },
+  infoRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 12, paddingVertical: 4, borderBottomWidth: 1, borderBottomColor: '#eef1f2' },
+  infoRowLabel: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 14, flexShrink: 0 },
+  infoRowValue: { flex: 1, color: '#17313c', fontFamily: 'Poppins_500Medium', fontSize: 14, textAlign: 'right' },
+  aboutText: { color: '#3d4f57', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22 },
   centerState: { flex: 1, justifyContent: 'center', gap: 16, padding: 24 },
   stateText: { color: '#526770', fontFamily: 'Poppins_400Regular', textAlign: 'center' },
-  errorText: { color: '#b42318', fontFamily: 'Poppins_400Regular', textAlign: 'center' },
+  errorText: { color: '#b42318', fontFamily: 'Poppins_500Medium', textAlign: 'center' },
   successText: { color: '#126b35', fontFamily: 'Poppins_500Medium', textAlign: 'center' },
-  secondaryAction: { alignItems: 'center', padding: 12 },
+  secondaryAction: { alignItems: 'center', justifyContent: 'center', minHeight: 48, padding: 12 },
   secondaryActionText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14 },
 })

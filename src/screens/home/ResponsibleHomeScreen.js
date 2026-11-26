@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
 import { Header } from '../../components/Header'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 export function ResponsibleHomeScreen({ go, repositories, session }) {
   const firstName = String(session?.nome ?? '')
@@ -75,6 +76,7 @@ export function ResponsibleHomeScreen({ go, repositories, session }) {
         repositories={repositories}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
+        <WelcomeTips role="responsavel" />
         <Text style={styles.subtitle}>Gerencie somente os perfis esportivos vinculados à sua conta.</Text>
         <ProfilePhotoPicker repositories={repositories} session={session} />
 

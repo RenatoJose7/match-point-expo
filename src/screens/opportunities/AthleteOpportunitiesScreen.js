@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View, RefreshControl } from 'react-native'
 import { Text } from '../../components/accessibility/AppText'
 import { Feather, Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
@@ -62,6 +62,7 @@ export function AthleteOpportunitiesScreen(props) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -109,7 +110,7 @@ export function AthleteOpportunitiesScreen(props) {
 
     loadOpportunities()
     return () => { active = false }
-  }, [repositories, session?.id])
+  }, [repositories, session?.id, reloadKey])
 
   const visibleOpportunities = opportunities.filter(opportunity => {
     if (status !== 'todas' && opportunity.status !== status) return false
@@ -154,7 +155,7 @@ export function AthleteOpportunitiesScreen(props) {
           {hasAdditionalFilters ? <View style={localStyles.filterIndicator} /> : null}
         </Pressable>}
       />
-      <ScrollView showsVerticalScrollIndicator={false} style={localStyles.scroll} contentContainerStyle={[styles.listContent, localStyles.content]} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} style={localStyles.scroll} contentContainerStyle={[styles.listContent, localStyles.content]} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={false} onRefresh={() => setReloadKey((value) => value + 1)} colors={[BLUE]} />}>
         {filtersOpen ? (
           <View style={localStyles.filtersPanel}>
             <View style={localStyles.statusFilters}>

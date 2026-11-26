@@ -12,7 +12,7 @@ const fields = [
   ['posicao', 'Posição'],
   ['equipeAtual', 'Equipe atual'],
   ['tempoDePratica', 'Tempo de prática'],
-  ['ranking', 'Ranking'],
+  ['nivelCompetitivo', 'Nível competitivo'],
 ]
 
 const selectOptionsByKey = {
@@ -20,6 +20,7 @@ const selectOptionsByKey = {
   categoria: SELECT_OPTIONS.categorias,
   posicao: SELECT_OPTIONS.posicoes,
   tempoDePratica: SELECT_OPTIONS.tempoDePratica,
+  nivelCompetitivo: SELECT_OPTIONS.niveisCompetitivos,
 }
 
 export function ResponsibleAthleteProfileScreen({ back, repositories, routeParams = {}, session }) {
@@ -83,6 +84,8 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
       const data = Object.fromEntries(fields.map(([key]) => [key, values[key]?.trim() || '']))
       const result = await repositories.users.atualizarAtletaComoResponsavel(guardian.id, athlete.id, {
         ...data,
+        // O nível também vai para "ranking", o campo que o perfil público do candidato mostra.
+        ranking: data.nivelCompetitivo,
         perfilCompleto: Boolean(modalidade),
       })
       if (!result.ok) throw new Error(result.mensagem || 'Não foi possível salvar o perfil.')

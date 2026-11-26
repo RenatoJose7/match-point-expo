@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
+import { ChoiceChips, toList } from '../../components/ui/ChoiceChips'
 import { Shell } from '../../components/ui/Shell'
 import { isMinor } from '../../domain/contracts.js'
 import { assets } from '../../theme/assets'
@@ -11,29 +12,31 @@ import { withGriffithsOverhang } from '../../theme/typography'
 // Cada campo grava direto no perfil esportivo; é daqui que o Match Score tira os dados.
 const fieldsByStep = {
   1: [
-    { key: 'nome', label: 'Nome completo' },
+    { key: 'nome', label: 'Nome completo', maxLength: 80 },
     { key: 'modalidade', label: 'Modalidade', options: SELECT_OPTIONS.modalidades, required: true },
     { key: 'categoria', label: 'Categoria', options: SELECT_OPTIONS.categorias, required: true },
     { key: 'maoDominante', label: 'Mão dominante', options: SELECT_OPTIONS.maoDominante },
     { key: 'tempoDePratica', label: 'Tempo de prática', options: SELECT_OPTIONS.tempoDePratica },
-    { key: 'equipeAtual', label: 'Equipe atual (opcional)' },
-    { key: 'resultadosEsportivos', label: 'Resultados esportivos' },
+    { key: 'nivelCompetitivo', label: 'Nível competitivo', options: SELECT_OPTIONS.niveisCompetitivos },
+    { key: 'equipeAtual', label: 'Equipe ou clube (opcional)', maxLength: 60 },
   ],
   2: [
-    { key: 'objetivos', label: 'Objetivos' },
-    { key: 'necessidades', label: 'Necessidades' },
-    { key: 'localizacao', label: 'Cidade onde treina', options: SELECT_OPTIONS.locais, required: true },
+    // Objetivos e necessidades em múltipla escolha: nada de texto aberto sem padrão.
+    { key: 'objetivos', label: 'Seus objetivos', chips: SELECT_OPTIONS.objetivos },
+    { key: 'necessidades', label: 'Do que você precisa', chips: SELECT_OPTIONS.necessidades },
+    { key: 'localizacao', label: 'Cidade onde treina', options: SELECT_OPTIONS.locais, required: true, allowCustom: true },
     { key: 'disponibilidade', label: 'Dias e períodos disponíveis', options: SELECT_OPTIONS.disponibilidade },
     { key: 'possibilidadeViagem', label: 'Possibilidade de viagem', options: SELECT_OPTIONS.viagens },
     { key: 'distanciaMaxima', label: 'Distância máxima', options: SELECT_OPTIONS.distancias },
-    { key: 'resumoResponsavel', label: 'Resumo do responsável (opcional)', minorOnly: true },
+    { key: 'resumoResponsavel', label: 'Resumo do responsável (opcional)', minorOnly: true, maxLength: 200 },
   ],
 }
 
 function initialValues(profile, session) {
   const values = { nome: session?.nome ?? '' }
-  Object.values(fieldsByStep).flat().forEach(({ key }) => {
-    if (key !== 'nome') values[key] = profile?.[key] ? String(profile[key]) : ''
+  Object.values(fieldsByStep).flat().forEach(({ key, chips }) => {
+    if (key === 'nome') return
+    values[key] = chips ? toList(profile?.[key]) : profile?.[key] ? String(profile[key]) : ''
   })
   return values
 }
@@ -69,7 +72,7 @@ export function AthleteAreaForm({ step, go, back, repositories, session }) {
 
   const save = async () => {
     if (saving) return
-    const missing = fields.find((field) => field.required && !values[field.key]?.trim())
+    const missing = fields.find((field) => field.required && !String(values[field.key] ?? '').trim())
     if (missing) {
       setError(`Preencha o campo ${missing.label}.`)
       return
@@ -81,9 +84,10 @@ export function AthleteAreaForm({ step, go, back, repositories, session }) {
 
     const data = Object.fromEntries(fields
       .filter(({ key }) => key !== 'nome')
-      .map(({ key }) => [key, values[key]?.trim() ?? '']))
+      .map(({ key, chips }) => [key, chips ? toList(values[key]) : String(values[key] ?? '').trim()]))
+    // O nível também vai para "ranking", o campo que o perfil público do candidato mostra.
+    if ('nivelCompetitivo' in data) data.ranking = data.nivelCompetitivo
     const modalidade = data.modalidade ?? profile.modalidade
-    if (step === 2 && !profile.biografia && values.objetivos?.trim()) data.biografia = values.objetivos.trim()
     data.perfilCompleto = Boolean(profile.dataNascimento && modalidade)
     data.atualizadoEm = new Date().toISOString()
 
@@ -117,8 +121,13 @@ export function AthleteAreaForm({ step, go, back, repositories, session }) {
           </View>
           {loading ? <ActivityIndicator color="#ffffff" style={localStyles.loading} /> : (
             <View style={localStyles.fields}>
-              {fields.map(({ key, label, options, required }) => (
-                options ? (
+              {fields.map(({ key, label, options, chips, required, allowCustom, maxLength }) => (
+                chips ? (
+                  <View key={key} style={localStyles.chipsGroup}>
+                    <Text style={localStyles.chipsLabel}>{label}</Text>
+                    <ChoiceChips label={label} options={chips} value={values[key]} onChange={(value) => update(key, value)} />
+                  </View>
+                ) : options ? (
                   <SelectField
                     key={key}
                     accessibilityLabel={label}
@@ -126,6 +135,7 @@ export function AthleteAreaForm({ step, go, back, repositories, session }) {
                     value={values[key] ?? ''}
                     onChange={(value) => update(key, value)}
                     placeholder={required ? `${label} *` : label}
+                    allowCustom={allowCustom}
                     triggerStyle={localStyles.select}
                     textStyle={localStyles.selectText}
                   />
@@ -135,6 +145,7 @@ export function AthleteAreaForm({ step, go, back, repositories, session }) {
                     accessibilityLabel={label}
                     placeholder={label}
                     placeholderTextColor={BLUE}
+                    maxLength={maxLength}
                     style={localStyles.input}
                     value={values[key] ?? ''}
                     onChangeText={(value) => update(key, value)}
@@ -215,6 +226,8 @@ const localStyles = StyleSheet.create(withGriffithsOverhang({
   loading: {
     marginVertical: 40,
   },
+  chipsGroup: { gap: 8 },
+  chipsLabel: { color: '#ffffff', fontFamily: 'Poppins_500Medium', fontSize: 15 },
   fields: {
     gap: 11,
   },

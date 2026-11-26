@@ -11,6 +11,9 @@ import { fitValue, isNumericValue, withGriffithsWeight } from '../../theme/typog
 import { loadAthleteApplications, summarizeApplications } from '../applications/athleteApplications'
 import { computeMatchScore } from '../../domain/matchScore.js'
 import { useFrameSize } from '../../theme/layout'
+import { ProgressRing } from '../../components/ui/ProgressRing'
+import { athleteCompletion } from '../profile/athleteProfileFields'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 export function AthleteHomeScreen({ go, repositories, session }) {
   // Em telas um pouco mais baixas que o modelo, os espaços extras cedem (até 80 px)
@@ -78,42 +81,20 @@ export function AthleteHomeScreen({ go, repositories, session }) {
 
   const applicationsSummary = summarizeApplications(applications)
 
-  const hasRanking = Boolean(profile?.ranking)
-  // O ranking pode ser digitado como frase ("Não possuo ranking"): aí não leva # nem "de 146".
-  const numericRanking = hasRanking && isNumericValue(String(profile.ranking).replace(/[º°]/g, ''))
-  const rankingDisplay = hasRanking
-    ? (numericRanking ? `#${String(profile.ranking).replace(/[#º°]/g, '').trim()}` : String(profile.ranking).trim())
-    : '#24'
-  // Dado não informado vira exemplo; dado informado (mesmo "Não possuo ranking") vale como está.
-  const rankingTotal = hasRanking
-    ? (numericRanking ? `de ${profile.totalRanking || 146}` : '')
-    : 'de 146'
+  // Nível competitivo (lista fixa) no lugar do ranking digitado; sem nível, um exemplo coerente.
+  const level = String(profile?.nivelCompetitivo || '').trim()
+  const levelDisplay = level ? level.replace(/^Competitivo\s+/i, '') : 'Regional'
+  const levelCaption = level && /^competitivo/i.test(level) ? 'Competitivo' : level ? 'Nível' : 'Competitivo'
 
-  // Exemplos coerentes com o perfil: quem informou que não disputou torneios fica com 0 a 0;
-  // com um número de torneios, o exemplo nunca passa desse total.
-  const tournamentsText = String(profile?.torneiosDisputados ?? '').trim()
-  const tournaments = /^\d+$/.test(tournamentsText) ? Number(tournamentsText) : null
-  const noTournaments = tournaments === 0 || (tournamentsText !== '' && tournaments === null)
-  const exampleWins = noTournaments ? 0 : Math.min(3, tournaments ?? 3)
-  const exampleLosses = noTournaments ? 0 : Math.min(1, Math.max(0, (tournaments ?? 4) - exampleWins))
-  const vitorias = profile?.vitorias ?? exampleWins
-  const derrotas = profile?.derrotas ?? exampleLosses
+  // Vitórias e derrotas vêm do perfil (agora preenchíveis); nunca salvas, mostram exemplo.
+  const savedNumber = (value) => value !== undefined && value !== null && value !== '' && Number.isFinite(Number(value))
+  // Exemplo nunca contradiz os títulos já informados (cada título exige vitórias).
+  const exampleWins = Math.max(3, savedNumber(profile?.titulos) ? Number(profile.titulos) * 3 : 3)
+  const vitorias = savedNumber(profile?.vitorias) ? Number(profile.vitorias) : exampleWins
+  const derrotas = savedNumber(profile?.derrotas) ? Number(profile.derrotas) : 1
 
-  const profileCompletionPercent = (() => {
-    if (!profile) return null
-    const relevantFields = [
-      'modalidade', 'categoria', 'posicao', 'maoDominante', 'equipeAtual',
-      'tempoDePratica', 'localizacao', 'biografia', 'ranking', 'torneiosDisputados',
-      'titulos', 'dataNascimento',
-    ]
-    const filled = relevantFields.filter((key) => Boolean(profile[key] && String(profile[key]).trim())).length
-    if (filled === 0) return 82
-    return Math.round((filled / relevantFields.length) * 100)
-  })()
-
-  const displayedCompletion = profileCompletionPercent !== null
-    ? `${profileCompletionPercent}%`
-    : '—'
+  const profileCompletionPercent = athleteCompletion(profile)
+  const displayedCompletion = profileCompletionPercent !== null ? `${profileCompletionPercent}%` : '—'
 
   const displayedScore = opportunityScore !== null
     ? `${opportunityScore}%`
@@ -134,6 +115,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
         repositories={repositories}
       />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[localStyles.scrollContent, { paddingTop: fit(10, 6), gap: fit(9, 4) }]}>
+        <WelcomeTips role="atleta" />
         {/* Carrossel de Cards: Desempenho e Perfil */}
         <View style={localStyles.carouselContainer}>
           <ScrollView
@@ -158,11 +140,8 @@ export function AthleteHomeScreen({ go, repositories, session }) {
               </View>
 
               <View style={localStyles.performanceBody}>
-                <Text style={localStyles.rankingLabel}>Ranking Regional</Text>
-                <View style={localStyles.rankingRow}>
-                  <Text numberOfLines={2} style={[localStyles.rankingValue, fitValue(rankingDisplay, 34, { fits: 5, textSize: 16 })]}>{rankingDisplay}</Text>
-                  {rankingTotal ? <Text style={localStyles.rankingTotal}>{rankingTotal}</Text> : null}
-                </View>
+                <Text style={localStyles.rankingLabel}>Nível · {levelCaption}</Text>
+                <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6} style={localStyles.levelValue}>{levelDisplay}</Text>
 
                 <View style={localStyles.statsRow}>
                   <View style={localStyles.statCol}>
@@ -183,13 +162,13 @@ export function AthleteHomeScreen({ go, repositories, session }) {
                 <Text style={[localStyles.cardScript, localStyles.topCardScript]}>Seu perfil</Text>
               </View>
 
-              <View style={localStyles.gaugeWrapper}>
-                <View style={localStyles.gaugeRing} />
-                <View style={localStyles.gaugeCenter}>
+              {/* O anel enche de acordo com a porcentagem (antes era um desenho fixo). */}
+              <Pressable accessibilityRole="button" accessibilityLabel={`Perfil ${displayedCompletion} completo. Abrir perfil`} onPress={() => go('profileAthlete')} style={localStyles.gaugeWrapper}>
+                <ProgressRing percent={profileCompletionPercent ?? 0} size={84} stroke={6} color={profileCompletionPercent === 100 ? '#2e9e4f' : BLUE} track="#e3ebf3">
                   <Text numberOfLines={1} style={[localStyles.gaugeValue, fitValue(displayedCompletion, 20, { fits: 3 })]}>{displayedCompletion}</Text>
                   <Text style={localStyles.gaugeLabel}>completo</Text>
-                </View>
-              </View>
+                </ProgressRing>
+              </Pressable>
             </View>
           </ScrollView>
         </View>
@@ -385,6 +364,14 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     flexDirection: 'row',
     alignItems: 'flex-end',
     marginTop: -1,
+  },
+  levelValue: {
+    color: BLUE,
+    fontFamily: 'Poppins_600SemiBold',
+    fontSize: 26,
+    lineHeight: 32,
+    marginTop: 2,
+    marginBottom: 4,
   },
   rankingValue: {
     color: BLUE,

@@ -6,6 +6,8 @@ import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
 import { BackButton } from '../../components/ui/BackButton'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
+import { ChoiceChips, toList } from '../../components/ui/ChoiceChips'
+import { DOCUMENT_OPTIONS, documentLabel } from '../../components/ui/documentLabels'
 import {
   FeedbackMessage,
   getOwnedOpportunity,
@@ -32,8 +34,8 @@ const emptyForm = {
   beneficio: '',
   inicioInscricoes: '',
   fimInscricoes: '',
-  requisitos: '',
-  documentosNecessarios: '',
+  requisitos: [],
+  documentosNecessarios: [],
   status: 'ativa',
 }
 
@@ -48,22 +50,19 @@ function formFromOpportunity(opportunity) {
     beneficio: opportunity.beneficio ?? '',
     inicioInscricoes: dateInputValue(opportunity.inicioInscricoes),
     fimInscricoes: dateInputValue(opportunity.fimInscricoes),
-    requisitos: (opportunity.requisitos ?? []).join('\n'),
-    documentosNecessarios: (opportunity.documentosNecessarios ?? []).join('\n'),
+    requisitos: toList(opportunity.requisitos),
+    documentosNecessarios: toList(opportunity.documentosNecessarios),
     status: opportunity.status ?? 'ativa',
   }
 }
 
-function splitLines(value) {
-  return value.split('\n').map((item) => item.trim()).filter(Boolean)
-}
 
-function FormField({ label, value, onChangeText, placeholder, multiline = false, options, required = false, keyboardType }) {
+function FormField({ label, value, onChangeText, placeholder, multiline = false, options, required = false, keyboardType, allowCustom = false }) {
   return (
     <View style={localStyles.field}>
       <Text style={localStyles.fieldLabel}>{label}{required ? ' *' : ''}</Text>
       {options ? (
-        <SelectField accessibilityLabel={label} options={options} value={value} onChange={onChangeText} placeholder={placeholder} />
+        <SelectField accessibilityLabel={label} options={options} value={value} onChange={onChangeText} placeholder={placeholder} allowCustom={allowCustom} />
       ) : (
         <TextInput
           accessibilityLabel={label}
@@ -175,8 +174,8 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       beneficio: form.beneficio.trim() || null,
       inicioInscricoes: startDate || null,
       fimInscricoes: endDate,
-      requisitos: splitLines(form.requisitos),
-      documentosNecessarios: splitLines(form.documentosNecessarios),
+      requisitos: toList(form.requisitos),
+      documentosNecessarios: toList(form.documentosNecessarios),
       status: publicationStatus,
       ...(original?.criteriosElegibilidade ? { criteriosElegibilidade: original.criteriosElegibilidade } : {}),
     }
@@ -246,7 +245,7 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
               <FormField label="Título da oportunidade" value={form.titulo} onChangeText={(value) => change('titulo', value)} placeholder="Ex.: Bolsa para atletas de tênis" required />
               <FormField label="Modalidade" value={form.modalidade} onChangeText={(value) => change('modalidade', value)} options={SELECT_OPTIONS.modalidades} placeholder="Selecione a modalidade" required />
               <FormField label="Categoria" value={form.categoria} onChangeText={(value) => change('categoria', value)} options={SELECT_OPTIONS.categorias} placeholder="Selecione a categoria" required />
-              <FormField label="Localização" value={form.localizacao} onChangeText={(value) => change('localizacao', value)} options={SELECT_OPTIONS.locais} placeholder="Selecione a cidade" required />
+              <FormField label="Localização" value={form.localizacao} onChangeText={(value) => change('localizacao', value)} options={SELECT_OPTIONS.locais} allowCustom placeholder="Selecione a cidade" required />
               <FormField label="Descrição" value={form.descricao} onChangeText={(value) => change('descricao', value)} placeholder="Descreva a oportunidade, o processo e o que será oferecido" multiline required />
 
               {/* Um abaixo do outro: lado a lado, o texto do benefício ficava cortado no celular. */}
@@ -274,8 +273,26 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
               <View style={localStyles.sectionHead}>
                 <Text style={localStyles.sectionTitle}>Requisitos e documentos</Text>
               </View>
-              <FormField label="Requisitos" value={form.requisitos} onChangeText={(value) => change('requisitos', value)} placeholder={'Um requisito por linha\nEx.: Perfil esportivo completo'} multiline />
-              <FormField label="Documentos necessários" value={form.documentosNecessarios} onChangeText={(value) => change('documentosNecessarios', value)} placeholder={'Um documento por linha\nEx.: Currículo esportivo'} multiline />
+              {/* Requisitos e documentos em opções de marcar: o atleta sempre recebe o pedido certo
+                  (o vídeo, por exemplo, sempre pede link). Itens antigos digitados continuam aparecendo. */}
+              <View style={localStyles.field}>
+                <Text style={localStyles.fieldLabel}>Requisitos</Text>
+                <ChoiceChips label="Requisitos" options={[...new Set([...SELECT_OPTIONS.requisitos, ...toList(form.requisitos)])]} value={form.requisitos} onChange={(value) => change('requisitos', value)} />
+              </View>
+              <View style={localStyles.field}>
+                <Text style={localStyles.fieldLabel}>Documentos necessários</Text>
+                <ChoiceChips
+                  label="Documentos necessários"
+                  options={[
+                    ...DOCUMENT_OPTIONS,
+                    ...toList(form.documentosNecessarios)
+                      .filter((item) => !DOCUMENT_OPTIONS.some((option) => option.value === item))
+                      .map((item) => ({ value: item, label: documentLabel(item) })),
+                  ]}
+                  value={form.documentosNecessarios}
+                  onChange={(value) => change('documentosNecessarios', value)}
+                />
+              </View>
 
               {original?.status === 'encerrada' ? (
                 <FeedbackMessage tone="warning">Esta oportunidade está encerrada. O status será mantido ao editar.</FeedbackMessage>

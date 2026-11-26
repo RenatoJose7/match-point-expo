@@ -3,10 +3,16 @@ import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native'
 import { Text, TextInput } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
+import { BackButton } from '../components/ui/BackButton'
+import { ChoiceChips } from '../components/ui/ChoiceChips'
 import { withGriffithsWeight } from '../theme/typography'
 
 const BLUE = '#10579b'
 const GREEN = '#c4ff32'
+
+// Relato com tipo definido (nada de texto aberto sem contexto) e status em português.
+const REPORT_TYPES = ['Problema', 'Sugestão', 'Dúvida']
+const REPORT_STATUS = { aberto: 'Recebido', em_analise: 'Em análise', resolvido: 'Resolvido' }
 
 const SUPPORT_TYPES = [
   { value: 'bolsa_integral', label: 'Bolsa Integral' },
@@ -20,6 +26,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   const trainer = session?.tipo === 'treinador'
   const partner = institution || trainer
   const [message, setMessage] = useState('')
+  const [reportType, setReportType] = useState('')
   const [title, setTitle] = useState('')
   const [athleteId, setAthleteId] = useState(routeParams.athleteId || '')
   const [opportunityId, setOpportunityId] = useState(routeParams.opportunityId || '')
@@ -67,7 +74,8 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   }, [partner, repositories, routeParams.athleteId, routeParams.candidateName, routeParams.opportunityId])
 
   const sendReport = async () => {
-    const result = await repositories.reports.enviarRelato({ mensagem: message })
+    if (!reportType || !message.trim()) return
+    const result = await repositories.reports.enviarRelato({ mensagem: `[${reportType}] ${message.trim()}` })
     setStatus(result.ok ? 'Relato enviado para acompanhamento.' : result.mensagem)
     if (result.ok) { setMessage(''); load() }
   }
@@ -156,10 +164,14 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             </>
           ) : (
             <>
-              <Text style={localStyles.label}>Descreva o problema ou sugestão</Text>
-              <TextInput value={message} onChangeText={setMessage} multiline style={[localStyles.input, localStyles.multilineInput]} placeholder="Escreva aqui" />
-              <Pressable accessibilityRole="button" onPress={sendReport} style={localStyles.btn}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
-              {reports.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.mensagem}</Text><Text style={localStyles.muted}>{item.status}</Text></View>)}
+              <Text style={localStyles.label}>Tipo</Text>
+              <ChoiceChips label="Tipo do relato" options={REPORT_TYPES} value={reportType ? [reportType] : []} onChange={(list) => setReportType(list[list.length - 1] || '')} />
+              <Text style={localStyles.label}>Descreva em poucas palavras</Text>
+              <TextInput accessibilityLabel="Descrição do relato" value={message} onChangeText={setMessage} multiline maxLength={500} style={[localStyles.input, localStyles.multilineInput]} placeholder="Ex.: o botão de enviar documento não respondeu" placeholderTextColor="#6a7d86" />
+              <Text style={localStyles.counter}>{message.length}/500</Text>
+              <Pressable accessibilityRole="button" disabled={!reportType || !message.trim()} onPress={sendReport} style={[localStyles.btn, (!reportType || !message.trim()) && { opacity: 0.5 }]}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
+              {reports.length ? <Text style={localStyles.label}>Seus relatos</Text> : null}
+              {reports.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.mensagem}</Text><Text style={localStyles.muted}>{REPORT_STATUS[item.status] || item.status}</Text></View>)}
             </>
           )}
         </ScrollView>
@@ -256,6 +268,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
 }
 
 const localStyles = StyleSheet.create(withGriffithsWeight({
+  counter: { alignSelf: 'flex-end', color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
   page: { flex: 1, backgroundColor: BLUE },
   header: { height: 272, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -173, bottom: 28, width: 390, height: 72, backgroundColor: '#e7e8e9', transform: [{ rotate: '54deg' }] },
@@ -284,7 +297,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   statusBadge: { backgroundColor: '#eaf6ed', borderRadius: 8, padding: 12 },
   statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 12 },
   // Admin / simples
-  simpleHeader: { paddingTop: 54, paddingHorizontal: 22, paddingBottom: 16, backgroundColor: '#0d4730', gap: 10 },
+  simpleHeader: { paddingTop: 54, paddingHorizontal: 22, paddingBottom: 16, backgroundColor: BLUE, gap: 10 },
   simpleTitle: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_600SemiBold' },
   simpleContent: { padding: 20, gap: 12 },
   label: { color: '#183126', fontFamily: 'Poppins_600SemiBold' },

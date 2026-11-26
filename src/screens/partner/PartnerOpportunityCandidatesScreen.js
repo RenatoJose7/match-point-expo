@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View, RefreshControl } from 'react-native'
 import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
@@ -18,6 +18,34 @@ const demoCandidates = () => [
   { id: 'demo-helena', name: 'Helena Ribeiro', category: 'Universitário', date: demoDate(6), photo: assets.helena, score: 80 },
   { id: 'demo-coco', name: 'Clara Gouveia', category: 'Adulto', date: demoDate(9), photo: assets.coco, score: 76 },
 ]
+
+// Perfil completo de cada candidato de exemplo (pessoas fictícias), aberto como um perfil real.
+const DEMO_DETAILS = {
+  'demo-mirra': { modalidade: 'Tênis', posicao: 'Simples', maoDominante: 'Destro(a)', equipeAtual: 'Clube Atlético Suzano', tempoDePratica: 'Mais de 5 anos', ranking: 'Competitivo estadual', torneiosDisputados: 18, titulos: 3, status: 'documentos_enviados' },
+  'demo-ariana': { modalidade: 'Tênis', posicao: 'Simples e duplas', maoDominante: 'Canhoto(a)', equipeAtual: 'Academia Ponto Final', tempoDePratica: 'De 3 a 5 anos', ranking: 'Competitivo regional', torneiosDisputados: 11, titulos: 1, status: 'inscrita' },
+  'demo-helena': { modalidade: 'Tênis', posicao: 'Duplas', maoDominante: 'Destro(a)', equipeAtual: 'Equipe Universitária Mogi', tempoDePratica: 'Mais de 5 anos', ranking: 'Competitivo regional', torneiosDisputados: 9, titulos: 1, status: 'em_analise' },
+  'demo-coco': { modalidade: 'Tênis', posicao: 'Simples', maoDominante: 'Destro(a)', equipeAtual: 'Projeto Raquete Social', tempoDePratica: 'De 1 a 3 anos', ranking: 'Recreativo', torneiosDisputados: 4, titulos: 0, status: 'inscrita' },
+}
+
+function demoCandidateProfile(candidate, opportunityTitle) {
+  const details = DEMO_DETAILS[candidate.id] ?? DEMO_DETAILS['demo-coco']
+  const { status, ...sport } = details
+  const documents = status === 'inscrita' ? [] : [
+    { id: `${candidate.id}-cv`, tipo: 'curriculo_esportivo', conteudoExemplo: `${candidate.name}
+Categoria: ${candidate.category}
+Modalidade: ${sport.modalidade} · ${sport.posicao}
+Equipe: ${sport.equipeAtual}
+Torneios disputados: ${sport.torneiosDisputados}
+Títulos: ${sport.titulos}
+Nível: ${sport.ranking}` },
+    { id: `${candidate.id}-video`, tipo: 'video_apresentacao', arquivoUrl: 'https://www.youtube.com/' },
+  ]
+  return {
+    profile: { nome: candidate.name, fotoExemplo: candidate.photo, categoria: candidate.category, perfilCompleto: true, ...sport },
+    application: { id: `${candidate.id}-candidatura`, status, documentos: documents, matchScore: candidate.score, oportunidadeTitulo: opportunityTitle },
+    evaluations: [],
+  }
+}
 
 function getCandidatePhotoSource(value) {
   const uri = String(value ?? '').trim()
@@ -132,7 +160,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
       </View>
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={false} onRefresh={() => setRefreshKey((value) => value + 1)} colors={[BLUE]} />}>
           {notice ? <FeedbackMessage tone="warning">{notice}</FeedbackMessage> : null}
           {candidates.length === 0 ? <Text style={styles.emptyText}>Nenhum candidato ainda. Quando um atleta se candidatar, ele aparece aqui.</Text> : null}
           {candidates.map((candidate) => (
@@ -142,7 +170,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
               // Treinador e instituição abrem o mesmo perfil (de lá aprovam, rejeitam ou registram apoio).
               onPress={() => (candidate.athleteId
                 ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId, opportunityTitle: title })
-                : setNotice(`Perfil de exemplo (${candidate.name}). Os perfis completos aparecem quando atletas reais se candidatarem.`))}
+                : go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, opportunityTitle: title, demoCandidate: demoCandidateProfile(candidate, title) }))}
             />
           ))}
         </ScrollView>

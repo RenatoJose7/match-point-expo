@@ -11,6 +11,7 @@ import { styles } from '../../theme/styles'
 import { useHeightFit } from '../../theme/layout'
 import { withGriffithsWeight } from '../../theme/typography'
 import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
   const fit = useHeightFit()
@@ -42,6 +43,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
       <View style={styles.trainerHomeScreen}>
         <Header initials={initials} name={displayName} photoUrl={session?.fotoUrl} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
         <ScrollView contentContainerStyle={[styles.trainerHomeScroll, localStyles.trainerHomeScroll, { paddingTop: fit(9, 5), gap: fit(9, 4) }]} showsVerticalScrollIndicator={false}>
+          <WelcomeTips role="treinador" />
           <View style={[styles.trainerOpportunityCard, localStyles.trainerCard]}>
             <View style={localStyles.cardHeading}>
               <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>

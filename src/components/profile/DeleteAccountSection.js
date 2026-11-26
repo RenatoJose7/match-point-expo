@@ -1,4 +1,5 @@
 import React, { useState } from 'react'
+import { Ionicons } from '@expo/vector-icons'
 import { Pressable, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../accessibility/AppText'
 import { GoogleReauthenticationButton, isGoogleLoginConfigured } from '../auth/GoogleLoginButton'
@@ -9,6 +10,7 @@ export function DeleteAccountSection({ repositories }) {
   const [deleting, setDeleting] = useState(false)
   const [error, setError] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
 
   const deleteAccount = async (credentials = {}) => {
     if (confirmation !== 'EXCLUIR' || deleting) return
@@ -44,16 +46,21 @@ export function DeleteAccountSection({ repositories }) {
         style={styles.input}
         value={confirmation}
       />
-      <TextInput
-        accessibilityLabel="Senha atual para excluir a conta"
-        autoCapitalize="none"
-        onChangeText={(value) => { setPassword(value); setError('') }}
-        placeholder="Senha atual (contas com e-mail)"
-        placeholderTextColor="#9b7777"
-        secureTextEntry
-        style={styles.input}
-        value={password}
-      />
+      <View style={styles.passwordWrap}>
+        <TextInput
+          accessibilityLabel="Senha atual para excluir a conta"
+          autoCapitalize="none"
+          onChangeText={(value) => { setPassword(value); setError('') }}
+          placeholder="Senha atual (contas com e-mail)"
+          placeholderTextColor="#9b7777"
+          secureTextEntry={!showPassword}
+          style={[styles.input, styles.passwordInput]}
+          value={password}
+        />
+        <Pressable accessibilityRole="button" accessibilityLabel={showPassword ? 'Ocultar senha' : 'Mostrar senha'} hitSlop={8} onPress={() => setShowPassword((value) => !value)} style={styles.eye}>
+          <Ionicons name={showPassword ? 'eye-off-outline' : 'eye-outline'} size={22} color="#8c2721" />
+        </Pressable>
+      </View>
       {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
       <Pressable
         accessibilityRole="button"
@@ -85,6 +92,9 @@ export function DeleteAccountSection({ repositories }) {
 }
 
 const styles = StyleSheet.create({
+  passwordWrap: { position: 'relative', justifyContent: 'center' },
+  passwordInput: { paddingRight: 52 },
+  eye: { position: 'absolute', right: 2, width: 48, height: 48, alignItems: 'center', justifyContent: 'center' },
   openButton: { minHeight: 42, alignItems: 'center', justifyContent: 'center', marginTop: 12 },
   openText: { color: '#b42318', fontFamily: 'Poppins_500Medium', fontSize: 14, textDecorationLine: 'underline' },
   container: { borderColor: '#efb8b4', borderRadius: 10, borderWidth: 1, backgroundColor: '#fff6f5', gap: 9, marginTop: 12, padding: 14 },

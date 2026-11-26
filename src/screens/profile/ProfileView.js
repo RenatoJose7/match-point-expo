@@ -7,24 +7,36 @@ import { BottomNav } from '../../components/navigation/BottomNav'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
+import { ChoiceChips, toList } from '../../components/ui/ChoiceChips'
 
 const BLUE = '#10579b'
 const GREEN = '#c4ff32'
 
 // Campos do perfil do parceiro. Os quatro primeiros aparecem como cartões, como no modelo.
+// Nada de texto aberto sem padrão: listas fixas, múltipla escolha, CREF com máscara e limites.
 const fields = [
-  { key: 'nomeExibicao', label: 'Nome exibido' },
+  { key: 'nomeExibicao', label: 'Nome exibido', maxLength: 60 },
   { key: 'modalidade', label: 'Modalidade', options: SELECT_OPTIONS.modalidades, card: true, required: true },
-  { key: 'experiencia', label: 'Experiência', placeholder: 'Ex.: 10 anos', card: true },
+  { key: 'experiencia', label: 'Experiência', options: SELECT_OPTIONS.experienciaAnos, card: true },
   // O CPF do cadastro fica em `documento`; o registro profissional tem campo próprio.
-  { key: 'cref', label: 'CREF', placeholder: 'Ex.: 123456-G/SP', card: true },
-  { key: 'localizacao', label: 'Localização', options: SELECT_OPTIONS.locais, card: true, required: true },
-  { key: 'descricao', label: 'Sobre mim', multiline: true },
-  { key: 'especialidades', label: 'Especialidades', placeholder: 'Separe por vírgula: Tática, Físico, Mental' },
+  { key: 'cref', label: 'CREF', placeholder: '000000-G/SP', card: true, mask: 'cref' },
+  { key: 'localizacao', label: 'Localização', options: SELECT_OPTIONS.locais, allowCustom: true, card: true, required: true },
+  { key: 'descricao', label: 'Sobre mim', multiline: true, maxLength: 280 },
+  { key: 'especialidades', label: 'Especialidades', chips: SELECT_OPTIONS.especialidades },
 ]
 
+// CREF no formato 000000-G/UF (números, categoria G ou P e estado).
+function formatCref(value) {
+  const clean = String(value ?? '').toUpperCase().replace(/[^0-9A-Z]/g, '')
+  const digits = clean.match(/^\d{0,6}/)[0]
+  const rest = clean.slice(digits.length)
+  const category = rest.slice(0, 1).replace(/[^GP]/g, '')
+  const uf = rest.slice(category ? 1 : 0).replace(/[^A-Z]/g, '').slice(0, 2)
+  return [digits, category ? `-${category}` : '', uf ? `/${uf}` : ''].join('')
+}
+
 function valuesFrom(profile) {
-  return Object.fromEntries(fields.map(({ key }) => [key, profile?.[key] ?? '']))
+  return Object.fromEntries(fields.map(({ key, chips }) => [key, chips ? toList(profile?.[key]) : profile?.[key] ?? '']))
 }
 
 export function ProfileView({ role, go, back, repositories, session, routeParams = {} }) {
@@ -51,7 +63,8 @@ export function ProfileView({ role, go, back, repositories, session, routeParams
     const missing = fields.find(({ key, required }) => required && !String(values[key] ?? '').trim())
     if (missing) return setMessage(`Preencha o campo ${missing.label}.`)
     setSaving(true); setMessage('')
-    const data = Object.fromEntries(fields.map(({ key }) => [key, String(values[key] ?? '').trim()]))
+    if (values.cref && !/^\d{4,6}-[GP]\/[A-Z]{2}$/.test(values.cref)) return setMessage('CREF incompleto. Use o formato 000000-G/SP.')
+    const data = Object.fromEntries(fields.map(({ key, chips }) => [key, chips ? toList(values[key]) : String(values[key] ?? '').trim()]))
     const result = await repositories.users.atualizarPerfilParceiro(profile.id, data)
     setSaving(false)
     if (!result.ok) return setMessage(result.mensagem || 'Não foi possível salvar o perfil.')
@@ -66,7 +79,7 @@ export function ProfileView({ role, go, back, repositories, session, routeParams
 
   const displayName = profile?.nomeExibicao || session?.nome || 'Carregando...'
   const roleLabel = institution ? 'Instituição' : 'Treinador'
-  const specialties = String(profile?.especialidades ?? '').split(',').map((item) => item.trim()).filter(Boolean)
+  const specialties = toList(profile?.especialidades)
 
   return (
     <View style={localStyles.screen}>
@@ -96,21 +109,28 @@ export function ProfileView({ role, go, back, repositories, session, routeParams
             <>
               <Text style={localStyles.sectionTitle}>{onboarding ? 'Complete seu perfil' : 'Editar perfil'}</Text>
               {onboarding ? <Text style={localStyles.about}>Esses dados aparecem para os atletas e ajudam a mostrar a compatibilidade das suas oportunidades.</Text> : null}
-              {fields.map(({ key, label, options, placeholder, multiline, required }) => (
+              {fields.map(({ key, label, options, chips, placeholder, multiline, required, allowCustom, maxLength, mask }) => (
                 <View key={key} style={localStyles.field}>
                   <Text style={localStyles.fieldLabel}>{label}{required ? ' *' : ''}</Text>
-                  {options ? (
-                    <SelectField accessibilityLabel={label} options={options} value={String(values[key] ?? '')} onChange={(value) => setValues((current) => ({ ...current, [key]: value }))} placeholder={`Selecione ${label.toLowerCase()}`} />
+                  {chips ? (
+                    <ChoiceChips label={label} options={chips} value={values[key]} onChange={(value) => setValues((current) => ({ ...current, [key]: value }))} />
+                  ) : options ? (
+                    <SelectField accessibilityLabel={label} options={options} allowCustom={allowCustom} value={String(values[key] ?? '')} onChange={(value) => setValues((current) => ({ ...current, [key]: value }))} placeholder={`Selecione ${label.toLowerCase()}`} />
                   ) : (
-                    <TextInput
-                      accessibilityLabel={label}
-                      value={String(values[key] ?? '')}
-                      onChangeText={(value) => setValues((current) => ({ ...current, [key]: value }))}
-                      placeholder={placeholder}
-                      placeholderTextColor="#8295a8"
-                      multiline={multiline}
-                      style={[localStyles.input, multiline && localStyles.multiline]}
-                    />
+                    <>
+                      <TextInput
+                        accessibilityLabel={label}
+                        value={String(values[key] ?? '')}
+                        onChangeText={(value) => setValues((current) => ({ ...current, [key]: mask === 'cref' ? formatCref(value) : value }))}
+                        placeholder={placeholder || label}
+                        placeholderTextColor="#6a7d86"
+                        multiline={multiline}
+                        maxLength={mask === 'cref' ? 12 : maxLength}
+                        autoCapitalize={mask === 'cref' ? 'characters' : 'sentences'}
+                        style={[localStyles.input, multiline && localStyles.multiline]}
+                      />
+                      {multiline && maxLength ? <Text style={localStyles.counter}>{String(values[key] ?? '').length}/{maxLength}</Text> : null}
+                    </>
                   )}
                 </View>
               ))}
@@ -181,6 +201,7 @@ const localStyles = StyleSheet.create({
   fieldLabel: { color: '#3f5970', fontFamily: 'Poppins_500Medium', fontSize: 13 },
   input: { borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#fff', borderRadius: 8, minHeight: 46, paddingHorizontal: 12, paddingVertical: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   multiline: { minHeight: 90, textAlignVertical: 'top' },
+  counter: { alignSelf: 'flex-end', color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
   verification: { color: '#164d34', fontFamily: 'Poppins_600SemiBold', marginTop: 14, marginHorizontal: 8, fontSize: 13 },
   message: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 13, marginHorizontal: 8 },
   primaryBtn: { backgroundColor: BLUE, minHeight: 48, alignItems: 'center', justifyContent: 'center', borderRadius: 18, marginTop: 8 },

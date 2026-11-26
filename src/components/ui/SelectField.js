@@ -9,7 +9,14 @@ const BLUE = '#10579b'
 
 export const SELECT_OPTIONS = Object.freeze({
   modalidades: ['Tênis', 'Beach Tennis', 'Tênis de Mesa', 'Padel', 'Pickleball'],
-  categorias: ['Sub-12', 'Sub-14', 'Sub-16', 'Sub-18', 'Adulto', '35+'],
+  categorias: ['Sub-12', 'Sub-14', 'Sub-16', 'Sub-18', 'Universitário', 'Adulto', '35+'],
+  // Nível competitivo declarado (substitui o "ranking" digitado, que não tinha como ser conferido).
+  niveisCompetitivos: ['Iniciante', 'Recreativo', 'Competitivo regional', 'Competitivo estadual', 'Competitivo nacional'],
+  necessidades: ['Bolsa de estudos', 'Patrocínio', 'Equipamentos', 'Transporte', 'Treinador', 'Local de treino', 'Competições', 'Apoio financeiro'],
+  objetivos: ['Profissionalizar no esporte', 'Bolsa universitária', 'Competir mais', 'Evoluir tecnicamente', 'Representar a cidade ou o estado', 'Praticar por lazer e saúde'],
+  especialidades: ['Técnica', 'Físico', 'Tático', 'Mental', 'Iniciação esportiva', 'Alto rendimento', 'Categorias de base', 'Duplas'],
+  experienciaAnos: ['Menos de 1 ano', '1 a 3 anos', '3 a 5 anos', '5 a 10 anos', 'Mais de 10 anos'],
+  requisitos: ['Perfil esportivo completo', 'Disponibilidade para treinos', 'Disponibilidade para viajar', 'Frequência escolar', 'Participação em competições', 'Autorização do responsável (menores)'],
   // Cidades da região do projeto (SENAI Suzano) primeiro: as oportunidades do TCC são nelas.
   locais: ['Suzano - SP', 'Mogi das Cruzes - SP', 'Itaquaquecetuba - SP', 'Poá - SP', 'Ferraz de Vasconcelos - SP', 'Guarulhos - SP', 'Campinas - SP', 'Rio Branco - AC', 'Maceió - AL', 'Macapá - AP', 'Manaus - AM', 'Salvador - BA', 'Fortaleza - CE', 'Brasília - DF', 'Vitória - ES', 'Goiânia - GO', 'São Luís - MA', 'Cuiabá - MT', 'Campo Grande - MS', 'Belo Horizonte - MG', 'Belém - PA', 'João Pessoa - PB', 'Curitiba - PR', 'Recife - PE', 'Teresina - PI', 'Rio de Janeiro - RJ', 'Natal - RN', 'Porto Alegre - RS', 'Porto Velho - RO', 'Boa Vista - RR', 'Florianópolis - SC', 'São Paulo - SP', 'Aracaju - SE', 'Palmas - TO'],
   beneficios: ['Bolsa integral', 'Bolsa parcial', 'Ajuda de custo', 'Treinamentos', 'Equipamentos', 'Hospedagem', 'Transporte'],
@@ -24,7 +31,8 @@ export const SELECT_OPTIONS = Object.freeze({
   notas: ['1', '2', '3', '4', '5'],
 })
 
-export function SelectField({ accessibilityLabel, options, placeholder = 'Selecione uma opção', value, onChange, triggerStyle, textStyle }) {
+// allowCustom: só em listas que não podem ser completas (ex.: cidade). No resto, apenas as opções.
+export function SelectField({ accessibilityLabel, options, placeholder = 'Selecione uma opção', value, onChange, triggerStyle, textStyle, allowCustom = false }) {
   const { width, height } = useWindowDimensions()
   const appFrameWidth = getFrameWidth(width, height)
   const [visible, setVisible] = useState(false)
@@ -33,7 +41,9 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
   const typedValue = search.trim()
   const normalizedSearch = typedValue.toLocaleLowerCase('pt-BR')
   const filteredOptions = options.filter((option) => option.toLocaleLowerCase('pt-BR').includes(normalizedSearch))
-  const canUseTypedValue = typedValue.length > 0 && !options.some((option) => option.toLocaleLowerCase('pt-BR') === normalizedSearch)
+  const canUseTypedValue = allowCustom && typedValue.length > 0 && !options.some((option) => option.toLocaleLowerCase('pt-BR') === normalizedSearch)
+  // Busca só em listas longas; nas curtas as opções já aparecem todas.
+  const showSearch = allowCustom || options.length > 8
 
   const close = () => {
     setSearch('')
@@ -66,14 +76,14 @@ export function SelectField({ accessibilityLabel, options, placeholder = 'Seleci
                 <Ionicons name="close" size={22} color={BLUE} />
               </Pressable>
             </View>
-            <TextInput
-              accessibilityLabel={`Pesquisar ou escrever ${label}`}
+            {showSearch ? <TextInput
+              accessibilityLabel={allowCustom ? `Pesquisar ou escrever ${label}` : `Pesquisar ${label}`}
               value={search}
               onChangeText={setSearch}
-              placeholder="Pesquisar ou escrever uma opção"
+              placeholder={allowCustom ? 'Pesquisar ou escrever uma opção' : 'Pesquisar'}
               placeholderTextColor="#6a7d86"
               style={styles.searchInput}
-            />
+            /> : null}
             <ScrollView contentContainerStyle={styles.options} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
               {filteredOptions.map((option) => {
                 const selected = option === value

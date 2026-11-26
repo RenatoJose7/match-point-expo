@@ -57,6 +57,16 @@ export function InstitutionProfileScreen({ go, back, repositories, session, rout
       setMessage('Informe o tipo da instituição e a localização.')
       return
     }
+    const cnpjDigits = String(values.documento ?? '').replace(/\D/g, '')
+    if (cnpjDigits && cnpjDigits.length !== 14) {
+      setMessage('CNPJ incompleto. Confira os 14 números.')
+      return
+    }
+    const site = String(values.descricao ?? '').trim()
+    if (site && !/^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(site)) {
+      setMessage('Site inválido. Exemplo: www.suainstituicao.com.br')
+      return
+    }
     setSaving(true)
     setMessage('')
     const result = await profile.source.users.atualizarPerfilParceiro(profile.id, values)
@@ -104,11 +114,11 @@ export function InstitutionProfileScreen({ go, back, repositories, session, rout
           {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
           {editing ? (
             <View style={styles.form}>
-              <Field label="Nome da instituição" value={values.nomeExibicao} onChangeText={(nomeExibicao) => setValues((current) => ({ ...current, nomeExibicao }))} />
-              <Field label="CNPJ" value={values.documento} onChangeText={(documento) => setValues((current) => ({ ...current, documento }))} />
+              <Field label="Nome da instituição" maxLength={80} value={values.nomeExibicao} onChangeText={(nomeExibicao) => setValues((current) => ({ ...current, nomeExibicao }))} />
+              <Field label="CNPJ" keyboardType="number-pad" maxLength={18} placeholder="00.000.000/0000-00" value={values.documento} onChangeText={(documento) => setValues((current) => ({ ...current, documento: formatCnpj(documento) }))} />
               <View style={styles.field}><Text style={styles.fieldLabel}>Tipo da instituição *</Text><SelectField accessibilityLabel="Tipo da instituição" options={SELECT_OPTIONS.tipoInstituicao} value={values.tipoInstituicao} onChange={(tipoInstituicao) => setValues((current) => ({ ...current, tipoInstituicao }))} placeholder="Selecione o tipo" /></View>
-              <View style={styles.field}><Text style={styles.fieldLabel}>Localização *</Text><SelectField accessibilityLabel="Localização" options={SELECT_OPTIONS.locais} value={values.localizacao} onChange={(localizacao) => setValues((current) => ({ ...current, localizacao }))} placeholder="Selecione a cidade" /></View>
-              <Field label="Site" value={values.descricao} onChangeText={(descricao) => setValues((current) => ({ ...current, descricao }))} />
+              <View style={styles.field}><Text style={styles.fieldLabel}>Localização *</Text><SelectField accessibilityLabel="Localização" options={SELECT_OPTIONS.locais} allowCustom value={values.localizacao} onChange={(localizacao) => setValues((current) => ({ ...current, localizacao }))} placeholder="Selecione a cidade" /></View>
+              <Field label="Site (opcional)" keyboardType="url" autoCapitalize="none" maxLength={100} placeholder="www.suainstituicao.com.br" value={values.descricao} onChangeText={(descricao) => setValues((current) => ({ ...current, descricao }))} />
               <Pressable accessibilityRole="button" onPress={save} disabled={saving} style={[styles.editButton, saving && styles.buttonDisabled]}><Text style={styles.editText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable>
               <Pressable accessibilityRole="button" onPress={onboarding ? () => go('homeInstitution') : cancelEditing} style={styles.cancelButton}><Text style={styles.cancelText}>{onboarding ? 'Preencher depois' : 'Cancelar'}</Text></Pressable>
               {onboarding ? null : <DeleteAccountSection repositories={repositories} />}
@@ -127,8 +137,14 @@ export function InstitutionProfileScreen({ go, back, repositories, session, rout
   )
 }
 
-function Field({ label, value, onChangeText }) {
-  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} style={styles.input} /></View>
+function Field({ label, value, onChangeText, ...inputProps }) {
+  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholderTextColor="#6a7d86" style={styles.input} {...inputProps} /></View>
+}
+
+// CNPJ com máscara enquanto digita: 00.000.000/0000-00.
+function formatCnpj(value) {
+  const d = String(value ?? '').replace(/\D/g, '').slice(0, 14)
+  return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 8)].filter(Boolean).join('.') + (d.length > 8 ? `/${d.slice(8, 12)}` : '') + (d.length > 12 ? `-${d.slice(12)}` : '')
 }
 
 const styles = StyleSheet.create({

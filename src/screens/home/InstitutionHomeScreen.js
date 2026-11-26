@@ -8,6 +8,8 @@ import { fitGriffithsSize, withGriffithsOverhang } from '../../theme/typography'
 import { useFrameSize } from '../../theme/layout'
 import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
 import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
+import { NotificationBell } from '../../components/navigation/NotificationBell'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -64,20 +66,19 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
           <View style={styles.identityCopy}>
             <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.greeting, { fontSize: greetingSize, lineHeight: Math.round(greetingSize * 1.16) }]}>Olá, <Text style={styles.greetingAccent}>{greetingName}</Text></Text>
-            <Text style={styles.welcome}>Bem-vindo de volta</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.welcome}>Bem-vindo de volta</Text>
           </View>
         </View>
         <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <Pressable accessibilityRole="button" accessibilityLabel="Sair da conta" onPress={signOut} style={styles.logout}>
           <Ionicons name="log-out-outline" size={22} color="#fff" />
         </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => go('notifications')} style={styles.bell}>
-          <Ionicons name="notifications" size={22} color="#fff" />
-        </Pressable>
+        <NotificationBell go={go} repositories={repositories} size={22} style={styles.bell} />
         <View style={styles.rule} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <WelcomeTips role="instituicao" />
         <View style={styles.card}>
           <View style={styles.cardHeading}>
             <View style={styles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View, RefreshControl } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
@@ -139,7 +139,7 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
       {loading ? <LoadingState label="Carregando oportunidades..." /> : error ? (
         <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)} style={styles.retry}><Text style={styles.retryText}>Tentar novamente</Text></Pressable></View>
       ) : (
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={false} onRefresh={() => setRefreshKey((value) => value + 1)} colors={[BLUE]} />}>
           {routeParams.flashMessage ? <FeedbackMessage tone="success">{routeParams.flashMessage}</FeedbackMessage> : null}
           {visibleItems.map((item, index) => <OpportunityCard key={item.id} item={item} index={index} applicationsCount={counts[item.id] ?? item.inscricoesExemplo ?? 0} onOpen={() => openOpportunity(item)} role={role} />)}
           {visibleItems.length === 0 ? <Text style={styles.empty}>Nenhuma oportunidade encontrada.</Text> : null}
