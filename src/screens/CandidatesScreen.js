@@ -10,7 +10,7 @@ import { styles } from '../theme/styles'
 
 const opportunityCandidates = [
   { name: 'Mirra Andrade', category: 'Sub-20', date: '28/03/2026', score: '94%', photo: assets.mirra },
-  { name: 'Helena Rybakina', category: 'Sub-25', date: '31/03/2026', score: '80%', photo: assets.helena },
+  { name: 'Helena Ribeiro', category: 'Sub-25', date: '31/03/2026', score: '80%', photo: assets.helena },
 ]
 
 export function CandidatesScreen({ go, back }) {

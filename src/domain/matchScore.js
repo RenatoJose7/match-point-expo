@@ -97,6 +97,7 @@ const MOTIVE_BY_CODE = {
   localizacao: (criterion) => `Oportunidade em ${criterion.valor}.`,
   tempoDePratica: (criterion) => `Pede ${criterion.valor} de prática.`,
   ranking: (criterion) => `Pede ranking ${String(criterion.valor).replace('-', ' ')}. Informe seu ranking no perfil.`,
+  idade: (criterion) => `Esta categoria é para atletas com menos de ${criterion.valor} anos.`,
 }
 
 // Critérios padrão para oportunidades criadas sem critérios próprios.
@@ -120,9 +121,36 @@ export function criteriaFor(opportunity = {}) {
   return own.length > 0 ? own : defaultCriteriaFor(opportunity)
 }
 
+// Categorias "Sub-N" têm limite de idade: quem já tem N anos ou mais não pode se candidatar,
+// mesmo quando a oportunidade usa critérios próprios.
+function ageLimitOf(category) {
+  const match = normalizeText(category).match(/^sub-?\s*(\d{1,2})$/)
+  return match ? Number(match[1]) : null
+}
+
+function ageOf(birthDate, reference = new Date()) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(birthDate ?? ''))
+  if (!match) return null
+  const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])]
+  let age = reference.getFullYear() - year
+  if (reference.getMonth() + 1 < month || (reference.getMonth() + 1 === month && reference.getDate() < day)) age -= 1
+  return age >= 0 ? age : null
+}
+
+function ageCriterionFor(athlete, opportunity) {
+  const limit = ageLimitOf(opportunity.categoria)
+  const age = ageOf(athlete.dataNascimento)
+  // Só entra quando a idade passa do limite: dentro da faixa, a nota continua a mesma.
+  if (limit === null || age === null || age < limit) return null
+  return { codigo: 'idade', nome: `Idade para ${opportunity.categoria}`, obrigatorio: true, valor: limit, peso: 40, atendidoPorIdade: false }
+}
+
 export function evaluateMatchEligibility(athlete = {}, opportunity = {}, evaluatedAt = new Date().toISOString()) {
-  const evaluatedCriteria = criteriaFor(opportunity).map((criterion) => {
-    const matched = criterionMet(athlete, criterion)
+  const ageCriterion = ageCriterionFor(athlete, opportunity)
+  const ownCriteria = criteriaFor(opportunity)
+  const allCriteria = ageCriterion && !ownCriteria.some((criterion) => criterion.codigo === 'idade') ? [...ownCriteria, ageCriterion] : ownCriteria
+  const evaluatedCriteria = allCriteria.map((criterion) => {
+    const matched = criterion.codigo === 'idade' && 'atendidoPorIdade' in criterion ? criterion.atendidoPorIdade : criterionMet(athlete, criterion)
     const motive = MOTIVE_BY_CODE[criterion.codigo]?.(criterion) ?? `${criterion.nome}: requisito não atendido.`
     return {
       ...criterion,

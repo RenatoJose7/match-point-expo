@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Linking, Modal, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
+import { documentLabel } from '../../components/ui/documentLabels'
 import {
   FeedbackMessage,
   getOwnedOpportunity,
@@ -37,6 +38,32 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   const [notice, setNotice] = useState('')
   const [pendingDecision, setPendingDecision] = useState(null)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [viewer, setViewer] = useState(null)
+  const [openingDocument, setOpeningDocument] = useState('')
+
+  // Documento enviado pelo atleta: link abre fora do app; foto abre aqui mesmo.
+  const openDocument = async (item) => {
+    setError('')
+    if (item.arquivoUrl) {
+      Linking.openURL(item.arquivoUrl).catch(() => setError('Não foi possível abrir este link.'))
+      return
+    }
+    const fileId = item.arquivoId ?? item.id
+    if (!fileId || !repositories.applications.obterArquivoCandidatura) {
+      setError('Este documento não tem arquivo para abrir.')
+      return
+    }
+    setOpeningDocument(fileId)
+    try {
+      const result = await repositories.applications.obterArquivoCandidatura(fileId)
+      if (!result.ok || !result.data?.conteudo) throw new Error(result.mensagem || 'Não foi possível abrir o documento.')
+      setViewer({ title: documentLabel(item.tipo ?? item.nome), uri: result.data.conteudo })
+    } catch (openError) {
+      setError(openError.message || 'Não foi possível abrir o documento.')
+    } finally {
+      setOpeningDocument('')
+    }
+  }
 
   useEffect(() => {
     let active = true
@@ -163,18 +190,44 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             <Text style={styles.privacyText}>Este retrato contém apenas informações esportivas compartilhadas na candidatura.</Text>
           </View>
 
-          {role === 'institution' ? (
-            <View style={styles.decisionCard}>
-              <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
-              <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador verificado antes da decisão.</Text>
-              <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
-                <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
-              </Pressable>
+          <View style={styles.sectionHeader}>
+            <Text style={partnerStyles.sectionTitle}>Documentos enviados</Text>
+            <Text style={styles.fieldCount}>{application?.documentos?.length ?? 0}</Text>
+          </View>
+          {application?.documentos?.length ? (
+            <View style={styles.documentsList}>
+              {application.documentos.map((item, index) => {
+                const fileId = item.arquivoId ?? item.id
+                return (
+                  <Pressable key={fileId ?? index} accessibilityRole="button" accessibilityLabel={`Abrir ${documentLabel(item.tipo ?? item.nome)}`} onPress={() => openDocument(item)} style={styles.documentItem}>
+                    <Ionicons name={item.arquivoUrl ? 'logo-youtube' : 'document-text-outline'} size={20} color={partnerColors.ink} />
+                    <View style={styles.fieldCopy}>
+                      <Text style={styles.fieldValue}>{documentLabel(item.tipo ?? item.nome)}</Text>
+                      <Text style={styles.fieldLabel}>{openingDocument === fileId ? 'Abrindo...' : item.arquivoUrl ? 'Abrir link' : 'Ver foto do documento'}</Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={18} color={partnerColors.muted} />
+                  </Pressable>
+                )
+              })}
+            </View>
+          ) : (
+            <View style={partnerStyles.card}>
+              <Text style={partnerStyles.subtitle}>O atleta ainda não enviou documentos.</Text>
+            </View>
+          )}
+
+          <View style={styles.decisionCard}>
+              {role === 'institution' ? <>
+                <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
+                <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador antes da decisão.</Text>
+                <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
+                  <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
+                </Pressable>
+              </> : <Text style={partnerStyles.sectionTitle}>Apoio ao atleta</Text>}
               <Pressable accessibilityRole="button" onPress={() => go('operations', { opportunityId, athleteId, candidateName: profile?.nome || '' })} style={partnerStyles.secondaryButton}>
                 <Text style={partnerStyles.secondaryButtonText}>Registrar apoio concedido</Text>
               </Pressable>
-            </View>
-          ) : null}
+          </View>
 
           {notice ? <FeedbackMessage tone="success">{notice}</FeedbackMessage> : null}
           {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
@@ -236,11 +289,28 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
         </ScrollView>
       ) : null}
       <BottomNav go={go} role={role} active="opportunities" />
+      <Modal visible={Boolean(viewer)} transparent animationType="fade" onRequestClose={() => setViewer(null)}>
+        <View style={styles.viewerBackdrop}>
+          <View style={styles.viewerHeader}>
+            <Text numberOfLines={1} style={styles.viewerTitle}>{viewer?.title}</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Fechar documento" hitSlop={10} onPress={() => setViewer(null)}>
+              <Ionicons name="close" size={28} color="#ffffff" />
+            </Pressable>
+          </View>
+          {viewer ? <Image source={{ uri: viewer.uri }} style={styles.viewerImage} resizeMode="contain" /> : null}
+        </View>
+      </Modal>
     </View>
   )
 }
 
 const styles = StyleSheet.create({
+  documentsList: { gap: 8 },
+  documentItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 10 },
+  viewerBackdrop: { flex: 1, backgroundColor: 'rgba(5, 20, 38, 0.96)', paddingTop: 36, paddingBottom: 24 },
+  viewerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 12 },
+  viewerTitle: { flex: 1, color: '#ffffff', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
+  viewerImage: { flex: 1, width: '100%' },
   stateContent: { flex: 1, justifyContent: 'center', padding: 20, gap: 14 },
   content: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 108, gap: 14 },
   identityCard: { flexDirection: 'row', alignItems: 'center', gap: 14 },

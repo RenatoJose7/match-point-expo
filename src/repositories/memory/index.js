@@ -1,4 +1,5 @@
 import { evaluateMatchEligibility, scoreFromEligibility } from '../../domain/matchScore.js'
+import { isDeadlinePassed } from '../../domain/dates.js'
 import {
   APPLICATION_STATUS,
   OPPORTUNITY_STATUS,
@@ -145,7 +146,6 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
           documento: profile.documento?.trim() || undefined,
           descricao: profile.descricao?.trim() || undefined,
           localizacao: profile.localizacao?.trim() || undefined,
-          verificado: false,
           criadoEm: createdAt,
           atualizadoEm: createdAt,
         })
@@ -304,7 +304,6 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         id: nextId('parceiro'),
         usuarioId: userId,
         ...data,
-        verificado: Boolean(data.verificado),
       }
       state.partners.push(partner)
       return success(partner)
@@ -397,7 +396,7 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
         if (filters.categoria && opportunity.categoria !== filters.categoria) return false
         if (filters.localizacao && opportunity.localizacao !== filters.localizacao) return false
         if (filters.status && opportunity.status !== filters.status) return false
-        if (filters.prazoAberto && new Date(opportunity.fimInscricoes) < new Date()) return false
+        if (filters.prazoAberto && isDeadlinePassed(opportunity.fimInscricoes)) return false
         return true
       })
       return success(list)
@@ -408,10 +407,6 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     },
     criarOportunidade: async (data) => {
       const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
-      const partner = state.partners.find((item) => item.id === data.criadorId)
-      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
-        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
-      }
       const opportunity = {
         id: nextId('oportunidade'),
         ...data,
@@ -426,10 +421,6 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       const opportunity = findOpportunity(id)
       if (!opportunity) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Oportunidade não encontrada.')
       const status = data.status ?? opportunity.status
-      const partner = state.partners.find((item) => item.id === opportunity.criadorId)
-      if (status === OPPORTUNITY_STATUS.ACTIVE && !partner?.verificado) {
-        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
-      }
       Object.assign(opportunity, data, { id, atualizadoEm: now() })
       return success(opportunity)
     },
@@ -553,6 +544,11 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
     obterCandidatura: async (id) => {
       const application = findApplication(id)
       return application ? success(application) : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Candidatura não encontrada.')
+    },
+    // No modo demonstração o arquivo fica só na lista da candidatura (sem conteúdo guardado).
+    obterArquivoCandidatura: async (fileId) => {
+      const document = state.applications.flatMap((item) => item.documentos ?? []).find((item) => item.id === fileId || item.arquivoId === fileId)
+      return document ? success({ ...document, conteudo: document.conteudo ?? document.arquivoUrl ?? null }) : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Documento não encontrado.')
     },
     listarCandidaturasDoAtleta: async (athleteId, filters = {}) => success(
       state.applications.filter((application) => (
@@ -717,8 +713,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       if (!user || institution?.usuarioId !== user.id || institution.tipo !== USER_TYPES.INSTITUTION) {
         return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
       }
-      if (!institution.verificado || trainer?.tipo !== USER_TYPES.TRAINER || !trainer.verificado || !findAthlete(data.atletaId)) {
-        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado e um atleta válido.')
+      if (trainer?.tipo !== USER_TYPES.TRAINER || !findAthlete(data.atletaId)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador e um atleta válido.')
       }
       const existing = state.evaluationRequests.find((request) => request.instituicaoId === data.instituicaoId && request.treinadorId === data.treinadorId && request.atletaId === data.atletaId && request.status === 'pendente')
       if (existing) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Já existe uma solicitação pendente para este treinador e atleta.')
@@ -731,8 +727,8 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
       const trainer = state.partners.find((partner) => partner.id === data.treinadorId)
       const request = state.evaluationRequests.find((item) => item.id === data.solicitacaoId)
       const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
-      if (!user || trainer?.usuarioId !== user.id || trainer.tipo !== USER_TYPES.TRAINER || !trainer.verificado) {
-        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador verificado designado pode registrar a avaliação.')
+      if (!user || trainer?.usuarioId !== user.id || trainer.tipo !== USER_TYPES.TRAINER) {
+        return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador designado pode registrar a avaliação.')
       }
       if (!request || request.treinadorId !== trainer.id || request.status !== 'pendente' || scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) {
         return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')

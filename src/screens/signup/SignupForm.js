@@ -343,7 +343,6 @@ export function SignupForm({ config, go, back, repositories, routeParams = {} })
               : {}),
             documento: documentValue.trim() || undefined,
             localizacao: values[locationField]?.trim() || undefined,
-            verificado: false,
           }
 
     try {

@@ -16,6 +16,20 @@ export async function compressProfilePhoto(uri) {
   return `data:image/jpeg;base64,${result.base64}`
 }
 
+// Documentos das candidaturas: foto do documento, maior que a de perfil para continuar legível.
+// Cada arquivo fica num registro próprio do Firestore (limite de 1 MiB por registro).
+const DOCUMENT_WIDTH = 1280
+const DOCUMENT_QUALITY = 0.6
+export const MAX_DOCUMENT_DATA_URI_LENGTH = 900 * 1024
+
+export async function compressDocumentImage(uri) {
+  const context = ImageManipulator.manipulate(uri)
+  context.resize({ width: DOCUMENT_WIDTH })
+  const image = await context.renderAsync()
+  const result = await image.saveAsync({ compress: DOCUMENT_QUALITY, format: SaveFormat.JPEG, base64: true })
+  return `data:image/jpeg;base64,${result.base64}`
+}
+
 export function isInlinePhoto(value) {
   return typeof value === 'string' && value.startsWith('data:image/')
 }

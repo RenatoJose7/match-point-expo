@@ -17,7 +17,7 @@ const visualDemoOpportunities = [
     fimInscricoes: daysFromNow(24),
     status: 'ativa',
     criadoEm: daysFromNow(-20),
-    inscricoesExemplo: 18,
+    inscricoesExemplo: 4,
   },
   {
     id: 'oportunidade-demo-avaliacao-parceiro',
@@ -28,7 +28,7 @@ const visualDemoOpportunities = [
     fimInscricoes: daysFromNow(24),
     status: 'ativa',
     criadoEm: daysFromNow(-21),
-    inscricoesExemplo: 12,
+    inscricoesExemplo: 3,
   },
   {
     id: 'oportunidade-demo-campeonato-parceiro',
@@ -39,7 +39,7 @@ const visualDemoOpportunities = [
     fimInscricoes: daysFromNow(25),
     status: 'ativa',
     criadoEm: daysFromNow(-22),
-    inscricoesExemplo: 9,
+    inscricoesExemplo: 3,
   },
   {
     id: 'oportunidade-demo-clinica-parceiro',
@@ -50,7 +50,7 @@ const visualDemoOpportunities = [
     fimInscricoes: daysFromNow(26),
     status: 'ativa',
     criadoEm: daysFromNow(-23),
-    inscricoesExemplo: 7,
+    inscricoesExemplo: 2,
   },
 ]
 

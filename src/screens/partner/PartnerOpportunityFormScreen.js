@@ -17,6 +17,7 @@ import {
   formatDateInput,
   toIsoDate,
 } from './partnerOpportunityUi'
+import { isDeadlinePassed } from '../../domain/dates.js'
 
 const BLUE = '#10579b'
 const GREEN = '#c4ff32'
@@ -150,6 +151,11 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
       setError('Informe uma data inicial válida no formato DD/MM/AAAA.')
       return
     }
+    // Oportunidade publicada com prazo já vencido ficaria invisível para os atletas.
+    if (form.status === 'ativa' && original?.status !== 'encerrada' && isDeadlinePassed(endDate)) {
+      setError('O prazo final já passou. Informe uma data a partir de hoje.')
+      return
+    }
     if (startDate && new Date(startDate) > new Date(endDate)) {
       setError('A data inicial das inscrições deve ser anterior ao prazo final.')
       return
@@ -157,16 +163,17 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
 
     const publicationStatus = original?.status === 'encerrada'
       ? 'encerrada'
-      : partner.verificado ? form.status : 'rascunho'
+      : form.status
     const payload = {
       titulo: title,
       descricao: description,
       modalidade: modality,
       categoria: form.categoria.trim(),
       localizacao: form.localizacao.trim(),
-      instituicao: form.instituicao.trim() || undefined,
-      beneficio: form.beneficio.trim() || undefined,
-      inicioInscricoes: startDate || undefined,
+      // null (e não undefined): ao editar, apagar o campo apaga o valor salvo.
+      instituicao: form.instituicao.trim() || null,
+      beneficio: form.beneficio.trim() || null,
+      inicioInscricoes: startDate || null,
       fimInscricoes: endDate,
       requisitos: splitLines(form.requisitos),
       documentosNecessarios: splitLines(form.documentosNecessarios),
@@ -181,15 +188,17 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
         : await repositories.opportunities.criarOportunidade({ ...payload, criadorId: partner.id })
       if (!result.ok) throw new Error(result.mensagem || 'Não foi possível salvar a oportunidade.')
 
-      const successMessage = partner.verificado
-        ? 'Alterações salvas com sucesso.'
-        : 'Seu perfil aguarda verificação. A oportunidade foi salva como rascunho.'
+      const successMessage = editing
+          ? 'Alterações salvas com sucesso.'
+          : publicationStatus === 'rascunho'
+            ? 'Rascunho salvo. Publique quando quiser.'
+            : 'Oportunidade criada com sucesso.'
       if (editing) {
         go('partnerOpportunityDetail', { opportunityId, flashMessage: successMessage })
       } else {
         // Rascunho abre a aba Rascunhos de "Oportunidades criadas", onde ele aparece.
         if (publicationStatus === 'rascunho') go('opportunitiesCreated', { status: 'rascunho', flashMessage: successMessage })
-        else go(listRoute, { status: publicationStatus, flashMessage: partner.verificado ? 'Oportunidade criada com sucesso.' : successMessage })
+        else go(listRoute, { status: publicationStatus, flashMessage: successMessage })
       }
     } catch (saveError) {
       setError(saveError.message || 'Não foi possível salvar a oportunidade.')
@@ -229,7 +238,6 @@ export function PartnerOpportunityFormScreen({ go, back, repositories, session, 
           <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
             <ScrollView contentContainerStyle={localStyles.formContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
               {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
-              {!partner.verificado ? <FeedbackMessage tone="warning">Seu perfil está aguardando verificação. Você pode salvar esta oportunidade como rascunho, mas só poderá publicá-la após a aprovação.</FeedbackMessage> : null}
 
               <View style={localStyles.sectionHead}>
                 <Text style={localStyles.sectionTitle}>Informações principais</Text>

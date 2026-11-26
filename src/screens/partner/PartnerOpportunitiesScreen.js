@@ -12,7 +12,7 @@ import { loadPartnerOpportunities } from './partnerOpportunitiesData'
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
-// Rascunhos ficam visíveis aqui: perfis ainda não verificados só conseguem salvar rascunhos.
+// Rascunhos ficam visíveis aqui, junto com as oportunidades publicadas.
 const createdFilters = [
   { value: 'ativa', label: 'Ativas' },
   { value: 'rascunho', label: 'Rascunhos' },
@@ -47,7 +47,7 @@ function trainerOpportunityImage(item, index, role) {
 }
 
 function OpportunityCard({ item, index, applicationsCount, onOpen, role }) {
-  const venue = item.localizacao || item.modalidade || 'Suzano'
+  const venue = item.localizacao || item.modalidade || 'Local não informado'
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={`Abrir ${item.titulo}`} onPress={onOpen} style={styles.card}>
       <Image source={trainerOpportunityImage(item, index, role)} style={styles.cardImage} resizeMode="cover" />
@@ -99,7 +99,13 @@ export function PartnerOpportunitiesScreen({ go, back, repositories, session, ro
     .sort((a, b) => new Date(b.atualizadoEm ?? b.criadoEm ?? 0) - new Date(a.atualizadoEm ?? a.criadoEm ?? 0)), [items, created, search, status])
 
   const heading = created ? 'Oportunidades\ncriadas' : 'Oportunidades'
-  const openOpportunity = (item) => go('partnerOpportunityCandidates', { opportunityId: item.id, title: item.titulo, demo: Boolean(item.inscricoesExemplo !== undefined || (repositories.demo && item.id?.startsWith('oportunidade-'))) })
+  // Oportunidade real abre o detalhe (editar, publicar rascunho, encerrar, ver candidatos);
+  // a de exemplo vai direto para os candidatos de exemplo.
+  const openOpportunity = (item) => {
+    const demo = Boolean(item.inscricoesExemplo !== undefined || (repositories.demo && item.id?.startsWith('oportunidade-')))
+    if (demo) go('partnerOpportunityCandidates', { opportunityId: item.id, title: item.titulo, demo: true, demoCount: item.inscricoesExemplo })
+    else go('partnerOpportunityDetail', { opportunityId: item.id })
+  }
   const statusFilters = created ? createdFilters : browseFilters
   const chooseStatus = (value) => {
     if (value === 'criadas' && !created) {

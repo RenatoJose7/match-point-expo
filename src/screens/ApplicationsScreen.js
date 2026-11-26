@@ -33,17 +33,22 @@ function searchKey(value) {
 }
 
 function ApplicationCard({ application, index, onPress }) {
-  const updated = application.atualizadoEm || application.criadoEm || application.historico?.at(-1)?.data
-  const details = [application.opportunity?.modalidade, application.opportunity?.categoria].filter(Boolean)
+  // Data da inscrição (e não da última atualização).
+  const created = application.criadoEm || application.historico?.[0]?.data || application.atualizadoEm
+  const opportunity = application.opportunity ?? {}
+  // Só mostra o que a oportunidade tem; nada inventado em candidatura real.
+  const sport = [opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')
+  const place = opportunity.instituicao || opportunity.localizacao
   const status = displayStatus(application, index)
   return (
-    <Pressable accessibilityRole="button" accessibilityLabel={`Abrir candidatura ${application.opportunity?.titulo || ''}`} onPress={onPress} style={styles.card}>
+    <Pressable accessibilityRole="button" accessibilityLabel={`Abrir candidatura ${opportunity.titulo || ''}${application.demo ? ' (exemplo)' : ''}`} onPress={onPress} style={styles.card}>
       <Image source={getOpportunityImage(application.opportunity, index)} style={styles.cardImage} resizeMode="cover" />
       <View style={styles.cardCopy}>
-        <Text numberOfLines={2} style={styles.cardTitle}>{application.opportunity?.titulo || 'Oportunidade'}</Text>
-        <Text numberOfLines={2} style={styles.detail}>{details[0] || 'Tênis Universitário'}</Text>
-        <Text numberOfLines={2} style={styles.detail}>{details[1] || 'Universidade do esporte'}</Text>
-        {updated ? <Text style={styles.date}>Inscrição feita em {new Date(updated).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })}</Text> : null}
+        <Text numberOfLines={2} style={styles.cardTitle}>{opportunity.titulo || 'Oportunidade'}</Text>
+        {sport ? <Text numberOfLines={2} style={styles.detail}>{sport}</Text> : null}
+        {place ? <Text numberOfLines={2} style={styles.detail}>{place}</Text> : null}
+        {created ? <Text style={styles.date}>Inscrição feita em {new Date(created).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</Text> : null}
+        {application.demo ? <Text style={styles.demoTag}>Exemplo</Text> : null}
       </View>
       <View style={[styles.status, status === 'Não selecionado' && styles.statusInactive]}><Text numberOfLines={1} style={[styles.statusText, status === 'Não selecionado' && styles.statusTextInactive]}>{status}</Text></View>
     </Pressable>
@@ -129,6 +134,7 @@ const styles = StyleSheet.create(withGriffithsWeight({
   cardTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20 },
   detail: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 21 },
   date: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 12, lineHeight: 21 },
+  demoTag: { alignSelf: 'flex-start', marginTop: 3, paddingHorizontal: 8, borderRadius: 9, overflow: 'hidden', backgroundColor: '#e8f0f8', color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 11, lineHeight: 18 },
   status: { position: 'absolute', right: 0, top: 0, minWidth: 91, height: 36, paddingHorizontal: 8, alignItems: 'center', justifyContent: 'center', borderTopLeftRadius: 9, borderBottomLeftRadius: 9, backgroundColor: LIME },
   statusInactive: { backgroundColor: '#dfe1e3' },
   statusText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 12 },

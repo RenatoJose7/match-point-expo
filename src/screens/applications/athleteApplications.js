@@ -8,8 +8,10 @@ export const sampleExtra = {
   demo: true,
   opportunity: {
     titulo: 'Apoio Financeiro',
-    modalidade: 'Atletas Universitários',
-    categoria: 'Instituto Atleta do Futuro',
+    modalidade: 'Tênis',
+    categoria: 'Universitário',
+    instituicao: 'Instituto Atleta do Futuro',
+    beneficio: 'Apoio financeiro',
   },
   criadoEm: '2026-08-05T10:00:00.000Z',
   atualizadoEm: '2026-08-05T10:00:00.000Z',

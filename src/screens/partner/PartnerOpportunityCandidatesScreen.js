@@ -10,11 +10,13 @@ import { FeedbackMessage, getOwnedOpportunity, getPartnerProfile, LoadingState }
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
-const demoCandidates = [
-  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Sub-20', date: 'Inscrição em 28/03/2026', photo: assets.mirra, score: 94 },
-  { id: 'demo-ariana', name: 'Ariana Sabalenka', category: 'Sub-25', date: 'Inscrição em 30/03/2026', photo: assets.ariana, score: 88 },
-  { id: 'demo-helena', name: 'Helena Rybakina', category: 'Sub-25', date: 'Inscrição em 31/03/2026', photo: assets.helena, score: 80 },
-  { id: 'demo-coco', name: 'Coco Gauffina', category: 'Sub-20', date: 'Inscrição em 01/04/2026', photo: assets.coco, score: 76 },
+// Candidatos de exemplo (pessoas fictícias), inscritos nos últimos dias.
+const demoDate = (daysAgo) => `Inscrição em ${new Date(Date.now() - daysAgo * 86400000).toLocaleDateString('pt-BR')}`
+const demoCandidates = () => [
+  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Universitário', date: demoDate(2), photo: assets.mirra, score: 94 },
+  { id: 'demo-ariana', name: 'Ariana Salles', category: 'Adulto', date: demoDate(4), photo: assets.ariana, score: 88 },
+  { id: 'demo-helena', name: 'Helena Ribeiro', category: 'Universitário', date: demoDate(6), photo: assets.helena, score: 80 },
+  { id: 'demo-coco', name: 'Clara Gouveia', category: 'Adulto', date: demoDate(9), photo: assets.coco, score: 76 },
 ]
 
 function getCandidatePhotoSource(value) {
@@ -48,7 +50,7 @@ function CandidateCard({ candidate, onPress }) {
         <Text style={styles.category}>{candidate.category}</Text>
         <View style={styles.dateRow}><Ionicons name="calendar" size={12} color={BLUE} /><Text style={styles.date}>{candidate.date}</Text></View>
       </View>
-      {candidate.score ? <View style={styles.score}><Text fixedSize style={styles.scoreCaption}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
+      {candidate.score !== null && candidate.score !== undefined ? <View style={styles.score}><Text fixedSize style={styles.scoreCaption}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
     </Pressable>
   )
 }
@@ -64,8 +66,10 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
   const role = session?.tipo === 'treinador' ? 'trainer' : 'institution'
   // Candidatos de exemplo só nas oportunidades de exemplo; oportunidade real mostra só os reais.
   const isDemo = Boolean(routeParams.demo)
+  const demoList = () => demoCandidates().slice(0, Math.max(1, Math.min(4, Number(routeParams.demoCount) || 4)))
+  const [notice, setNotice] = useState('')
   const [title, setTitle] = useState(routeParams.title || 'Candidatos')
-  const [candidates, setCandidates] = useState(isDemo ? demoCandidates : [])
+  const [candidates, setCandidates] = useState(isDemo ? demoList : [])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -78,7 +82,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
       setError('')
       try {
         if (isDemo) {
-          if (mounted) setCandidates(demoCandidates)
+          if (mounted) setCandidates(demoList())
           return
         }
         const partner = await getPartnerProfile(repositories, session)
@@ -94,7 +98,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           id: application.id,
           athleteId: application.atletaId,
           name: profile?.nome || `Candidato ${index + 1}`,
-          category: profile?.categoria || 'Sub-20',
+          category: profile?.categoria || 'Categoria não informada',
           date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição recente',
           photo: getCandidatePhotoSource(profile?.fotoUrl),
           initials: getCandidateInitials(profile?.nome),
@@ -129,20 +133,16 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (
         <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+          {notice ? <FeedbackMessage tone="warning">{notice}</FeedbackMessage> : null}
           {candidates.length === 0 ? <Text style={styles.emptyText}>Nenhum candidato ainda. Quando um atleta se candidatar, ele aparece aqui.</Text> : null}
           {candidates.map((candidate) => (
             <CandidateCard
               key={candidate.id}
               candidate={candidate}
-              onPress={() => role === 'trainer'
-                ? go('operations', {
-                  opportunityId: routeParams.opportunityId,
-                  athleteId: candidate.athleteId || 'atleta-adulto',
-                  candidateName: candidate.name,
-                })
-                : candidate.athleteId
-                  ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
-                  : undefined}
+              // Treinador e instituição abrem o mesmo perfil (de lá aprovam, rejeitam ou registram apoio).
+              onPress={() => (candidate.athleteId
+                ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
+                : setNotice(`${candidate.name} é um candidato de exemplo. Os perfis completos aparecem quando atletas reais se candidatarem.`))}
             />
           ))}
         </ScrollView>

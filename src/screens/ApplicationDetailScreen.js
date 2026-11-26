@@ -13,7 +13,8 @@ const statusLabel = (status) => ({
   documentos_enviados: 'Documentos enviados',
   em_analise: 'Em análise',
   aprovada: 'Aprovada',
-  rejeitada: 'Rejeitada',
+  rejeitada: 'Não selecionado',
+  nao_selecionado: 'Não selecionado',
 }[status] ?? status?.replaceAll('_', ' ') ?? 'Não informado')
 
 const statusOrder = ['inscrita', 'documentos_enviados', 'em_analise', 'resultado']
@@ -109,7 +110,12 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
   const documents = application?.documentos?.filter(item => item.status !== 'pendente') ?? []
   // Sem registro de arquivos, a lista só aparece se a etapa de documentos já foi concluída.
   const documentsStepDone = timeline.some(step => step.key === 'documentos_enviados' && step.done)
-  const fallbackDocuments = routeParams.demo ? demoDocuments : (opportunity?.documentosNecessarios ?? [])
+  // Candidatura real só lista os arquivos realmente enviados; a lista pronta é só do exemplo.
+  const fallbackDocuments = routeParams.demo ? demoDocuments : []
+  // Candidatura real ainda inscrita com documentos faltando: o atleta volta para enviar.
+  const pendingDocuments = !routeParams.demo && application?.status === 'inscrita'
+    ? (opportunity?.documentosNecessarios ?? []).filter((type) => !(application.documentos ?? []).some((item) => item.tipo === type))
+    : []
   const visibleDocuments = documents.length || !documentsStepDone
     ? documents
     : fallbackDocuments.map((name, index) => ({ id: `${name}-${index}`, nome: name }))
@@ -158,13 +164,19 @@ export function ApplicationDetailScreen({ go, back, repositories, routeParams = 
             <Text style={localStyles.documentsTitle}>Documentos enviados</Text>
             <View style={localStyles.documentsList}>
               {visibleDocuments.length ? visibleDocuments.map((item, index) => (
-                <Text key={item.id ?? item.nome ?? index} style={localStyles.document}>{documentLabel(item.nome ?? item.tipo ?? 'Documento enviado')}</Text>
+                <Text key={item.id ?? item.nome ?? index} style={localStyles.document}>{documentLabel(item.tipo ?? item.nome ?? 'Documento enviado')}</Text>
               )) : <Text style={localStyles.emptyDocuments}>{(opportunity.documentosNecessarios ?? []).length === 0 ? 'Esta oportunidade não exige documentos.' : 'Nenhum documento enviado.'}</Text>}
             </View>
 
-            <Pressable accessibilityRole="button" onPress={() => go('opportunitiesAthlete')} style={localStyles.action}>
-              <Text style={localStyles.actionText}>Ver oportunidades</Text>
-            </Pressable>
+            {pendingDocuments.length ? (
+              <Pressable accessibilityRole="button" onPress={() => go('applicationInfo', { oportunidadeId: application.oportunidadeId })} style={localStyles.action}>
+                <Text style={localStyles.actionText}>Enviar documentos ({pendingDocuments.length})</Text>
+              </Pressable>
+            ) : (
+              <Pressable accessibilityRole="button" onPress={() => go('opportunitiesAthlete')} style={localStyles.action}>
+                <Text style={localStyles.actionText}>Ver oportunidades</Text>
+              </Pressable>
+            )}
           </ScrollView>
         ) : null}
       </View>

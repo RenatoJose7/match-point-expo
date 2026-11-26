@@ -9,6 +9,7 @@ import { getOpportunityImage } from '../../theme/opportunityImages'
 import { styles } from '../../theme/styles'
 import { fitValue, withGriffithsWeight } from '../../theme/typography'
 import { computeMatchScore } from '../../domain/matchScore.js'
+import { isDeadlinePassed } from '../../domain/dates.js'
 
 const statusFilters = [
   ['Ativas', 'ativa'],
@@ -121,7 +122,7 @@ export function AthleteOpportunitiesScreen(props) {
       opportunity.categoria,
       opportunity.localizacao,
     ].join(' ')).includes(normalize(search))) return false
-    if (openDeadlineOnly && (!opportunity.fimInscricoes || new Date(opportunity.fimInscricoes) < new Date())) return false
+    if (openDeadlineOnly && (!opportunity.fimInscricoes || isDeadlinePassed(opportunity.fimInscricoes))) return false
     return true
   }).sort((first, second) => {
     const scoreDifference = (second.matchScore ?? -1) - (first.matchScore ?? -1)

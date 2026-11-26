@@ -20,6 +20,7 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
   const [retryToken, setRetryToken] = useState(0)
   const [computedScore, setComputedScore] = useState(null)
   const [existingApplicationId, setExistingApplicationId] = useState(null)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -29,7 +30,12 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
       try {
         if (!opportunityId) throw new Error('Escolha uma oportunidade antes de consultar os detalhes.')
         let result = await repositories.opportunities.obterOportunidade(opportunityId)
-        if (!result.ok && repositories.demo) result = await repositories.demo.opportunities.obterOportunidade(opportunityId)
+        let demo = false
+        if (!result.ok && repositories.demo) {
+          result = await repositories.demo.opportunities.obterOportunidade(opportunityId)
+          demo = result.ok
+        }
+        if (active) setIsDemo(demo)
         if (!result.ok) throw new Error(result.mensagem || 'Oportunidade não encontrada.')
         if (active) setOpportunity(result.data)
         // Sem o valor da tela anterior, calcula o Match Score com o perfil de quem está logado
@@ -95,7 +101,8 @@ export function OpportunityDetailScreen({ go, back, repositories, session, route
         </> : null}
       </ScrollView>
       {!loading && opportunity ? <View pointerEvents="none" style={styles.applyBackdrop} /> : null}
-      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityLabel={existingApplicationId ? "Ver minha candidatura" : "Quero me candidatar"} onPress={() => (existingApplicationId ? go('applicationDetail', { applicationId: existingApplicationId }) : go('applicationInfo', { oportunidadeId: opportunityId }))} style={styles.applyButton}><Text style={styles.applyText}>{existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'}</Text></Pressable> : null}
+      {/* Oportunidade de exemplo não recebe candidatura de verdade: o botão avisa em vez de dar erro. */}
+      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: isDemo }} disabled={isDemo} accessibilityLabel={isDemo ? 'Oportunidade de exemplo, candidatura indisponível' : existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'} onPress={() => (existingApplicationId ? go('applicationDetail', { applicationId: existingApplicationId }) : go('applicationInfo', { oportunidadeId: opportunityId }))} style={[styles.applyButton, isDemo && styles.applyButtonDemo]}><Text style={styles.applyText}>{isDemo ? 'Exemplo · candidatura indisponível' : existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'}</Text></Pressable> : null}
       <BottomNav go={go} active="opportunities" />
     </View>
   )
@@ -142,6 +149,7 @@ const styles = StyleSheet.create({
   // Faixa branca atrás do botão fixo: o conteúdo que rola some por baixo dela, sem aparecer cortado.
   applyBackdrop: { position: 'absolute', left: 0, right: 0, bottom: 72, height: 108, backgroundColor: '#fff', zIndex: 2 },
   applyButton: { position: 'absolute', left: 12, right: 12, bottom: 110, height: 54, borderRadius: 27, backgroundColor: LIME, alignItems: 'center', justifyContent: 'center', zIndex: 3 },
+  applyButtonDemo: { backgroundColor: '#e3e8ee' },
   applyText: { color: '#0b5b26', fontFamily: 'Poppins_500Medium', fontSize: 15 },
   state: { padding: 28, alignItems: 'center', gap: 12 },
   stateText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, textAlign: 'center' },

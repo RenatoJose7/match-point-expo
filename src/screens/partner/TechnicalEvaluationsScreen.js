@@ -34,7 +34,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
         if (!result.ok) throw new Error(result.mensagem)
         setRequests(result.data)
       } else {
-        const result = await repositories.users.listarParceiros({ tipo: 'treinador', verificado: true })
+        const result = await repositories.users.listarParceiros({ tipo: 'treinador' })
         if (!result.ok) throw new Error(result.mensagem)
         setTrainers(result.data)
       }
@@ -79,7 +79,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
 
   return (
     <View style={partnerStyles.page}>
-      <PartnerHeader title={isTrainer ? 'Avaliações técnicas' : 'Solicitar avaliação'} subtitle={isTrainer ? 'Demandas enviadas por instituições' : 'Escolha um treinador verificado'} onBack={back} />
+      <PartnerHeader title={isTrainer ? 'Avaliações técnicas' : 'Solicitar avaliação'} subtitle={isTrainer ? 'Demandas enviadas por instituições' : 'Escolha um treinador'} onBack={back} />
       {loading ? <LoadingState label="Carregando avaliações..." /> : (
         <ScrollView showsVerticalScrollIndicator={false} style={partnerStyles.scroll} contentContainerStyle={styles.content}>
           {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
@@ -98,7 +98,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
               </View>
             )) : <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Nenhuma avaliação pendente</Text><Text style={styles.copy}>As solicitações de instituições aparecerão aqui.</Text></View>
           ) : !routeParams.athleteId ? <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Selecione um candidato</Text><Text style={styles.copy}>Abra o perfil de um candidato para solicitar uma avaliação técnica.</Text></View> : (
-            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores verificados</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable accessibilityRole="button" key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador verificado'}</Text></Pressable>)}<Pressable accessibilityRole="button" disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
+            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable accessibilityRole="button" key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador'}</Text></Pressable>)}<Pressable accessibilityRole="button" disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
           )}
         </ScrollView>
       )}

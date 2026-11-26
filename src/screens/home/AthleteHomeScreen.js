@@ -203,7 +203,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
             <Text fixedSize numberOfLines={1} style={[localStyles.matchBadgeValue, fitValue(displayedScore, 31, { fits: 3 })]}>{displayedScore}</Text>
           </View>
 
-          <View style={localStyles.oppRow}>
+          <Pressable accessibilityRole="button" accessibilityLabel={`Ver Match Score de ${opportunity?.titulo || 'Bolsa de Estudos'}`} onPress={() => (opportunity?.id ? go('matchScore', { opportunityId: opportunity.id }) : go('opportunitiesAthlete'))} style={localStyles.oppRow}>
             <Image source={assets.opportunityMountains} style={[localStyles.oppImage, { width: fit(98, 22), height: fit(98, 22) }]} />
             <View style={localStyles.oppCopy}>
               <Text numberOfLines={2} style={localStyles.oppTitle}>
@@ -214,17 +214,17 @@ export function AthleteHomeScreen({ go, repositories, session }) {
                 <Text numberOfLines={2} style={localStyles.oppMetaText}>
                   {opportunity?.instituicao
                     ? `${opportunity.instituicao}${opportunity.categoria ? ` - ${opportunity.categoria}` : ''}`
-                    : (opportunity?.categoria || 'Instituição não informada')}
+                    : opportunity ? (opportunity.categoria || 'Instituição não informada') : 'Instituto Atleta do Futuro - Universitário'}
                 </Text>
               </View>
               <View style={localStyles.oppMetaRow}>
                 <Feather name="map-pin" size={12} color={BLUE} style={localStyles.metaIcon} />
                 <Text numberOfLines={2} style={localStyles.oppMetaText}>
-                  {opportunity?.localizacao || 'Suzano'}
+                  {opportunity ? (opportunity.localizacao || 'Local não informado') : 'Suzano - SP'}
                 </Text>
               </View>
             </View>
-          </View>
+          </Pressable>
 
           <Pressable
             accessibilityRole="button"
@@ -266,7 +266,7 @@ export function AthleteHomeScreen({ go, repositories, session }) {
             <View style={localStyles.vDivider} />
             <View style={localStyles.appStatCol}>
               <Text style={localStyles.appStatNumber}>{displayedRejected}</Text>
-              <Text numberOfLines={1} style={localStyles.appStatLabel}>Rejeitadas</Text>
+              <Text numberOfLines={1} style={localStyles.appStatLabel}>Não selecionadas</Text>
             </View>
           </View>
         </View>
