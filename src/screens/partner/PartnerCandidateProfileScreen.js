@@ -181,7 +181,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             </View>
           ) : (
             <View style={partnerStyles.card}>
-              <Text style={partnerStyles.subtitle}>Nenhuma informação esportiva foi compartilhada.</Text>
+              <Text style={partnerStyles.emptyText}>Nenhuma informação esportiva foi compartilhada.</Text>
             </View>
           )}
 
@@ -212,7 +212,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
             </View>
           ) : (
             <View style={partnerStyles.card}>
-              <Text style={partnerStyles.subtitle}>O atleta ainda não enviou documentos.</Text>
+              <Text style={partnerStyles.emptyText}>O atleta ainda não enviou documentos.</Text>
             </View>
           )}
 

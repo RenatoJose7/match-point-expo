@@ -142,7 +142,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
               // Treinador e instituição abrem o mesmo perfil (de lá aprovam, rejeitam ou registram apoio).
               onPress={() => (candidate.athleteId
                 ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
-                : setNotice(`${candidate.name} é um candidato de exemplo. Os perfis completos aparecem quando atletas reais se candidatarem.`))}
+                : setNotice(`Perfil de exemplo (${candidate.name}). Os perfis completos aparecem quando atletas reais se candidatarem.`))}
             />
           ))}
         </ScrollView>

@@ -41,13 +41,22 @@ function stateOf(location) {
   return match ? match[1].toUpperCase() : null
 }
 
+// Oportunidade pode aceitar várias opções no mesmo campo ("Beach Tennis · Tênis", "Sub-14, Sub-16").
+export function optionsOf(value) {
+  return String(value ?? '').split(/\s*[·,;|]\s*|\s+\/\s+/).map((item) => item.trim()).filter(Boolean)
+}
+
 const CATEGORY_ORDER = ['sub-12', 'sub-14', 'sub-16', 'sub-18', 'universitario', 'adulto', '35+']
 
 function categoryDistance(a, b) {
   const first = CATEGORY_ORDER.indexOf(normalizeText(a))
-  const second = CATEGORY_ORDER.indexOf(normalizeText(b))
-  if (first < 0 || second < 0) return null
-  return Math.abs(first - second)
+  if (first < 0) return null
+  // Com várias categorias aceitas, vale a mais próxima da do atleta.
+  const distances = optionsOf(b)
+    .map((option) => CATEGORY_ORDER.indexOf(normalizeText(option)))
+    .filter((index) => index >= 0)
+    .map((index) => Math.abs(first - index))
+  return distances.length ? Math.min(...distances) : null
 }
 
 function criterionMet(athlete, criterion) {
@@ -72,7 +81,9 @@ function criterionMet(athlete, criterion) {
   }
   if (typeof criterion.valor === 'boolean') return athleteValue === criterion.valor
   if (athleteValue === undefined || athleteValue === null || athleteValue === '') return false
-  return normalizeText(athleteValue) === normalizeText(criterion.valor)
+  if (normalizeText(athleteValue) === normalizeText(criterion.valor)) return true
+  // Campo com várias opções: basta o atleta estar em uma delas.
+  return optionsOf(criterion.valor).some((option) => normalizeText(option) === normalizeText(athleteValue))
 }
 
 // Nota parcial para critérios não atendidos que admitem proximidade.
@@ -124,8 +135,10 @@ export function criteriaFor(opportunity = {}) {
 // Categorias "Sub-N" têm limite de idade: quem já tem N anos ou mais não pode se candidatar,
 // mesmo quando a oportunidade usa critérios próprios.
 function ageLimitOf(category) {
-  const match = normalizeText(category).match(/^sub-?\s*(\d{1,2})$/)
-  return match ? Number(match[1]) : null
+  // Com várias categorias, vale o limite da mais velha; se alguma não for Sub-N, não há limite.
+  const limits = optionsOf(category).map((option) => normalizeText(option).match(/^sub-?\s*(\d{1,2})$/))
+  if (!limits.length || limits.some((match) => !match)) return null
+  return Math.max(...limits.map((match) => Number(match[1])))
 }
 
 function ageOf(birthDate, reference = new Date()) {

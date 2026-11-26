@@ -53,6 +53,8 @@ export const partnerStyles = StyleSheet.create({
   stateWrap: { flex: 1, minHeight: 230, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 12 },
   stateTitle: { textAlign: 'center', color: partnerColors.ink, fontSize: 15, fontFamily: 'Poppins_600SemiBold' },
   stateBody: { textAlign: 'center', color: partnerColors.muted, fontSize: 13, lineHeight: 19, fontFamily: 'Poppins_400Regular' },
+  // Texto de "lista vazia" dentro de cartões brancos (o subtitle é branco, só para o cabeçalho azul).
+  emptyText: { color: partnerColors.muted, fontSize: 14, lineHeight: 20, fontFamily: 'Poppins_400Regular' },
 })
 
 export function PartnerHeader({ title, subtitle, onBack, action }) {

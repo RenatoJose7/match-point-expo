@@ -47,7 +47,7 @@ function ApplicationCard({ application, index, onPress }) {
         <Text numberOfLines={2} style={styles.cardTitle}>{opportunity.titulo || 'Oportunidade'}</Text>
         {sport ? <Text numberOfLines={2} style={styles.detail}>{sport}</Text> : null}
         {place ? <Text numberOfLines={2} style={styles.detail}>{place}</Text> : null}
-        {created ? <Text style={styles.date}>Inscrição feita em {new Date(created).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</Text> : null}
+        {created ? <Text style={styles.date}>Inscrição em {new Date(created).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</Text> : null}
         {application.demo ? <Text style={styles.demoTag}>Exemplo</Text> : null}
       </View>
       <View style={[styles.status, status === 'Não selecionado' && styles.statusInactive]}><Text numberOfLines={1} style={[styles.statusText, status === 'Não selecionado' && styles.statusTextInactive]}>{status}</Text></View>

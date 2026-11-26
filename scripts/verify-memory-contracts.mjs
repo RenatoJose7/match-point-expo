@@ -93,8 +93,8 @@ const publicCandidateProfile = await repositories.applications.obterPerfilPublic
 )
 assert.equal(publicCandidateProfile.ok, true)
 assert.equal(publicCandidateProfile.data.nome, 'Atleta Demo Adulto')
-assert.equal(publicCandidateProfile.data.modalidade, 'Tenis')
-assert.equal(publicCandidateProfile.data.categoria, 'Universitario')
+assert.equal(publicCandidateProfile.data.modalidade, 'Tênis')
+assert.equal(publicCandidateProfile.data.categoria, 'Universitário')
 assert.deepEqual(Object.keys(publicCandidateProfile.data).sort(), [
   'categoria',
   'equipeAtual',

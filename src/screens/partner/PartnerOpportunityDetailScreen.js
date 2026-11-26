@@ -169,7 +169,7 @@ function ListSection({ title, values = [], empty }) {
           <Ionicons name="checkmark-circle" size={16} color={partnerColors.green} />
           <Text style={[partnerStyles.body, styles.listText]}>{value}</Text>
         </View>
-      )) : <Text style={partnerStyles.subtitle}>{empty}</Text>}
+      )) : <Text style={partnerStyles.emptyText}>{empty}</Text>}
     </View>
   )
 }
