@@ -141,7 +141,7 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
               candidate={candidate}
               // Treinador e instituição abrem o mesmo perfil (de lá aprovam, rejeitam ou registram apoio).
               onPress={() => (candidate.athleteId
-                ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
+                ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId, opportunityTitle: title })
                 : setNotice(`Perfil de exemplo (${candidate.name}). Os perfis completos aparecem quando atletas reais se candidatarem.`))}
             />
           ))}

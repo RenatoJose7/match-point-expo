@@ -37,6 +37,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [pendingDecision, setPendingDecision] = useState(null)
+  const [evaluations, setEvaluations] = useState([])
   const [refreshKey, setRefreshKey] = useState(0)
   const [viewer, setViewer] = useState(null)
   const [openingDocument, setOpeningDocument] = useState('')
@@ -85,9 +86,14 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
         if (!applicationsResult.ok) throw new Error(applicationsResult.mensagem || 'Não foi possível carregar a candidatura.')
         const candidateApplication = applicationsResult.data.find((item) => item.atletaId === athleteId)
         if (!candidateApplication) throw new Error('A candidatura deste atleta não foi encontrada nesta oportunidade.')
+        // Pareceres técnicos já enviados por treinadores sobre este candidato nesta oportunidade.
+        const evaluationsResult = partner.tipo === 'instituicao' && repositories.evaluations?.listarAvaliacoesDaInstituicao
+          ? await repositories.evaluations.listarAvaliacoesDaInstituicao(partner.id).catch(() => null)
+          : null
         if (active) {
           setProfile(profileResult.data)
           setApplication(candidateApplication)
+          setEvaluations(evaluationsResult?.ok ? evaluationsResult.data.filter((item) => item.atletaId === athleteId && (!item.oportunidadeId || item.oportunidadeId === opportunityId)) : [])
         }
       })
       .catch((loadError) => {
@@ -218,9 +224,16 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
 
           <View style={styles.decisionCard}>
               {role === 'institution' ? <>
+                {evaluations.map((evaluation) => (
+                  <View key={evaluation.id} style={styles.evaluationBox}>
+                    <Text style={styles.fieldValue}>Parecer técnico recebido</Text>
+                    <Text style={styles.fieldLabel}>Técnica {evaluation.notaTecnica}/5 · Físico {evaluation.notaFisica}/5 · Tática {evaluation.notaTatica}/5</Text>
+                    {evaluation.parecer ? <Text style={partnerStyles.body}>{evaluation.parecer}</Text> : null}
+                  </View>
+                ))}
                 <Text style={partnerStyles.sectionTitle}>Avaliação técnica externa</Text>
                 <Text style={styles.decisionCopy}>Solicite um parecer estruturado a um treinador antes da decisão.</Text>
-                <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id })} style={partnerStyles.secondaryButton}>
+                <Pressable accessibilityRole="button" onPress={() => go('technicalEvaluations', { opportunityId, athleteId, applicationId: application?.id, athleteName: profile?.nome || '', opportunityTitle: routeParams.opportunityTitle || '' })} style={partnerStyles.secondaryButton}>
                   <Text style={partnerStyles.secondaryButtonText}>Solicitar avaliação</Text>
                 </Pressable>
               </> : <Text style={partnerStyles.sectionTitle}>Apoio ao atleta</Text>}
@@ -306,6 +319,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
 
 const styles = StyleSheet.create({
   documentsList: { gap: 8 },
+  evaluationBox: { gap: 4, padding: 12, borderRadius: 10, backgroundColor: partnerColors.greenLight, borderWidth: 1, borderColor: '#d7ef9e' },
   documentItem: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: partnerColors.white, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 10 },
   viewerBackdrop: { flex: 1, backgroundColor: 'rgba(5, 20, 38, 0.96)', paddingTop: 36, paddingBottom: 24 },
   viewerHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingHorizontal: 18, paddingBottom: 12 },

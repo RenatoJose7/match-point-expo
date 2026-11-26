@@ -700,6 +700,9 @@ export function createMemoryRepositories(initialSeed = demoSeed) {
   }
 
   const evaluations = {
+    listarAvaliacoesDaInstituicao: async (institutionId) => success(
+      (state.technicalEvaluations ?? state.evaluations ?? []).filter((item) => item.instituicaoId === institutionId),
+    ),
     listarSolicitacoesDoTreinador: async (trainerId) => {
       const user = currentSession()
       const trainer = state.partners.find((partner) => partner.id === trainerId)

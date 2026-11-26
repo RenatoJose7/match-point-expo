@@ -1485,6 +1485,13 @@ export function createFirebaseRepositories() {
   }
 
   const evaluations = {
+    // Pareceres recebidos pela instituição (a regra só libera os da própria instituição).
+    listarAvaliacoesDaInstituicao: async (institutionId) => {
+      try {
+        const snapshots = await getDocs(query(collection(database, TECHNICAL_EVALUATIONS_COLLECTION), where('instituicaoId', '==', institutionId)))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) { return mapFirebaseError(error) }
+    },
     listarSolicitacoesDoTreinador: async (trainerId) => {
       const trainer = await getPartnerByUserId(auth.currentUser?.uid)
       if (!trainer.ok || trainer.data.id !== trainerId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
@@ -1520,7 +1527,7 @@ export function createFirebaseRepositories() {
           if (request.treinadorId !== trainer.data.id || request.status !== 'pendente') return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta solicitação não está disponível para avaliação.')
           // Notas como número (o seletor entrega texto e a regra do banco exige número).
           const [notaTecnica, notaFisica, notaTatica] = scores
-          const evaluation = { id: evaluationReference.id, ...data, notaTecnica, notaFisica, notaTatica, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+          const evaluation = { id: evaluationReference.id, ...data, notaTecnica, notaFisica, notaTatica, atletaId: request.atletaId, oportunidadeId: request.oportunidadeId ?? null, instituicaoId: request.instituicaoId, criadoEm: now() }
           transaction.set(evaluationReference, evaluation)
           transaction.update(requestReference, { status: 'concluida', avaliacaoId: evaluation.id, atualizadoEm: evaluation.criadoEm })
           return success(evaluation)

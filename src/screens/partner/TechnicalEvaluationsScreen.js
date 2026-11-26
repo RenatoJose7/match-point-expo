@@ -52,6 +52,9 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
       atletaId: routeParams.athleteId,
       oportunidadeId: routeParams.opportunityId,
       candidaturaId: routeParams.applicationId,
+      // O treinador não lê o perfil do atleta: nome e oportunidade vão na própria solicitação.
+      atletaNome: routeParams.athleteName || '',
+      oportunidadeTitulo: routeParams.opportunityTitle || '',
     })
     setSaving(false)
     if (!result.ok) return setError(result.mensagem || 'Não foi possível solicitar a avaliação.')
@@ -87,8 +90,8 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
           {isTrainer ? (
             requests.length ? requests.map((request) => (
               <View key={request.id} style={partnerStyles.card}>
-                <Text style={partnerStyles.sectionTitle}>Atleta {request.atletaId}</Text>
-                <Text style={styles.copy}>Solicitação da instituição · {request.status}</Text>
+                <Text style={partnerStyles.sectionTitle}>{request.atletaNome || 'Atleta candidato'}</Text>
+                <Text style={styles.copy}>{request.oportunidadeTitulo ? `${request.oportunidadeTitulo} · ` : ''}{request.status === 'pendente' ? 'Aguardando seu parecer' : 'Parecer enviado'}</Text>
                 {request.status === 'pendente' ? <>
                   <View style={styles.scores}>{scoreFields.map(([key, label]) => <View key={key} style={styles.scoreField}><Text style={partnerStyles.fieldLabel}>{label} (1–5)</Text><SelectField accessibilityLabel={`Nota de ${label}`} options={SELECT_OPTIONS.notas} value={scores[key]} onChange={(value) => setScores((current) => ({ ...current, [key]: value }))} placeholder="Selecione a nota" /></View>)}</View>
                   <Text style={partnerStyles.fieldLabel}>Parecer técnico</Text>
