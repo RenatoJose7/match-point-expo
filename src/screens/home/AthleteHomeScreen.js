@@ -37,6 +37,11 @@ export function AthleteHomeScreen({ go, repositories, session }) {
 
         if (athleteResult?.ok) {
           setProfile(athleteResult.data)
+          // Atletas cadastrados antes de o nome ir para o perfil esportivo: grava agora,
+          // para o responsável ver o nome na lista de vinculados.
+          if (!athleteResult.data.nome && session?.nome && repositories.users.atualizarPerfilAtleta) {
+            repositories.users.atualizarPerfilAtleta(athleteResult.data.id, { nome: session.nome }).catch(() => null)
+          }
         }
 
         // Mesma lista da tela Candidaturas (com os exemplos): os números da home sempre batem.

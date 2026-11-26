@@ -52,10 +52,18 @@ service cloud.firestore {
       return ownsOpportunity(application.oportunidadeId);
     }
 
+    // Avisa o atleta da candidatura ou, se ele for menor, também o responsável vinculado.
     function canNotifyApplicationAthlete(applicationId, userId) {
       let application = get(/databases/$(database)/documents/candidaturas/$(applicationId)).data;
       let athlete = get(/databases/$(database)/documents/atletas/$(application.atletaId)).data;
-      return ownsApplicationOpportunity(application) && athlete.usuarioId == userId;
+      return ownsApplicationOpportunity(application)
+        && (
+          athlete.usuarioId == userId
+          || (
+            athlete.get('responsavelId', null) != null
+            && get(/databases/$(database)/documents/responsaveis/$(athlete.responsavelId)).data.usuarioId == userId
+          )
+        );
     }
 
     function candidateApplicationExists(opportunityId, athleteId, applicationId) {

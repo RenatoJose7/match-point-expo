@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
 import { PartnerHeader } from '../partner/partnerOpportunityUi'
+import { displayStatus } from '../applications/athleteApplications'
 import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 
@@ -30,6 +31,7 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [applications, setApplications] = useState([])
 
   useEffect(() => {
     let active = true
@@ -44,7 +46,16 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
         if (!athletesResult.ok) throw new Error(athletesResult.mensagem || 'Não foi possível validar o vínculo.')
         const linkedAthlete = athletesResult.data.find((item) => item.id === routeParams.athleteId)
         if (!linkedAthlete) throw new Error('Este atleta não está vinculado à sua conta.')
+        // O responsável acompanha as candidaturas do atleta menor (a regra do banco permite a leitura).
+        const applicationsResult = await repositories.applications.listarCandidaturasDoAtleta(linkedAthlete.id).catch(() => null)
+        const withOpportunity = applicationsResult?.ok
+          ? await Promise.all(applicationsResult.data.map(async (application) => {
+            const opportunity = await repositories.opportunities.obterOportunidade(application.oportunidadeId).catch(() => null)
+            return { ...application, titulo: opportunity?.ok ? opportunity.data.titulo : 'Oportunidade' }
+          }))
+          : []
         if (active) {
+          setApplications(withOpportunity)
           setGuardian(guardianResult.data)
           setAthlete(linkedAthlete)
           setValues(Object.fromEntries(fields.map(([key]) => [key, String(linkedAthlete[key] ?? '')])))
@@ -113,6 +124,16 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
               <Pressable accessibilityRole="button" onPress={() => { setEditing(false); setValues(Object.fromEntries(fields.map(([key]) => [key, String(athlete[key] ?? '')]))) }}><Text style={styles.cancel}>Cancelar</Text></Pressable>
             </>
           ) : <Button wide onPress={() => { setEditing(true); setNotice('') }}>Editar perfil</Button>}
+          <Text style={styles.sectionTitle}>Candidaturas</Text>
+          {applications.length ? applications.map((application) => (
+            <View key={application.id} style={styles.applicationRow}>
+              <View style={styles.applicationCopy}>
+                <Text style={styles.applicationTitle}>{application.titulo}</Text>
+                <Text style={styles.applicationDate}>{application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : ''}</Text>
+              </View>
+              <Text style={styles.applicationStatus}>{displayStatus(application)}</Text>
+            </View>
+          )) : <Text style={styles.description}>Este atleta ainda não se candidatou a nenhuma oportunidade.</Text>}
         </ScrollView>
       ) : null}
     </View>
@@ -124,6 +145,12 @@ const styles = StyleSheet.create({
   content: { gap: 12, padding: 20, paddingBottom: 28 },
   description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 18 },
   field: { gap: 5 },
+  sectionTitle: { marginTop: 10, color: '#10579b', fontFamily: 'Poppins_600SemiBold', fontSize: 17 },
+  applicationRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, backgroundColor: '#ffffff' },
+  applicationCopy: { flex: 1, minWidth: 0, gap: 2 },
+  applicationTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
+  applicationDate: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  applicationStatus: { color: '#10579b', fontFamily: 'Poppins_600SemiBold', fontSize: 12 },
   label: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 13 },
   value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
   input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },

@@ -50,7 +50,14 @@ const partnerPredefinedNotifications = [
   { id: 'demo-deadline', titulo: 'Prazo terminando', mensagem: 'As inscrições do “Campeonato” terminam em 3 dias.', tempo: 'Ontem', lida: true, demo: true },
 ]
 
+// Exemplos do responsável: falam do atleta menor vinculado, não de candidaturas próprias.
+const guardianPredefinedNotifications = [
+  { id: 'demo-guardian-link', titulo: 'Atleta vinculado', mensagem: 'O código de vínculo foi usado e o atleta já aparece na sua conta.', tempo: 'Há 3 horas', lida: false, demo: true },
+  { id: 'demo-guardian-application', titulo: 'Candidatura atualizada', mensagem: 'A candidatura do atleta vinculado para “Bolsa de Estudos” está em análise.', tempo: 'Ontem', lida: true, demo: true },
+]
+
 function predefinedFor(session) {
+  if (session?.tipo === 'responsavel') return guardianPredefinedNotifications
   return ['treinador', 'instituicao'].includes(session?.tipo) ? partnerPredefinedNotifications : predefinedNotifications
 }
 
