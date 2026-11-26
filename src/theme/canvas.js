@@ -38,7 +38,7 @@ export function AppCanvas({ children }) {
   const window = useWindowDimensions()
   // Alto contraste: reforça o contraste de toda a tela (cores, fotos e bordas), além dos textos.
   const { settings } = useAccessibility()
-  const contrastFilter = settings.highContrast ? { filter: [{ contrast: 1.45 }, { saturate: 1.15 }] } : null
+  const contrastFilter = settings.highContrast ? { filter: [{ contrast: 1.3 }, { saturate: 1.1 }] } : null
   const insets = useSafeAreaInsets()
   const [box, setBox] = useState(null)
 

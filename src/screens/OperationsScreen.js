@@ -175,7 +175,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             </>
           )}
         </ScrollView>
-        <BottomNav go={go} role={roleNav} />
+        <BottomNav go={go} role={roleNav} active="profile" />
       </View>
     )
   }
@@ -297,13 +297,14 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   statusBadge: { backgroundColor: '#eaf6ed', borderRadius: 8, padding: 12 },
   statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 12 },
   // Admin / simples
-  simpleHeader: { paddingTop: 54, paddingHorizontal: 22, paddingBottom: 16, backgroundColor: BLUE, gap: 10 },
-  simpleTitle: { color: '#fff', fontSize: 17, fontFamily: 'Poppins_600SemiBold' },
-  simpleContent: { padding: 20, gap: 12 },
+  simpleHeader: { paddingTop: 96, paddingHorizontal: 22, paddingBottom: 18, backgroundColor: BLUE, gap: 10 },
+  simpleTitle: { color: '#fff', fontSize: 20, fontFamily: 'Poppins_600SemiBold' },
+  // Conteúdo em painel claro: rótulos escuros ficavam ilegíveis direto sobre o azul.
+  simpleContent: { flexGrow: 1, padding: 20, paddingBottom: 120, gap: 12, backgroundColor: '#f3f4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   label: { color: '#183126', fontFamily: 'Poppins_600SemiBold' },
   input: { minHeight: 48, borderWidth: 1, borderColor: '#cddbd0', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   multilineInput: { minHeight: 130, textAlignVertical: 'top' },
-  btn: { backgroundColor: '#236b46', borderRadius: 8, padding: 14, alignItems: 'center' },
+  btn: { backgroundColor: BLUE, borderRadius: 12, minHeight: 52, padding: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },
   statusMsg: { color: '#164d34', backgroundColor: '#eaf6ed', padding: 12, borderRadius: 8, fontFamily: 'Poppins_500Medium' },
   card: { backgroundColor: '#fff', borderRadius: 8, padding: 12, gap: 4, borderWidth: 1, borderColor: '#dce6dd' },
