@@ -1,13 +1,15 @@
 import React from 'react'
 import { StyleSheet, View } from 'react-native'
 import LottieView from 'lottie-react-native'
+import { useReduceMotion } from '../accessibility/AccessibilityContext'
 
 export function LoadingScreen() {
+  const reduceMotion = useReduceMotion()
   return (
     <View accessibilityRole="progressbar" accessibilityLabel="Carregando MatchPoint" style={styles.screen}>
       <LottieView
-        autoPlay
-        loop
+        autoPlay={!reduceMotion}
+        loop={!reduceMotion}
         source={require('../../../assets/tennis-ball-loading.json')}
         style={styles.ball}
       />

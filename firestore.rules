@@ -37,15 +37,6 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.usuarioId == request.auth.uid;
     }
 
-    function verifiedPartner(partnerId) {
-      return ownsPartner(partnerId)
-        && get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
-    }
-
-    function partnerIsVerified(partnerId) {
-      return get(/databases/$(database)/documents/parceiros/$(partnerId)).data.verificado == true;
-    }
-
     function ownsOpportunity(opportunityId) {
       return signedIn()
         && ownsPartner(
@@ -61,10 +52,18 @@ service cloud.firestore {
       return ownsOpportunity(application.oportunidadeId);
     }
 
+    // Avisa o atleta da candidatura ou, se ele for menor, também o responsável vinculado.
     function canNotifyApplicationAthlete(applicationId, userId) {
       let application = get(/databases/$(database)/documents/candidaturas/$(applicationId)).data;
       let athlete = get(/databases/$(database)/documents/atletas/$(application.atletaId)).data;
-      return ownsApplicationOpportunity(application) && athlete.usuarioId == userId;
+      return ownsApplicationOpportunity(application)
+        && (
+          athlete.usuarioId == userId
+          || (
+            athlete.get('responsavelId', null) != null
+            && get(/databases/$(database)/documents/responsaveis/$(athlete.responsavelId)).data.usuarioId == userId
+          )
+        );
     }
 
     function candidateApplicationExists(opportunityId, athleteId, applicationId) {
@@ -203,9 +202,9 @@ service cloud.firestore {
           'atleta',
           'treinador',
           'instituicao',
-          'responsavel',
-          'administrador'
+          'responsavel'
         ];
+      // Conta de administrador só é criada pelo console do Firebase, nunca pelo app.
       allow read: if isOwnUser(userId);
       allow update: if isOwnUser(userId)
         && request.resource.data.id == resource.data.id
@@ -238,6 +237,11 @@ service cloud.firestore {
           == resource.data.get('responsavelId', null)
         && request.resource.data.get('vinculoResponsavelId', null)
           == resource.data.get('vinculoResponsavelId', null)
+        // Data de nascimento (regra do menor de idade) e decisão administrativa não mudam pelo atleta.
+        && request.resource.data.get('dataNascimento', null)
+          == resource.data.get('dataNascimento', null)
+        && (isAdmin() || request.resource.data.get('statusAdministrativo', null)
+          == resource.data.get('statusAdministrativo', null))
         && ( !isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']) );
       allow delete: if signedIn() && resource.data.usuarioId == request.auth.uid;
     }
@@ -246,13 +250,17 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.id == partnerId
         && request.resource.data.usuarioId == request.auth.uid
-        && request.resource.data.tipo in ['treinador', 'instituicao'];
+        && request.resource.data.tipo in ['treinador', 'instituicao']
+        && !('statusAdministrativo' in request.resource.data);
       allow read: if signedIn();
       allow update: if signedIn()
         && (resource.data.usuarioId == request.auth.uid || isAdmin())
         && request.resource.data.id == resource.data.id
         && request.resource.data.usuarioId == resource.data.usuarioId
         && request.resource.data.tipo == resource.data.tipo
+        // A decisão administrativa só é alterada pela administração.
+        && (isAdmin() || request.resource.data.get('statusAdministrativo', null)
+          == resource.data.get('statusAdministrativo', null))
         && (!isAdmin() || request.resource.data.diff(resource.data).affectedKeys().hasOnly(['statusAdministrativo', 'atualizadoEm']));
       allow delete: if signedIn() && resource.data.usuarioId == request.auth.uid;
     }
@@ -319,22 +327,19 @@ service cloud.firestore {
     }
 
     match /oportunidades/{opportunityId} {
-      allow read: if signedIn();
+      // Rascunho só é visto por quem o criou.
+      allow read: if signedIn()
+        && (
+          resource.data.status in ['ativa', 'encerrada']
+          || ownsPartner(resource.data.criadorId)
+        );
       allow create: if signedIn()
         && request.resource.data.id == opportunityId
-        && ownsPartner(request.resource.data.criadorId)
-        && (
-          request.resource.data.status != 'ativa'
-          || verifiedPartner(request.resource.data.criadorId)
-        );
+        && ownsPartner(request.resource.data.criadorId);
       allow update: if signedIn()
         && ownsPartner(resource.data.criadorId)
         && request.resource.data.id == resource.data.id
-        && request.resource.data.criadorId == resource.data.criadorId
-        && (
-          request.resource.data.status != 'ativa'
-          || verifiedPartner(resource.data.criadorId)
-        );
+        && request.resource.data.criadorId == resource.data.criadorId;
       allow delete: if false;
     }
 
@@ -428,6 +433,27 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Documentos das candidaturas (foto comprimida guardada no banco, sem Cloud Storage).
+    // Só o atleta da candidatura envia; só ele e o dono da oportunidade leem.
+    match /arquivosCandidatura/{fileId} {
+      allow create: if signedIn()
+        && request.resource.data.id == fileId
+        && ownsAthlete(request.resource.data.atletaId)
+        && get(/databases/$(database)/documents/candidaturas/$(request.resource.data.candidaturaId)).data.atletaId
+          == request.resource.data.atletaId
+        && get(/databases/$(database)/documents/candidaturas/$(request.resource.data.candidaturaId)).data.oportunidadeId
+          == request.resource.data.oportunidadeId
+        && request.resource.data.conteudo is string
+        && request.resource.data.conteudo.size() < 1000000;
+      allow get: if signedIn()
+        && (
+          ownsAthlete(resource.data.atletaId)
+          || ownsOpportunity(resource.data.oportunidadeId)
+        );
+      allow list, update: if false;
+      allow delete: if signedIn() && ownsAthlete(resource.data.atletaId);
+    }
+
     match /chavesCandidatura/{applicationKey} {
       allow get: if signedIn();
       allow list: if false;
@@ -462,8 +488,7 @@ service cloud.firestore {
       allow create: if signedIn()
         && request.resource.data.id == requestId
         && request.resource.data.status == 'pendente'
-        && verifiedPartner(request.resource.data.instituicaoId)
-        && partnerIsVerified(request.resource.data.treinadorId)
+        && ownsPartner(request.resource.data.instituicaoId)
         && get(/databases/$(database)/documents/parceiros/$(request.resource.data.treinadorId)).data.tipo == 'treinador'
         && exists(/databases/$(database)/documents/atletas/$(request.resource.data.atletaId));
       allow update: if signedIn()
@@ -479,7 +504,7 @@ service cloud.firestore {
         && (ownsPartner(resource.data.instituicaoId) || ownsPartner(resource.data.treinadorId));
       allow create: if signedIn()
         && request.resource.data.id == evaluationId
-        && verifiedPartner(request.resource.data.treinadorId)
+        && ownsPartner(request.resource.data.treinadorId)
         && request.resource.data.notaTecnica is number
         && request.resource.data.notaFisica is number
         && request.resource.data.notaTatica is number
@@ -509,7 +534,7 @@ service cloud.firestore {
     match /apoios/{supportId} {
       allow create: if signedIn() && request.resource.data.id == supportId
         && request.resource.data.parceiroId is string
-        && verifiedPartner(request.resource.data.parceiroId)
+        && ownsPartner(request.resource.data.parceiroId)
         && request.resource.data.descricao is string;
       allow get, list: if signedIn() && (
         (('parceiroId' in resource.data) && ownsPartner(resource.data.parceiroId))

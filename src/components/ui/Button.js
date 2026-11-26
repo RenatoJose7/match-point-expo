@@ -1,11 +1,15 @@
 import React, { useRef } from 'react'
-import { Animated, Pressable, Text } from 'react-native'
+import { Animated, Pressable } from 'react-native'
+import { Text } from '../accessibility/AppText'
 import { USE_NATIVE_DRIVER } from '../motion'
 import { styles } from '../../theme/styles'
+import { useAccessibility, useReduceMotion } from '../accessibility/AccessibilityContext'
 
 export function Button({ children, onPress, variant = 'green', wide = false, disabled = false }) {
   const scale = useRef(new Animated.Value(1)).current
-  const animateScale = toValue => Animated.spring(scale, {
+  const reduceMotion = useReduceMotion()
+  const { settings } = useAccessibility()
+  const animateScale = toValue => !reduceMotion && Animated.spring(scale, {
     toValue,
     stiffness: 420,
     damping: 24,
@@ -29,6 +33,8 @@ export function Button({ children, onPress, variant = 'green', wide = false, dis
           variant === 'blue' ? styles.buttonBlue : styles.buttonGreen,
           pressed && styles.buttonPressed,
           disabled && { opacity: 0.6 },
+          // Alto contraste: contorno forte para o botão se destacar de qualquer fundo.
+          settings.highContrast && { borderWidth: 2.5, borderColor: '#000000' },
         ]}
       >
         <Text style={[styles.buttonText, variant === 'blue' && styles.buttonTextWhite]}>{children}</Text>

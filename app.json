@@ -4,7 +4,10 @@
     "slug": "match-point",
     "version": "1.0.0",
     "icon": "./assets/app-icon.png",
-    "scheme": "matchpoint",
+    "scheme": [
+      "matchpoint",
+      "com.renatojose.matchpoint"
+    ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
     "assetBundlePatterns": [
@@ -25,7 +28,14 @@
     "plugins": [
       "expo-web-browser",
       "expo-font",
-      "expo-status-bar"
-    ]
+      "expo-status-bar",
+      "./plugins/withFontScaleLimit"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "56ca1dd5-e345-44ac-96de-b96188208f9e"
+      }
+    },
+    "owner": "renatojose7"
   }
 }

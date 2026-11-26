@@ -1,12 +1,15 @@
 import React, { useState } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, useWindowDimensions, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../components/accessibility/AppText'
 import * as WebBrowser from 'expo-web-browser'
 import { Ionicons } from '@expo/vector-icons'
-import { GoogleLoginButton, isGoogleLoginConfigured } from '../components/auth/GoogleLoginButton'
+import { GoogleLoginButton } from '../components/auth/GoogleLoginButton'
 import { Shell } from '../components/ui/Shell'
 import { assets } from '../theme/assets'
 import { BLUE, GREEN } from '../theme/colors'
 import { styles } from '../theme/styles'
+import { getFrameWidth } from '../theme/layout'
+import { useAppWindow } from '../theme/canvas'
 
 WebBrowser.maybeCompleteAuthSession()
 
@@ -20,14 +23,21 @@ function Feedback({ status, children }) {
 }
 
 export function LoginScreen({ go, back, repositories }) {
-  const { height } = useWindowDimensions()
+  const { width, height } = useAppWindow()
+  // A logo fica no fluxo da tela, proporcional à largura: o cartão começa sempre abaixo dela.
+  const frameWidth = getFrameWidth(width, height)
+  // Em telas baixas a logo também é limitada pela altura, para o cartão caber sem rolar.
+  const logoWidth = Math.min(frameWidth * 0.76, 310, height * (height < 720 ? 0.17 : 0.25) * (600 / 422))
+  // A logo começa abaixo dos botões do topo (voltar e acessibilidade), sem passar por baixo deles.
+  const topSpace = Math.min(Math.max(Math.round(height * 0.09), 78), 92)
+  const compact = frameWidth < 380
+  const shortScreen = height < 720
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [rememberMe, setRememberMe] = useState(false)
   const [loading, setLoading] = useState(false)
   const [feedback, setFeedback] = useState(null)
-  const googleConfigured = isGoogleLoginConfigured()
 
   const signIn = async () => {
     if (loading) return
@@ -64,14 +74,14 @@ export function LoginScreen({ go, back, repositories }) {
 
   return (
     <Shell background={assets.court} backgroundResizeMode="stretch" back={back}>
-      <Image source={assets.logo} style={[styles.loginLogo, localStyles.loginLogo]} resizeMode="contain" />
       <ScrollView
         style={localStyles.scroll}
-        contentContainerStyle={[localStyles.scrollContent, { paddingTop: Math.max(220, Math.round(height * 0.36)) }]}
+        contentContainerStyle={[localStyles.scrollContent, { paddingTop: topSpace }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-      <View style={[styles.card, localStyles.loginCard]}>
+      <Image source={assets.logo} style={[localStyles.loginLogo, { width: logoWidth, height: logoWidth * (422 / 600) }, shortScreen && { marginBottom: 12 }]} resizeMode="contain" />
+      <View style={[styles.card, localStyles.loginCard, compact && localStyles.loginCardCompact, shortScreen && localStyles.loginCardShort]}>
         <Text style={[styles.title, localStyles.title]}>Login</Text>
         <Text style={styles.helper}>
           Não possui conta?{' '}
@@ -123,7 +133,7 @@ export function LoginScreen({ go, back, repositories }) {
           </Pressable>
         </View>
 
-        <Pressable onPress={() => go('recovery1')}>
+        <Pressable accessibilityRole="button" onPress={() => go('recovery1')}>
           <Text style={localStyles.forgotPassword}>Esqueci minha senha</Text>
         </Pressable>
 
@@ -145,27 +155,22 @@ export function LoginScreen({ go, back, repositories }) {
           </Text>
         </Pressable>
 
-        {/* Divisor "ou" organizado */}
-        <View style={localStyles.dividerRow}>
-          <View style={localStyles.dividerLine} />
-          <Text style={localStyles.dividerText}>ou</Text>
-          <View style={localStyles.dividerLine} />
-        </View>
-
-        {/* Botão Google integrado e alinhado */}
-        {googleConfigured ? (
-          <GoogleLoginButton
-            repositories={repositories}
-            variant="login"
-            onPendingSignup={(params) => go('choice', { googleSignup: true, ...params })}
-            onFeedback={setFeedback}
-            onLoading={setLoading}
-          />
-        ) : (
-          <Text style={localStyles.googleNotice}>
-            Login com Google será habilitado após configurar os IDs OAuth.
-          </Text>
-        )}
+        {/* Entrar com Google: sempre visível; sem configuração, o próprio botão explica. */}
+        <>
+            <View style={localStyles.dividerRow}>
+              <View style={localStyles.dividerLine} />
+              <Text style={localStyles.dividerText}>ou</Text>
+              <View style={localStyles.dividerLine} />
+            </View>
+            <GoogleLoginButton
+              repositories={repositories}
+              variant="login"
+              label="Entrar com Google"
+              onPendingSignup={(params) => go('choice', { googleSignup: true, ...params })}
+              onFeedback={setFeedback}
+              onLoading={setLoading}
+            />
+        </>
 
         {/* Me mantenha conectado com checkbox interativo e espaçamento inferior */}
         <Pressable
@@ -205,7 +210,16 @@ const localStyles = StyleSheet.create({
     paddingBottom: 24,
   },
   loginLogo: {
-    top: 48,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  loginCardShort: {
+    paddingTop: 14,
+    paddingBottom: 14,
+  },
+  loginCardCompact: {
+    marginHorizontal: 12,
+    paddingHorizontal: 18,
   },
   formGap: {
     height: 16,
@@ -223,13 +237,18 @@ const localStyles = StyleSheet.create({
   },
   textInput: {
     flex: 1,
+    // Sem isso o campo da web mantém uma largura mínima e empurra o olho para fora.
+    minWidth: 0,
+    width: '100%',
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 14,
     paddingVertical: 0,
     ...Platform.select({ web: { outlineStyle: 'none' } }),
   },
   eyeButton: {
+    flexShrink: 0,
+    marginLeft: 6,
     padding: 4,
     justifyContent: 'center',
     alignItems: 'center',
@@ -238,7 +257,7 @@ const localStyles = StyleSheet.create({
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
     textDecorationLine: 'underline',
-    fontSize: 13,
+    fontSize: 14,
     marginTop: -4,
     marginBottom: 12,
     alignSelf: 'flex-start',
@@ -265,7 +284,7 @@ const localStyles = StyleSheet.create({
   submitButtonText: {
     fontFamily: 'Poppins_500Medium',
     color: '#155326',
-    fontSize: 13,
+    fontSize: 15,
   },
   dividerRow: {
     flexDirection: 'row',
@@ -282,12 +301,6 @@ const localStyles = StyleSheet.create({
     color: '#7b8f9e',
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-  },
-  googleNotice: {
-    color: '#667085',
-    fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    textAlign: 'center',
   },
   rememberRow: {
     flexDirection: 'row',
@@ -311,13 +324,13 @@ const localStyles = StyleSheet.create({
   },
   checkMark: {
     color: '#ffffff',
-    fontSize: 18,
-    lineHeight: 22,
+    fontSize: 11,
+    lineHeight: 13,
     fontWeight: 'bold',
   },
   rememberText: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
+    fontSize: 14,
   },
 })

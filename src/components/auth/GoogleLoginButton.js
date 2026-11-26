@@ -1,158 +1,151 @@
-import { useEffect, useRef } from 'react'
-import { Alert, Platform, Pressable, Text } from 'react-native'
-import * as Google from 'expo-auth-session/providers/google'
+import { useState } from 'react'
+import { Alert, Platform, Pressable } from 'react-native'
+import { Text } from '../accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
+import { isGoogleIdTokenConfigured, useGoogleIdToken } from './googleIdToken'
 
-const googleClientIds = {
-  expoClientId: process.env.EXPO_PUBLIC_GOOGLE_EXPO_CLIENT_ID,
-  iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID,
-  androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID,
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-}
-
+// No Android/iOS o token vem do Google Sign-In nativo (googleIdToken.native.js);
+// na web, do fluxo OAuth do navegador (googleIdToken.web.js).
 export function isGoogleLoginConfigured() {
-  return Boolean(Platform.select({
-    ios: googleClientIds.iosClientId,
-    android: googleClientIds.androidClientId,
-    default: googleClientIds.webClientId,
-  }))
+  return isGoogleIdTokenConfigured()
 }
 
-export function GoogleReauthenticationButton({ disabled, label = 'Confirmar com Google', onFeedback, onToken }) {
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({ ...googleClientIds, selectAccount: true })
-  const handledResponse = useRef(null)
+const UNAVAILABLE_MESSAGE = 'O login com Google ainda não está ativo nesta versão do app. Entre com seu e-mail e senha.'
 
-  useEffect(() => {
-    if (response?.type !== 'success' || handledResponse.current === response) return
-    handledResponse.current = response
-
-    const idToken = response.params?.id_token
-    if (!idToken) {
-      onFeedback?.('O Google não retornou a confirmação da conta.')
-      return
-    }
-    onToken(idToken)
-  }, [response, onFeedback, onToken])
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      disabled={disabled || !request}
-      onPress={() => promptAsync()}
-      style={{
-        minHeight: 42,
-        width: '100%',
-        justifyContent: 'center',
-        alignItems: 'center',
-        borderWidth: 1,
-        borderColor: '#d0d5dd',
-        borderRadius: 7,
-        backgroundColor: '#fff',
-        opacity: disabled || !request ? 0.45 : 1,
-      }}
-    >
-      <Text style={{ color: '#183126', fontFamily: 'Poppins_600SemiBold', fontSize: 13 }}>{label}</Text>
-    </Pressable>
-  )
-}
-
-export function GoogleLoginButton({ repositories, onPendingSignup, onFeedback, onLoading, variant = 'outline', label = 'Continuar com Google', style }) {
-  const [request, response, promptAsync] = Google.useIdTokenAuthRequest({ ...googleClientIds, selectAccount: true })
-  const handledResponse = useRef(null)
-
-  useEffect(() => {
-    if (!response || handledResponse.current === response) return
-    handledResponse.current = response
-
-    if (response.type !== 'success') {
-      if (response.type === 'error') {
-        onFeedback({
-          status: 'error',
-          message: response.error?.message || 'Não foi possível abrir o login do Google. Tente novamente.',
-        })
-      }
-      onLoading(false)
-      return
-    }
-
-    const idToken = response.params?.id_token
-    if (!idToken) {
-      onFeedback({ status: 'error', message: 'O Google não retornou um token de identificação. Confira a configuração OAuth.' })
-      onLoading(false)
-      return
-    }
-
-    repositories.authentication.entrarComGoogle(idToken)
-      .then((result) => {
-        if (!result.ok) return onFeedback({ status: 'error', message: result.mensagem || 'Não foi possível entrar com Google.' })
-        if (variant === 'signup' && result.data.cadastroExistente) {
-          Alert.alert(
-            'Cadastro já existente',
-            `Esta conta Google já está registrada como ${result.data.tipo}. Você será direcionado para o perfil existente.`,
-          )
-        }
-        if (result.data.cadastroPendente) {
-          onPendingSignup({ email: result.data.email, nome: result.data.nome })
-          return
-        }
-        onFeedback({ status: 'success', message: 'Login com Google realizado.' })
-      })
-      .catch(() => onFeedback({ status: 'error', message: 'Não foi possível concluir o login com Google.' }))
-      .finally(() => onLoading(false))
-  }, [response, repositories, onPendingSignup, onFeedback, onLoading, variant])
-
-  const isLogin = variant === 'login'
+function GoogleButtonFrame({ label, busy, disabled, onPress, variant, style }) {
   const isSignup = variant === 'signup'
-
   return (
     <Pressable
       accessibilityRole="button"
-      disabled={!request}
-      onPress={async () => {
-        onLoading(true)
-        try {
-          const result = await promptAsync()
-          if (result.type !== 'success') onLoading(false)
-        } catch (error) {
-          onFeedback({
-            status: 'error',
-            message: error instanceof Error ? error.message : 'Não foi possível abrir o login do Google. Tente novamente.',
-          })
-          onLoading(false)
-        }
-      }}
-      style={[
+      accessibilityLabel={label}
+      accessibilityState={{ disabled, busy }}
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
         {
-          minHeight: isSignup ? 35 : (isLogin ? 42 : 46),
-          height: isSignup ? 35 : (isLogin ? 42 : undefined),
-          width: isSignup ? 190 : '100%',
+          // Altura e largura mínimas: com texto maior (acessibilidade) o botão cresce em vez de cortar.
+          minHeight: isSignup ? 40 : 44,
+          minWidth: isSignup ? 240 : undefined,
+          maxWidth: '100%',
+          width: isSignup ? undefined : '100%',
+          paddingVertical: 6,
           alignSelf: isSignup ? 'center' : undefined,
-          paddingHorizontal: isSignup ? 16 : 16,
+          paddingHorizontal: 16,
           justifyContent: 'center',
           alignItems: 'center',
           flexDirection: 'row',
           gap: 10,
           borderWidth: 1,
           borderColor: '#d0d5dd',
-          borderRadius: isSignup || isLogin ? 22 : 8,
+          borderRadius: 22,
           backgroundColor: '#fff',
+          opacity: disabled && !busy ? 0.6 : pressed ? 0.85 : 1,
         },
         style,
       ]}
     >
-      {isLogin ? <Ionicons name="logo-google" size={17} color="#4285F4" /> : null}
+      <Ionicons name="logo-google" size={18} color="#4285F4" />
       <Text
         numberOfLines={1}
         style={{
-          color: isLogin ? '#344054' : '#183126',
-          fontFamily: isLogin ? 'Poppins_500Medium' : 'Poppins_600SemiBold',
-          fontSize: 13,
-          letterSpacing: isSignup ? -0.15 : undefined,
+          color: '#344054',
+          fontFamily: 'Poppins_500Medium',
+          fontSize: 14,
           ...Platform.select({ web: { whiteSpace: 'nowrap' } }),
         }}
       >
-        {label}
+        {busy ? 'Conectando…' : label}
       </Text>
     </Pressable>
   )
+}
+
+export function GoogleReauthenticationButton(props) {
+  if (!isGoogleLoginConfigured()) {
+    return <GoogleButtonFrame label={props.label ?? 'Confirmar com Google'} onPress={() => props.onFeedback?.(UNAVAILABLE_MESSAGE)} />
+  }
+  return <ConfiguredReauthenticationButton {...props} />
+}
+
+function ConfiguredReauthenticationButton({ disabled, label = 'Confirmar com Google', onFeedback, onToken }) {
+  const { ready, getIdToken } = useGoogleIdToken()
+  const [busy, setBusy] = useState(false)
+
+  return (
+    <GoogleButtonFrame
+      label={label}
+      busy={busy}
+      disabled={disabled || !ready || busy}
+      onPress={async () => {
+        setBusy(true)
+        const result = await getIdToken()
+        setBusy(false)
+        if (result.type === 'success') onToken(result.idToken)
+        else if (result.type === 'error') onFeedback?.(result.message)
+      }}
+    />
+  )
+}
+
+// O botão aparece sempre. Sem o ID do cliente Google no build, ele explica o motivo
+// em vez de sumir; com o ID configurado, faz o login de verdade.
+export function GoogleLoginButton(props) {
+  if (!isGoogleLoginConfigured()) {
+    const label = props.label ?? 'Continuar com Google'
+    return (
+      <GoogleButtonFrame
+        label={label}
+        variant={props.variant}
+        style={props.style}
+        onPress={() => {
+          if (props.onFeedback) props.onFeedback({ status: 'error', message: UNAVAILABLE_MESSAGE })
+          else Alert.alert('Login com Google', UNAVAILABLE_MESSAGE)
+        }}
+      />
+    )
+  }
+  return <ConfiguredGoogleLoginButton {...props} />
+}
+
+function ConfiguredGoogleLoginButton({ repositories, onPendingSignup, onFeedback, onLoading, variant = 'outline', label = 'Continuar com Google', style }) {
+  const { ready, getIdToken } = useGoogleIdToken()
+  const [busy, setBusy] = useState(false)
+  const isSignup = variant === 'signup'
+
+  const handlePress = async () => {
+    setBusy(true)
+    onLoading(true)
+    try {
+      const result = await getIdToken()
+      if (result.type === 'cancel') return
+      if (result.type === 'error') {
+        onFeedback({ status: 'error', message: result.message })
+        return
+      }
+
+      const signIn = await repositories.authentication.entrarComGoogle(result.idToken)
+      if (!signIn.ok) {
+        onFeedback({ status: 'error', message: signIn.mensagem || 'Não foi possível entrar com Google.' })
+        return
+      }
+      if (isSignup && signIn.data.cadastroExistente) {
+        Alert.alert(
+          'Cadastro já existente',
+          `Esta conta Google já está registrada como ${signIn.data.tipo}. Você será direcionado para o perfil existente.`,
+        )
+      }
+      if (signIn.data.cadastroPendente) {
+        onPendingSignup({ email: signIn.data.email, nome: signIn.data.nome })
+        return
+      }
+      onFeedback({ status: 'success', message: 'Login com Google realizado.' })
+    } catch {
+      onFeedback({ status: 'error', message: 'Não foi possível concluir o login com Google.' })
+    } finally {
+      setBusy(false)
+      onLoading(false)
+    }
+  }
+
+  return <GoogleButtonFrame label={label} busy={busy} disabled={!ready || busy} onPress={handlePress} variant={variant} style={style} />
 }

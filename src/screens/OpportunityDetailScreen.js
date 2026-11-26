@@ -1,19 +1,26 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { assets } from '../theme/assets'
 import { getOpportunityImage } from '../theme/opportunityImages'
+import { documentLabel } from '../components/ui/documentLabels'
+import { fitValue } from '../theme/typography'
+import { computeMatchScore } from '../domain/matchScore.js'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
-export function OpportunityDetailScreen({ go, back, repositories, routeParams = {} }) {
+export function OpportunityDetailScreen({ go, back, repositories, session, routeParams = {} }) {
   const opportunityId = routeParams.opportunityId
   const [opportunity, setOpportunity] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [retryToken, setRetryToken] = useState(0)
+  const [computedScore, setComputedScore] = useState(null)
+  const [existingApplicationId, setExistingApplicationId] = useState(null)
+  const [isDemo, setIsDemo] = useState(false)
 
   useEffect(() => {
     let active = true
@@ -23,9 +30,26 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
       try {
         if (!opportunityId) throw new Error('Escolha uma oportunidade antes de consultar os detalhes.')
         let result = await repositories.opportunities.obterOportunidade(opportunityId)
-        if (!result.ok && repositories.demo) result = await repositories.demo.opportunities.obterOportunidade(opportunityId)
+        let demo = false
+        if (!result.ok && repositories.demo) {
+          result = await repositories.demo.opportunities.obterOportunidade(opportunityId)
+          demo = result.ok
+        }
+        if (active) setIsDemo(demo)
         if (!result.ok) throw new Error(result.mensagem || 'Oportunidade não encontrada.')
         if (active) setOpportunity(result.data)
+        // Sem o valor da tela anterior, calcula o Match Score com o perfil de quem está logado
+        // (mesma regra da lista), em vez de mostrar um número fixo.
+        if (session?.id) {
+          const athlete = await repositories.users.obterPerfilAtletaPorUsuario(session.id)
+          if (active && athlete.ok && routeParams.matchScore === undefined) setComputedScore(computeMatchScore(athlete.data, result.data).percentualTotal)
+          // Quem já se candidatou vê a própria candidatura em vez de "Quero me candidatar".
+          if (athlete.ok) {
+            const applications = await repositories.applications.listarCandidaturasDoAtleta(athlete.data.id)
+            const existing = applications.ok ? applications.data.find((item) => item.oportunidadeId === result.data.id) : null
+            if (active) setExistingApplicationId(existing?.id ?? null)
+          }
+        }
       } catch (loadError) {
         if (active) setError(loadError.message || 'Não foi possível carregar a oportunidade.')
       } finally {
@@ -41,7 +65,7 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
     ['briefcase-outline', 'Benefício', opportunity.beneficio || 'Não informado'],
     ['location-outline', 'Localização', opportunity.localizacao || 'Não informada'],
   ] : []
-  const score = routeParams.matchScore ?? 100
+  const score = routeParams.matchScore ?? computedScore
 
   return (
     <View style={styles.page}>
@@ -60,23 +84,25 @@ export function OpportunityDetailScreen({ go, back, repositories, routeParams = 
                 <Text numberOfLines={2} style={styles.title}>{opportunity.titulo}</Text>
                 <Text style={styles.subtitle}>{[opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' · ')}</Text>
               </View>
-              <View style={styles.score}><Text style={styles.scoreLabel}>Match{`\n`}Score</Text><Text style={styles.scoreValue}>{score}%</Text></View>
+              {score === null || score === undefined ? null : <View style={styles.score}><Text fixedSize style={styles.scoreLabel}>Match{`\n`}Score</Text><Text fixedSize numberOfLines={1} style={[styles.scoreValue, fitValue(`${score}%`, 30, { fits: 3 })]}>{score}%</Text></View>}
             </View>
             <View style={styles.institution}>
               <Ionicons name="home" size={28} color={BLUE} />
-              <View><Text style={styles.institutionLabel}>Instituição</Text><Text style={styles.institutionName}>{opportunity.instituicao || 'Mireva Design'}</Text><Text style={styles.institutionLocation}>{opportunity.localizacao || 'São Paulo'}</Text></View>
+              <View><Text style={styles.institutionLabel}>Instituição</Text><Text style={styles.institutionName}>{opportunity.instituicao || 'Instituição não informada'}</Text><Text style={styles.institutionLocation}>{opportunity.localizacao || 'Local não informado'}</Text></View>
             </View>
           </View>
           <View style={styles.aboutCard}><Text style={styles.sectionTitle}>Sobre a oportunidade</Text><Text style={styles.body}>{opportunity.descricao || 'Sem descrição disponível.'}</Text></View>
           <View style={styles.factsCard}>{facts.map(([icon, label, value]) => <View key={label} style={styles.fact}><Ionicons name={icon} size={24} color={BLUE} /><View style={styles.factCopy}><Text style={styles.factLabel}>{label}</Text><Text numberOfLines={2} style={styles.factValue}>{value}</Text></View></View>)}</View>
           <View style={styles.requirements}>
             <Text style={styles.sectionTitle}>Requisitos</Text><BulletList items={opportunity.requisitos} empty="Nenhum requisito informado." />
-            <Text style={styles.sectionTitle}>Documentos necessários</Text><BulletList items={opportunity.documentosNecessarios} empty="Nenhum documento exigido." />
+            <Text style={styles.sectionTitle}>Documentos necessários</Text><BulletList items={(opportunity.documentosNecessarios ?? []).map(documentLabel)} empty="Nenhum documento exigido." />
             <Text style={styles.deadline}>{opportunity.fimInscricoes ? `Inscrições até ${new Date(opportunity.fimInscricoes).toLocaleDateString('pt-BR')}` : 'Prazo não informado'}</Text>
           </View>
         </> : null}
       </ScrollView>
-      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityLabel="Quero me candidatar" onPress={() => go('applicationInfo', { oportunidadeId: opportunityId })} style={styles.applyButton}><Text style={styles.applyText}>Quero me candidatar</Text></Pressable> : null}
+      {!loading && opportunity ? <View pointerEvents="none" style={styles.applyBackdrop} /> : null}
+      {/* Oportunidade de exemplo não recebe candidatura de verdade: o botão avisa em vez de dar erro. */}
+      {!loading && opportunity ? <Pressable accessibilityRole="button" accessibilityState={{ disabled: isDemo }} disabled={isDemo} accessibilityLabel={isDemo ? 'Oportunidade de exemplo, candidatura indisponível' : existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'} onPress={() => (existingApplicationId ? go('applicationDetail', { applicationId: existingApplicationId }) : go('applicationInfo', { oportunidadeId: opportunityId }))} style={[styles.applyButton, isDemo && styles.applyButtonDemo]}><Text style={styles.applyText}>{isDemo ? 'Exemplo · candidatura indisponível' : existingApplicationId ? 'Ver minha candidatura' : 'Quero me candidatar'}</Text></Pressable> : null}
       <BottomNav go={go} active="opportunities" />
     </View>
   )
@@ -87,7 +113,7 @@ function BulletList({ items = [], empty }) {
 }
 
 function State({ label, retry }) {
-  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
+  return <View style={styles.state}><Text style={styles.stateText}>{label}</Text>{retry ? <Pressable accessibilityRole="button" onPress={retry}><Text style={styles.retry}>Tentar novamente</Text></Pressable> : null}</View>
 }
 
 const styles = StyleSheet.create({
@@ -101,28 +127,31 @@ const styles = StyleSheet.create({
   intro: { paddingHorizontal: 18, paddingTop: 17, paddingBottom: 12 },
   headingRow: { minHeight: 72, flexDirection: 'row', alignItems: 'flex-start' },
   headingCopy: { flex: 1, minWidth: 0, paddingRight: 12 },
-  title: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 25 },
-  subtitle: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18, marginTop: 2 },
+  title: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 20, lineHeight: 25 },
+  subtitle: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 18, marginTop: 2 },
   score: { width: 72, minHeight: 97, marginTop: -17, marginRight: -18, alignItems: 'center', paddingTop: 8, backgroundColor: LIME, borderBottomLeftRadius: 11 },
-  scoreLabel: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22, textAlign: 'center' },
-  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 34 },
+  scoreLabel: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 16, lineHeight: 20, textAlign: 'center' },
+  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 34 },
   institution: { marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 10 },
-  institutionLabel: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
-  institutionName: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 22 },
-  institutionLocation: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
+  institutionLabel: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  institutionName: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 15, lineHeight: 20 },
+  institutionLocation: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
   aboutCard: { marginHorizontal: 7, marginTop: 4, padding: 15, borderRadius: 18, backgroundColor: '#fff', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 8px rgba(20, 49, 83, .14)' }, default: { elevation: 3 } }) },
-  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 21, marginBottom: 6 },
-  body: { color: '#586b7d', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 17, lineHeight: 21, marginBottom: 6 },
+  body: { color: '#586b7d', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 20 },
   factsCard: { marginHorizontal: 7, marginTop: 11, minHeight: 174, paddingHorizontal: 16, paddingVertical: 14, borderRadius: 18, backgroundColor: '#fff', gap: 12, ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 8px rgba(20, 49, 83, .14)' }, default: { elevation: 3 } }) },
   fact: { width: '100%', minHeight: 40, flexDirection: 'row', alignItems: 'center', gap: 9 },
   factCopy: { flex: 1, minWidth: 0 },
-  factLabel: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
-  factValue: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 22 },
+  factLabel: { color: '#77808a', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  factValue: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, lineHeight: 18 },
   requirements: { paddingHorizontal: 19, paddingTop: 18, gap: 4 },
   deadline: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, marginTop: 12 },
+  // Faixa branca atrás do botão fixo: o conteúdo que rola some por baixo dela, sem aparecer cortado.
+  applyBackdrop: { position: 'absolute', left: 0, right: 0, bottom: 72, height: 108, backgroundColor: '#fff', zIndex: 2 },
   applyButton: { position: 'absolute', left: 12, right: 12, bottom: 110, height: 54, borderRadius: 27, backgroundColor: LIME, alignItems: 'center', justifyContent: 'center', zIndex: 3 },
-  applyText: { color: '#0b5b26', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  applyButtonDemo: { backgroundColor: '#e3e8ee' },
+  applyText: { color: '#0b5b26', fontFamily: 'Poppins_500Medium', fontSize: 15 },
   state: { padding: 28, alignItems: 'center', gap: 12 },
-  stateText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, textAlign: 'center' },
-  retry: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  stateText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 14, textAlign: 'center' },
+  retry: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
 })

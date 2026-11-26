@@ -1,12 +1,15 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
-import { Feather } from '@expo/vector-icons'
+import { Image, Pressable, ScrollView, StyleSheet, View, RefreshControl } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
+import { Feather, Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { ListHeader } from '../../components/ListHeader'
 import { BLUE } from '../../theme/colors'
 import { getOpportunityImage } from '../../theme/opportunityImages'
 import { styles } from '../../theme/styles'
-import { withGriffithsWeight } from '../../theme/typography'
+import { fitValue, withGriffithsWeight } from '../../theme/typography'
+import { computeMatchScore } from '../../domain/matchScore.js'
+import { isDeadlinePassed } from '../../domain/dates.js'
 
 const statusFilters = [
   ['Ativas', 'ativa'],
@@ -28,7 +31,7 @@ const normalize = value => String(value ?? '')
 
 const formatDeadline = value => {
   if (!value || Number.isNaN(new Date(value).getTime())) return 'Prazo não informado'
-  return `Inscrições até ${new Date(value).toLocaleDateString('pt-BR')}`
+  return `Inscrições até ${new Date(value).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })}`
 }
 
 const hasClass = (opportunity, selectedClass) => {
@@ -59,6 +62,7 @@ export function AthleteOpportunitiesScreen(props) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [reloadKey, setReloadKey] = useState(0)
 
   useEffect(() => {
     let active = true
@@ -87,20 +91,14 @@ export function AthleteOpportunitiesScreen(props) {
           ? await sourceRepositories.opportunities.listarOportunidades()
           : result
         const listedOpportunities = sourceOpportunities.data ?? []
-        const scoredOpportunities = sourceAthlete?.ok
-          ? await Promise.all(listedOpportunities.map(async opportunity => {
-            try {
-              const scoreResult = await sourceRepositories.match.calcularMatchScore(sourceAthlete.data.id, opportunity.id)
-              return {
-                ...opportunity,
-                matchScore: scoreResult?.ok ? scoreResult.data.percentualTotal : null,
-                demo: Boolean(useDemoFallback),
-              }
-            } catch {
-              return { ...opportunity, matchScore: null, demo: Boolean(useDemoFallback) }
-            }
-          }))
-          : listedOpportunities.map(opportunity => ({ ...opportunity, matchScore: null, demo: Boolean(useDemoFallback) }))
+        // O score usa sempre o perfil de quem está logado; o atleta de demonstração
+        // só entra quando a pessoa ainda não tem perfil esportivo.
+        const scoringAthlete = athleteResult?.ok ? athleteResult.data : sourceAthlete?.ok ? sourceAthlete.data : null
+        const scoredOpportunities = listedOpportunities.map(opportunity => ({
+          ...opportunity,
+          matchScore: scoringAthlete ? computeMatchScore(scoringAthlete, opportunity).percentualTotal : null,
+          demo: Boolean(useDemoFallback),
+        }))
 
         if (active) setOpportunities(scoredOpportunities)
       } catch {
@@ -112,7 +110,7 @@ export function AthleteOpportunitiesScreen(props) {
 
     loadOpportunities()
     return () => { active = false }
-  }, [repositories, session?.id])
+  }, [repositories, session?.id, reloadKey])
 
   const visibleOpportunities = opportunities.filter(opportunity => {
     if (status !== 'todas' && opportunity.status !== status) return false
@@ -125,7 +123,7 @@ export function AthleteOpportunitiesScreen(props) {
       opportunity.categoria,
       opportunity.localizacao,
     ].join(' ')).includes(normalize(search))) return false
-    if (openDeadlineOnly && (!opportunity.fimInscricoes || new Date(opportunity.fimInscricoes) < new Date())) return false
+    if (openDeadlineOnly && (!opportunity.fimInscricoes || isDeadlinePassed(opportunity.fimInscricoes))) return false
     return true
   }).sort((first, second) => {
     const scoreDifference = (second.matchScore ?? -1) - (first.matchScore ?? -1)
@@ -153,11 +151,11 @@ export function AthleteOpportunitiesScreen(props) {
           </ScrollView>
         }
         headerAction={<Pressable accessibilityRole="button" accessibilityLabel="Abrir filtros" accessibilityState={{ expanded: filtersOpen }} onPress={() => setFiltersOpen(value => !value)} style={localStyles.headerFilterButton}>
-          <Feather name="filter" size={17} color="#ffffff" />
+          <Feather name="filter" size={22} color="#ffffff" />
           {hasAdditionalFilters ? <View style={localStyles.filterIndicator} /> : null}
         </Pressable>}
       />
-      <ScrollView style={localStyles.scroll} contentContainerStyle={[styles.listContent, localStyles.content]} keyboardShouldPersistTaps="handled">
+      <ScrollView showsVerticalScrollIndicator={false} style={localStyles.scroll} contentContainerStyle={[styles.listContent, localStyles.content]} keyboardShouldPersistTaps="handled" refreshControl={<RefreshControl refreshing={false} onRefresh={() => setReloadKey((value) => value + 1)} colors={[BLUE]} />}>
         {filtersOpen ? (
           <View style={localStyles.filtersPanel}>
             <View style={localStyles.statusFilters}>
@@ -197,14 +195,13 @@ export function AthleteOpportunitiesScreen(props) {
             <Image source={getOpportunityImage(opportunity, index)} style={localStyles.opportunityThumb} resizeMode="cover" />
             <View style={localStyles.opportunityCopy}>
               <Text numberOfLines={2} style={localStyles.opportunityName}>{opportunity.titulo}</Text>
-              <View style={localStyles.metaRow}><Feather name="briefcase" size={9} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{opportunity.instituicao || opportunity.modalidade}</Text></View>
-              <View style={localStyles.metaRow}><Feather name="user" size={9} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{opportunity.categoria}</Text></View>
-              <View style={localStyles.metaRow}><Feather name="map-pin" size={9} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{opportunity.localizacao}</Text></View>
-              <View style={localStyles.metaRow}><Feather name="calendar" size={9} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{formatDeadline(opportunity.fimInscricoes)}</Text></View>
+              <View style={localStyles.metaRow}><Ionicons name="business" size={13} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{[opportunity.instituicao || opportunity.modalidade, opportunity.categoria].filter(Boolean).join(' - ')}</Text></View>
+              <View style={localStyles.metaRow}><Ionicons name="location" size={13} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{opportunity.localizacao}</Text></View>
+              <View style={localStyles.metaRow}><Ionicons name="calendar" size={13} color={BLUE} /><Text numberOfLines={2} style={localStyles.opportunityMeta}>{formatDeadline(opportunity.fimInscricoes)}</Text></View>
             </View>
             <View style={localStyles.matchBadge}>
-              <Text style={localStyles.matchBadgeLabel}>Match{`\n`}Score</Text>
-              <Text style={localStyles.matchBadgeValue}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
+              <Text fixedSize style={localStyles.matchBadgeLabel}>Match{`\n`}Score</Text>
+              <Text fixedSize numberOfLines={1} style={[localStyles.matchBadgeValue, fitValue(`${opportunity.matchScore ?? '—'}%`, 30, { fits: 3 })]}>{opportunity.matchScore ?? '—'}{opportunity.matchScore === null ? '' : '%'}</Text>
             </View>
           </Pressable>
         ))}
@@ -217,13 +214,13 @@ export function AthleteOpportunitiesScreen(props) {
 const localStyles = StyleSheet.create(withGriffithsWeight({
   scroll: { flex: 1 },
   content: { gap: 10, paddingBottom: 110, paddingTop: 5 },
-  headerTitle: { fontFamily: 'Griffiths', fontSize: 40, lineHeight: 46, color: '#c4ff32', textAlign: 'center' },
+  headerTitle: { fontFamily: 'Griffiths', fontSize: 48, lineHeight: 54, color: '#c4ff32', textAlign: 'center' },
   headerDiagonal: { backgroundColor: '#e4e6e7', bottom: -17, height: 66, left: -105, position: 'absolute', transform: [{ rotate: '54deg' }], width: 335, zIndex: 0 },
   headerClassScroll: { bottom: 24, left: 18, position: 'absolute', right: 18, zIndex: 6 },
   headerClassChips: { alignItems: 'center', flexGrow: 1, gap: 7, justifyContent: 'space-between', minWidth: '100%', paddingHorizontal: 2 },
   classChip: { alignItems: 'center', backgroundColor: '#3779cb', borderRadius: 20, justifyContent: 'center', minWidth: 58, paddingHorizontal: 10, paddingVertical: 7 },
   classChipActive: { backgroundColor: '#ffffff' },
-  classChipText: { color: '#ffffff', fontFamily: 'Poppins_500Medium', fontSize: 13, textAlign: 'center' },
+  classChipText: { color: '#ffffff', fontFamily: 'Poppins_500Medium', fontSize: 14, textAlign: 'center' },
   classChipTextActive: { color: BLUE, fontFamily: 'Poppins_600SemiBold' },
   headerFilterButton: { alignItems: 'center', height: 36, justifyContent: 'center', position: 'absolute', right: 17, top: 34, width: 36, zIndex: 6 },
   filterIndicator: { backgroundColor: '#c4ff32', borderColor: BLUE, borderRadius: 5, borderWidth: 1, height: 8, position: 'absolute', right: 4, top: 5, width: 8 },
@@ -238,16 +235,16 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   deadlineFilterText: { color: '#425761', fontFamily: 'Poppins_500Medium', fontSize: 13 },
   stateMessage: { color: '#425761', fontFamily: 'Poppins_400Regular', paddingVertical: 18, textAlign: 'center' },
   emptyState: { alignItems: 'center', paddingVertical: 18 },
-  emptyTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'center' },
+  emptyTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 15, textAlign: 'center' },
   clearFilters: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   errorMessage: { color: '#9b2c2c', fontFamily: 'Poppins_500Medium', paddingVertical: 18, textAlign: 'center' },
   opportunityCard: { alignItems: 'center', backgroundColor: '#ffffff', borderRadius: 18, flexDirection: 'row', minHeight: 128, overflow: 'hidden', paddingVertical: 9 },
   opportunityThumb: { borderRadius: 9, height: 110, marginLeft: 10, width: 84 },
   opportunityCopy: { flex: 1, minWidth: 0, paddingLeft: 12, paddingVertical: 3 },
-  opportunityName: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 16, paddingRight: 5 },
+  opportunityName: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20, paddingRight: 5 },
   metaRow: { alignItems: 'center', flexDirection: 'row', gap: 4, minHeight: 17 },
-  opportunityMeta: { color: '#747d86', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 16, paddingRight: 3 },
+  opportunityMeta: { color: '#747d86', flex: 1, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18, paddingRight: 3 },
   matchBadge: { alignItems: 'center', alignSelf: 'flex-start', backgroundColor: '#c4ff32', borderBottomLeftRadius: 10, height: 84, justifyContent: 'flex-start', marginLeft: 4, paddingTop: 6, width: 78 },
-  matchBadgeLabel: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 16, textAlign: 'center' },
-  matchBadgeValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 28, textAlign: 'center' },
+  matchBadgeLabel: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 18, lineHeight: 16, textAlign: 'center' },
+  matchBadgeValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 34, textAlign: 'center' },
 }))

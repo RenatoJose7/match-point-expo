@@ -1,5 +1,6 @@
 import React from 'react'
-import { ActivityIndicator, Image, Pressable, StyleSheet, Text, View } from 'react-native'
+import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { assets } from '../../theme/assets'
 import { BLUE, GREEN } from '../../theme/colors'
@@ -29,29 +30,31 @@ export const partnerStyles = StyleSheet.create({
   backButton: { position: 'absolute', top: 30, left: 12, width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
   headerCopy: { position: 'absolute', left: 20, right: 20, bottom: 18, alignItems: 'center' },
   eyebrow: { display: 'none' },
-  pageTitle: { color: partnerColors.white, fontSize: 13, lineHeight: 22, fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
-  subtitle: { color: partnerColors.white, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular', textAlign: 'center', opacity: 0.92 },
+  pageTitle: { color: partnerColors.white, fontSize: 20, lineHeight: 26, fontFamily: 'Poppins_600SemiBold', textAlign: 'center' },
+  subtitle: { color: partnerColors.white, fontSize: 14, lineHeight: 18, fontFamily: 'Poppins_400Regular', textAlign: 'center', opacity: 0.92 },
   headerAction: { width: 44, height: 44, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center' },
-  sectionTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  body: { color: partnerColors.ink, fontSize: 13, lineHeight: 21, fontFamily: 'Poppins_400Regular' },
+  sectionTitle: { color: partnerColors.ink, fontSize: 16, fontFamily: 'Poppins_600SemiBold' },
+  body: { color: partnerColors.ink, fontSize: 14, lineHeight: 21, fontFamily: 'Poppins_400Regular' },
   card: { backgroundColor: partnerColors.white, borderRadius: 16, borderWidth: 1, borderColor: partnerColors.border, padding: 16 },
   feedback: { flexDirection: 'row', gap: 9, alignItems: 'flex-start', borderRadius: 8, padding: 12, borderWidth: 1 },
   feedbackText: { flex: 1, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_500Medium' },
   fieldGroup: { gap: 6 },
   fieldLabel: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  input: { minHeight: 48, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 10, backgroundColor: partnerColors.white, paddingHorizontal: 12, color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_400Regular' },
+  input: { minHeight: 48, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 10, backgroundColor: partnerColors.white, paddingHorizontal: 12, color: partnerColors.ink, fontSize: 14, fontFamily: 'Poppins_400Regular' },
   multilineInput: { minHeight: 104, paddingTop: 11, textAlignVertical: 'top' },
   primaryButton: { minHeight: 48, paddingHorizontal: 16, borderRadius: 14, backgroundColor: BLUE, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   primaryButtonDisabled: { opacity: 0.55 },
-  primaryButtonText: { color: partnerColors.white, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  primaryButtonText: { color: partnerColors.white, fontSize: 15, fontFamily: 'Poppins_600SemiBold' },
   secondaryButton: { minHeight: 44, paddingHorizontal: 14, borderRadius: 14, borderWidth: 1, borderColor: BLUE, backgroundColor: partnerColors.white, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
-  secondaryButtonText: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  secondaryButtonText: { color: partnerColors.ink, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
   statusBadge: { alignSelf: 'flex-start', paddingHorizontal: 9, paddingVertical: 5, borderRadius: 20 },
   statusText: { fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
   divider: { height: 1, backgroundColor: partnerColors.border },
   stateWrap: { flex: 1, minHeight: 230, alignItems: 'center', justifyContent: 'center', padding: 28, gap: 12 },
-  stateTitle: { textAlign: 'center', color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  stateTitle: { textAlign: 'center', color: partnerColors.ink, fontSize: 15, fontFamily: 'Poppins_600SemiBold' },
   stateBody: { textAlign: 'center', color: partnerColors.muted, fontSize: 13, lineHeight: 19, fontFamily: 'Poppins_400Regular' },
+  // Texto de "lista vazia" dentro de cartões brancos (o subtitle é branco, só para o cabeçalho azul).
+  emptyText: { color: partnerColors.muted, fontSize: 14, lineHeight: 20, fontFamily: 'Poppins_400Regular' },
 })
 
 export function PartnerHeader({ title, subtitle, onBack, action }) {
@@ -144,12 +147,20 @@ export function opportunityStatus(status) {
   return values[status] ?? { label: status || 'Sem status', backgroundColor: '#eef1ed', color: partnerColors.muted }
 }
 
+// Datas no formato brasileiro (DD/MM/AAAA) na tela; no banco seguem em ISO.
+export function formatDateInput(value) {
+  const digits = String(value ?? '').replace(/\D/g, '').slice(0, 8)
+  if (digits.length <= 2) return digits
+  if (digits.length <= 4) return `${digits.slice(0, 2)}/${digits.slice(2)}`
+  return `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4)}`
+}
+
 export function toIsoDate(value, endOfDay = false) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value ?? '')
-  if (!match) return null
-  const year = Number(match[1])
-  const month = Number(match[2])
-  const day = Number(match[3])
+  const text = String(value ?? '').trim()
+  const br = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(text)
+  const iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text)
+  if (!br && !iso) return null
+  const [day, month, year] = br ? [Number(br[1]), Number(br[2]), Number(br[3])] : [Number(iso[3]), Number(iso[2]), Number(iso[1])]
   const date = new Date(Date.UTC(year, month - 1, day))
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null
   if (endOfDay) date.setUTCHours(23, 59, 59, 999)
@@ -160,5 +171,6 @@ export function dateInputValue(value) {
   if (!value) return ''
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return ''
-  return date.toISOString().slice(0, 10)
+  const [year, month, day] = date.toISOString().slice(0, 10).split('-')
+  return `${day}/${month}/${year}`
 }

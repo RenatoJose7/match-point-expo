@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { FeedbackMessage, getPartnerProfile, LoadingState, PartnerHeader, partnerColors, partnerStyles } from './partnerOpportunityUi'
@@ -33,7 +34,7 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
         if (!result.ok) throw new Error(result.mensagem)
         setRequests(result.data)
       } else {
-        const result = await repositories.users.listarParceiros({ tipo: 'treinador', verificado: true })
+        const result = await repositories.users.listarParceiros({ tipo: 'treinador' })
         if (!result.ok) throw new Error(result.mensagem)
         setTrainers(result.data)
       }
@@ -51,6 +52,9 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
       atletaId: routeParams.athleteId,
       oportunidadeId: routeParams.opportunityId,
       candidaturaId: routeParams.applicationId,
+      // O treinador não lê o perfil do atleta: nome e oportunidade vão na própria solicitação.
+      atletaNome: routeParams.athleteName || '',
+      oportunidadeTitulo: routeParams.opportunityTitle || '',
     })
     setSaving(false)
     if (!result.ok) return setError(result.mensagem || 'Não foi possível solicitar a avaliação.')
@@ -78,26 +82,26 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
 
   return (
     <View style={partnerStyles.page}>
-      <PartnerHeader title={isTrainer ? 'Avaliações técnicas' : 'Solicitar avaliação'} subtitle={isTrainer ? 'Demandas enviadas por instituições' : 'Escolha um treinador verificado'} onBack={back} />
+      <PartnerHeader title={isTrainer ? 'Avaliações técnicas' : 'Solicitar avaliação'} subtitle={isTrainer ? 'Demandas enviadas por instituições' : 'Escolha um treinador'} onBack={back} />
       {loading ? <LoadingState label="Carregando avaliações..." /> : (
-        <ScrollView style={partnerStyles.scroll} contentContainerStyle={styles.content}>
+        <ScrollView showsVerticalScrollIndicator={false} style={partnerStyles.scroll} contentContainerStyle={styles.content}>
           {error ? <FeedbackMessage>{error}</FeedbackMessage> : null}
           {notice ? <FeedbackMessage tone="success">{notice}</FeedbackMessage> : null}
           {isTrainer ? (
             requests.length ? requests.map((request) => (
               <View key={request.id} style={partnerStyles.card}>
-                <Text style={partnerStyles.sectionTitle}>Atleta {request.atletaId}</Text>
-                <Text style={styles.copy}>Solicitação da instituição · {request.status}</Text>
+                <Text style={partnerStyles.sectionTitle}>{request.atletaNome || 'Atleta candidato'}</Text>
+                <Text style={styles.copy}>{request.oportunidadeTitulo ? `${request.oportunidadeTitulo} · ` : ''}{request.status === 'pendente' ? 'Aguardando seu parecer' : 'Parecer enviado'}</Text>
                 {request.status === 'pendente' ? <>
                   <View style={styles.scores}>{scoreFields.map(([key, label]) => <View key={key} style={styles.scoreField}><Text style={partnerStyles.fieldLabel}>{label} (1–5)</Text><SelectField accessibilityLabel={`Nota de ${label}`} options={SELECT_OPTIONS.notas} value={scores[key]} onChange={(value) => setScores((current) => ({ ...current, [key]: value }))} placeholder="Selecione a nota" /></View>)}</View>
                   <Text style={partnerStyles.fieldLabel}>Parecer técnico</Text>
                   <TextInput value={parecer} onChangeText={setParecer} multiline style={[partnerStyles.input, partnerStyles.multilineInput]} placeholder="Pontos fortes e próximos passos" placeholderTextColor={partnerColors.muted} />
-                  <Pressable disabled={saving} onPress={() => submitEvaluation(request)} style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Registrar avaliação'}</Text></Pressable>
+                  <Pressable accessibilityRole="button" disabled={saving} onPress={() => submitEvaluation(request)} style={[partnerStyles.primaryButton, saving && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Registrando...' : 'Registrar avaliação'}</Text></Pressable>
                 </> : <Text style={styles.done}>Avaliação concluída</Text>}
               </View>
             )) : <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Nenhuma avaliação pendente</Text><Text style={styles.copy}>As solicitações de instituições aparecerão aqui.</Text></View>
           ) : !routeParams.athleteId ? <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Selecione um candidato</Text><Text style={styles.copy}>Abra o perfil de um candidato para solicitar uma avaliação técnica.</Text></View> : (
-            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores verificados</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador verificado'}</Text></Pressable>)}<Pressable disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
+            <View style={partnerStyles.card}><Text style={partnerStyles.sectionTitle}>Treinadores</Text><Text style={styles.copy}>A avaliação será associada apenas a este candidato e à oportunidade atual.</Text>{trainers.map((trainer) => <Pressable accessibilityRole="button" key={trainer.id} onPress={() => setSelectedTrainerId(trainer.id)} style={[styles.trainerChoice, selectedTrainerId === trainer.id && styles.selected]}><Text style={styles.choiceTitle}>{trainer.nomeExibicao || 'Treinador'}</Text><Text style={styles.copy}>{trainer.localizacao || 'Treinador'}</Text></Pressable>)}<Pressable accessibilityRole="button" disabled={!selectedTrainerId || saving} onPress={requestEvaluation} style={[partnerStyles.primaryButton, (!selectedTrainerId || saving) && partnerStyles.primaryButtonDisabled]}><Text style={partnerStyles.primaryButtonText}>{saving ? 'Enviando...' : 'Solicitar avaliação'}</Text></Pressable></View>
           )}
         </ScrollView>
       )}
@@ -107,5 +111,5 @@ export function TechnicalEvaluationsScreen({ go, back, repositories, session, ro
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 20, paddingBottom: 108, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 13, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 12, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 13, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
+  content: { padding: 20, paddingBottom: 108, gap: 12 }, copy: { color: partnerColors.muted, fontSize: 14, lineHeight: 18, fontFamily: 'Poppins_400Regular', marginTop: 5, marginBottom: 10 }, scores: { flexDirection: 'row', gap: 8, marginBottom: 12 }, scoreField: { flex: 1, gap: 5 }, trainerChoice: { padding: 12, borderWidth: 1, borderColor: partnerColors.border, borderRadius: 12, marginBottom: 8 }, selected: { borderColor: partnerColors.green, backgroundColor: partnerColors.greenLight }, choiceTitle: { color: partnerColors.ink, fontSize: 15, fontFamily: 'Poppins_600SemiBold' }, done: { color: partnerColors.greenDark, fontSize: 14, fontFamily: 'Poppins_600SemiBold' },
 })
