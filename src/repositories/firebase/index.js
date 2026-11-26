@@ -1,3 +1,4 @@
+import { evaluateMatchEligibility, scoreFromEligibility } from '../../domain/matchScore.js'
 import {
   createUserWithEmailAndPassword,
   deleteUser,
@@ -23,7 +24,7 @@ import {
   where,
   writeBatch,
 } from 'firebase/firestore'
-import { deleteObject, getDownloadURL, ref, uploadBytes } from 'firebase/storage'
+import { deleteObject, ref } from 'firebase/storage'
 import {
   APPLICATION_STATUS,
   OPPORTUNITY_STATUS,
@@ -34,8 +35,10 @@ import {
   calculateAge,
   isMinor,
 } from '../../domain/contracts'
+import { isDeadlinePassed } from '../../domain/dates.js'
 import { getFirebaseAuth } from '../../services/firebase/auth'
 import { getFirebaseDatabase, getFirebaseStorage } from '../../services/firebase/config'
+import { compressDocumentImage, compressProfilePhoto, isInlinePhoto, MAX_DOCUMENT_DATA_URI_LENGTH, MAX_PHOTO_DATA_URI_LENGTH } from '../../services/profilePhoto'
 
 const USERS_COLLECTION = 'usuarios'
 const ATHLETES_COLLECTION = 'atletas'
@@ -45,6 +48,7 @@ const GUARDIAN_INVITES_COLLECTION = 'convitesResponsavel'
 const OPPORTUNITIES_COLLECTION = 'oportunidades'
 const APPLICATIONS_COLLECTION = 'candidaturas'
 const APPLICATION_KEYS_COLLECTION = 'chavesCandidatura'
+const DOCUMENT_FILES_COLLECTION = 'arquivosCandidatura'
 const PUBLIC_CANDIDATE_PROFILES_SUBCOLLECTION = 'perfisCandidatos'
 const NOTIFICATIONS_COLLECTION = 'notificacoes'
 const EVALUATION_REQUESTS_COLLECTION = 'solicitacoesAvaliacao'
@@ -83,6 +87,10 @@ function mapFirebaseError(error) {
     }
 
     return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível concluir a autenticação.', { firebaseCode: code })
+  }
+
+  if (code === 'invalid-argument') {
+    return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Alguns dados não puderam ser salvos. Revise os campos e tente novamente.', { firebaseCode: code })
   }
 
   if (code === 'permission-denied') {
@@ -146,6 +154,8 @@ function buildRegistrationProfile(type, userId, initialData, createdAt) {
       collection: ATHLETES_COLLECTION,
       data: {
         ...base,
+        // Nome também no perfil esportivo: o responsável não lê a coleção de usuários.
+        nome: initialData.nome?.trim() || '',
         dataNascimento: profile.dataNascimento,
         modalidade: profile.modalidade?.trim() ?? '',
         perfilCompleto: false,
@@ -169,7 +179,6 @@ function buildRegistrationProfile(type, userId, initialData, createdAt) {
         documento: profile.documento?.trim() || null,
         descricao: profile.descricao?.trim() || null,
         localizacao: profile.localizacao?.trim() || null,
-        verificado: false,
       },
     })
   }
@@ -211,56 +220,17 @@ function filterOpportunities(opportunities, filters = {}) {
     if (filters.categoria && opportunity.categoria !== filters.categoria) return false
     if (filters.localizacao && opportunity.localizacao !== filters.localizacao) return false
     if (filters.status && opportunity.status !== filters.status) return false
-    if (filters.prazoAberto && new Date(opportunity.fimInscricoes) < new Date()) return false
+    if (filters.prazoAberto && isDeadlinePassed(opportunity.fimInscricoes)) return false
     return true
   })
 }
 
 function evaluateEligibility(athlete, opportunity, evaluatedAt = now()) {
-  const criteria = opportunity.criteriosElegibilidade ?? []
-  const evaluatedCriteria = criteria.map((criterion) => {
-    const athleteValue = criterion.codigo === 'perfil-completo'
-      ? athlete.perfilCompleto
-      : athlete[criterion.codigo]
-    const matched = athleteValue === criterion.valor
-
-    return {
-      ...criterion,
-      atendido: matched,
-      ...(matched ? {} : { motivo: `${criterion.nome}: requisito não atendido.` }),
-    }
-  })
-  const blockingCriteria = evaluatedCriteria.filter((criterion) => criterion.obrigatorio && !criterion.atendido)
-
-  return {
-    elegivel: blockingCriteria.length === 0,
-    criterios: evaluatedCriteria,
-    motivosBloqueio: blockingCriteria.map((criterion) => criterion.motivo),
-    avaliadoEm: evaluatedAt,
-  }
+  return evaluateMatchEligibility(athlete, opportunity, evaluatedAt)
 }
 
-function calculateMatchScore(eligibility, calculatedAt = now()) {
-  const criteria = eligibility.criterios
-  const weightedCriteria = criteria.map((criterion) => {
-    const weight = Number(criterion.peso)
-    const percentual = criterion.atendido
-      ? 100
-      : Math.max(0, Math.min(100, Number(criterion.percentualQuandoNaoAtendido) || 0))
-    return { criterion, percentual, weight: Number.isFinite(weight) && weight > 0 ? weight : 1 }
-  })
-  const totalWeight = weightedCriteria.reduce((total, item) => total + item.weight, 0)
-  const totalScore = weightedCriteria.reduce((total, item) => total + (item.percentual * item.weight), 0)
-
-  return {
-    percentualTotal: totalWeight === 0 ? 100 : Math.round(totalScore / totalWeight),
-    criterios: weightedCriteria.map(({ criterion, percentual }) => ({
-      nome: criterion.nome,
-      percentual,
-    })),
-    calculadoEm: calculatedAt,
-    versaoDoCalculo: 'p0-firebase-v2',
-  }
+function calculateMatchScore(eligibility, calculatedAt = now(), athlete = {}) {
+  return scoreFromEligibility(eligibility, athlete, calculatedAt, 'p0-firebase-v3')
 }
 
 export function createFirebaseRepositories() {
@@ -661,7 +631,7 @@ export function createFirebaseRepositories() {
         if (profileReference) batch.delete(profileReference)
         batch.delete(doc(database, USERS_COLLECTION, firebaseUser.uid))
 
-        if (userResult.data.fotoUrl) {
+        if (userResult.data.fotoUrl && !isInlinePhoto(userResult.data.fotoUrl)) {
           try {
             await deleteObject(ref(storage, `perfis/${firebaseUser.uid}/foto-perfil`))
           } catch (photoError) {
@@ -800,7 +770,6 @@ export function createFirebaseRepositories() {
         id: newId(database, PARTNERS_COLLECTION),
         usuarioId: userId,
         ...data,
-        verificado: Boolean(data.verificado),
       }
       try {
         await setDoc(doc(database, PARTNERS_COLLECTION, partner.id), partner)
@@ -927,7 +896,12 @@ export function createFirebaseRepositories() {
   const opportunities = {
     listarOportunidades: async (filters = {}) => {
       try {
-        const snapshots = await getDocs(collection(database, OPPORTUNITIES_COLLECTION))
+        // Rascunhos são privados (regra do banco): a vitrine só consulta oportunidades publicadas.
+        const publicStatuses = [OPPORTUNITY_STATUS.ACTIVE, OPPORTUNITY_STATUS.CLOSED]
+        const statusFilter = publicStatuses.includes(filters.status)
+          ? where('status', '==', filters.status)
+          : where('status', 'in', publicStatuses)
+        const snapshots = await getDocs(query(collection(database, OPPORTUNITIES_COLLECTION), statusFilter))
         return success(filterOpportunities(snapshots.docs.map(normalizeDocument), filters))
       } catch (error) {
         return mapFirebaseError(error)
@@ -936,13 +910,6 @@ export function createFirebaseRepositories() {
     obterOportunidade: getOpportunityById,
     criarOportunidade: async (data) => {
       const status = data.status ?? OPPORTUNITY_STATUS.DRAFT
-      if (status === OPPORTUNITY_STATUS.ACTIVE) {
-        const partner = await getPartnerById(data.criadorId)
-        if (!partner.ok) return partner
-        if (!partner.data.verificado) {
-          return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. Salve a oportunidade como rascunho.')
-        }
-      }
       const createdAt = now()
       const opportunity = {
         id: newId(database, OPPORTUNITIES_COLLECTION),
@@ -962,14 +929,6 @@ export function createFirebaseRepositories() {
       try {
         const current = await getOpportunityById(id)
         if (!current.ok) return current
-        const status = data.status ?? current.data.status
-        if (status === OPPORTUNITY_STATUS.ACTIVE) {
-          const partner = await getPartnerById(current.data.criadorId)
-          if (!partner.ok) return partner
-          if (!partner.data.verificado) {
-            return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Seu perfil de parceiro ainda não foi verificado. O rascunho foi mantido.')
-          }
-        }
         await updateDoc(doc(database, OPPORTUNITIES_COLLECTION, id), {
           ...data,
           id,
@@ -984,10 +943,16 @@ export function createFirebaseRepositories() {
       status: OPPORTUNITY_STATUS.CLOSED,
     }),
     listarOportunidadesDoParceiro: async (partnerId, filters = {}) => {
-      const result = await opportunities.listarOportunidades(filters)
-      return result.ok
-        ? success(result.data.filter((opportunity) => opportunity.criadorId === partnerId))
-        : result
+      try {
+        // Inclui os rascunhos do próprio parceiro.
+        const snapshots = await getDocs(query(
+          collection(database, OPPORTUNITIES_COLLECTION),
+          where('criadorId', '==', partnerId),
+        ))
+        return success(filterOpportunities(snapshots.docs.map(normalizeDocument), filters))
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
     },
     listarDocumentosNecessarios: async (id) => {
       const opportunity = await getOpportunityById(id)
@@ -1011,10 +976,15 @@ export function createFirebaseRepositories() {
       return success(evaluateEligibility(athleteResult.data, opportunityResult.data))
     },
     calcularMatchScore: async (athleteId, opportunityId) => {
-      const eligibility = await match.avaliarElegibilidade(athleteId, opportunityId)
-      return eligibility.ok
-        ? success(calculateMatchScore(eligibility.data))
-        : eligibility
+      const [athleteResult, opportunityResult] = await Promise.all([
+        getAthleteById(athleteId),
+        getOpportunityById(opportunityId),
+      ])
+      if (!athleteResult.ok || !opportunityResult.ok) {
+        return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou oportunidade não encontrado.')
+      }
+      const eligibility = evaluateEligibility(athleteResult.data, opportunityResult.data)
+      return success(calculateMatchScore(eligibility, now(), athleteResult.data))
     },
     obterMatchScore: async (athleteId, opportunityId) => match.calcularMatchScore(athleteId, opportunityId),
   }
@@ -1024,28 +994,49 @@ export function createFirebaseRepositories() {
     if (!application.ok) return application
 
     const { arquivo, file: sourceFile, ...metadata } = documentData
-    if (metadata.arquivoUrl) return success(metadata)
+    // Link (ex.: vídeo de apresentação): só o endereço é guardado.
+    if (metadata.arquivoUrl) {
+      if (!/^https?:\/\/\S+\.\S+/i.test(metadata.arquivoUrl)) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Informe um link válido, começando com https://')
+      }
+      return success({ ...metadata, id: metadata.id ?? newId(database, DOCUMENT_FILES_COLLECTION) })
+    }
 
     const source = arquivo ?? sourceFile
-    if (!source) {
-      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Selecione um arquivo antes de enviar o documento.')
+    if (!source?.uri) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Selecione uma foto do documento antes de enviar.')
+    }
+    const contentType = metadata.tipoMime ?? source.type ?? ''
+    if (contentType && !contentType.startsWith('image/')) {
+      return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Envie uma foto ou print do documento (JPG ou PNG).')
     }
 
     try {
-      const file = source.uri
-        ? await (await fetch(source.uri)).blob()
-        : source
-      const documentId = metadata.id ?? newId(database, 'documentosCandidatura')
-      const fileName = metadata.nome ?? source.name ?? `${documentId}.bin`
-      const storageReference = ref(storage, `candidaturas/${applicationId}/${documentId}-${fileName}`)
-      await uploadBytes(storageReference, file, {
-        contentType: metadata.tipoMime ?? source.type ?? 'application/octet-stream',
+      // Sem Cloud Storage (plano gratuito): a foto reduzida vai num registro próprio do banco.
+      const content = await compressDocumentImage(source.uri)
+      if (content.length > MAX_DOCUMENT_DATA_URI_LENGTH) {
+        return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'A imagem ficou grande demais. Tire uma foto mais próxima do documento ou envie um print.')
+      }
+      const documentId = metadata.id ?? newId(database, DOCUMENT_FILES_COLLECTION)
+      const baseName = String(metadata.nome ?? source.name ?? 'documento').replace(/\.[^.]+$/, '')
+      const fileName = `${baseName}.jpg`
+      await setDoc(doc(database, DOCUMENT_FILES_COLLECTION, documentId), {
+        id: documentId,
+        candidaturaId: applicationId,
+        atletaId: application.data.atletaId,
+        oportunidadeId: application.data.oportunidadeId,
+        tipo: metadata.tipo ?? null,
+        nome: fileName,
+        tipoMime: 'image/jpeg',
+        conteudo: content,
+        enviadoEm: now(),
       })
       return success({
         ...metadata,
         id: documentId,
+        arquivoId: documentId,
         nome: fileName,
-        arquivoUrl: await getDownloadURL(storageReference),
+        tipoMime: 'image/jpeg',
       })
     } catch (error) {
       return mapFirebaseError(error)
@@ -1063,20 +1054,19 @@ export function createFirebaseRepositories() {
       }
 
       try {
-        const file = source.uri
-          ? await (await fetch(source.uri)).blob()
-          : source
-        const contentType = source.mimeType ?? source.type ?? file.type ?? 'image/jpeg'
+        const contentType = source.mimeType ?? source.type ?? 'image/jpeg'
         if (!contentType.startsWith('image/')) {
           return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'O arquivo selecionado precisa ser uma imagem.')
         }
-        if (file.size > 5 * 1024 * 1024) {
-          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'A foto do perfil deve ter no máximo 5 MB.')
+        if (!source.uri) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível ler a imagem selecionada.')
         }
-
-        const storageReference = ref(storage, `perfis/${auth.currentUser.uid}/foto-perfil`)
-        await uploadBytes(storageReference, file, { contentType })
-        return success({ fotoUrl: await getDownloadURL(storageReference) })
+        // Sem Cloud Storage (plano gratuito): a foto reduzida vai no próprio registro do usuário.
+        const fotoUrl = await compressProfilePhoto(source.uri)
+        if (fotoUrl.length > MAX_PHOTO_DATA_URI_LENGTH) {
+          return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Não foi possível reduzir esta imagem. Escolha outra foto.')
+        }
+        return success({ fotoUrl })
       } catch (error) {
         return mapFirebaseError(error)
       }
@@ -1133,8 +1123,9 @@ export function createFirebaseRepositories() {
             return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Atleta ou oportunidade não encontrado.')
           }
 
+          const athleteData = normalizeDocument(athleteSnapshot)
           const eligibility = evaluateEligibility(
-            normalizeDocument(athleteSnapshot),
+            athleteData,
             normalizeDocument(opportunitySnapshot),
             createdAt,
           )
@@ -1165,8 +1156,13 @@ export function createFirebaseRepositories() {
             id: applicationReference.id,
             oportunidadeId: opportunityId,
             atletaId: athleteId,
+            // Quem recebe as notificações: a instituição não pode ler o perfil do atleta.
+            atletaUsuarioId: athlete.usuarioId,
+            // Atleta menor: o responsável também é avisado (o id do responsável é o id do usuário dele).
+            responsavelUsuarioId: athlete.responsavelId ?? null,
+            atletaNome: userSnapshot.data().nome ?? '',
             status: APPLICATION_STATUS.SUBMITTED,
-            matchScore: calculateMatchScore(eligibility, createdAt).percentualTotal,
+            matchScore: calculateMatchScore(eligibility, createdAt, athleteData).percentualTotal,
             documentos: data.documentos ?? [],
             historico: [event],
             criadoEm: createdAt,
@@ -1193,6 +1189,17 @@ export function createFirebaseRepositories() {
       }
     },
     obterCandidatura: getApplicationById,
+    // Conteúdo de um documento enviado (foto guardada no banco).
+    obterArquivoCandidatura: async (fileId) => {
+      try {
+        const snapshot = await getDoc(doc(database, DOCUMENT_FILES_COLLECTION, fileId))
+        return snapshot.exists()
+          ? success(normalizeDocument(snapshot))
+          : failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Documento não encontrado.')
+      } catch (error) {
+        return mapFirebaseError(error)
+      }
+    },
     listarCandidaturasDoAtleta: async (athleteId, filters = {}) => {
       try {
         const snapshots = await getDocs(query(
@@ -1292,9 +1299,16 @@ export function createFirebaseRepositories() {
           if (!canTransitionApplicationStatus(application.status, nextStatus)) {
             return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
           }
-          const athleteSnapshot = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)
-            ? await transaction.get(doc(database, ATHLETES_COLLECTION, application.atletaId))
+          // O parceiro não lê o perfil do atleta (regra do banco): o destinatário vem da própria
+          // candidatura; nas antigas, o id do atleta é o mesmo id do usuário (criado no cadastro).
+          const athleteUserId = application.atletaUsuarioId ?? application.atletaId
+          // Avisos ao atleta (e ao responsável, se menor): entrada em análise, aprovação e rejeição.
+          const isDecision = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED, APPLICATION_STATUS.UNDER_REVIEW].includes(nextStatus)
+          // Leitura antes das gravações (exigência da transação): o título entra na mensagem.
+          const opportunitySnapshot = isDecision
+            ? await transaction.get(doc(database, OPPORTUNITIES_COLLECTION, application.oportunidadeId))
             : null
+          const opportunityTitle = opportunitySnapshot?.exists() ? opportunitySnapshot.data().titulo : ''
 
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
@@ -1318,19 +1332,33 @@ export function createFirebaseRepositories() {
             historico: updated.historico,
             atualizadoEm: updated.atualizadoEm,
           })
-          if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
-            if (athleteSnapshot?.exists()) {
+          if (isDecision) {
+            const target = opportunityTitle ? ` para “${opportunityTitle}”` : ''
+            const messages = {
+              [APPLICATION_STATUS.APPROVED]: ['Candidatura aprovada', 'foi aprovada.'],
+              [APPLICATION_STATUS.REJECTED]: ['Candidatura não selecionada', 'não foi selecionada desta vez.'],
+              [APPLICATION_STATUS.UNDER_REVIEW]: ['Candidatura em análise', 'está em análise pela instituição.'],
+            }
+            const [title, ending] = messages[nextStatus]
+            const notify = (userId, titulo, mensagem) => {
               const notificationReference = doc(collection(database, NOTIFICATIONS_COLLECTION))
               transaction.set(notificationReference, {
                 id: notificationReference.id,
-                usuarioId: athleteSnapshot.data().usuarioId,
+                usuarioId: userId,
                 candidaturaId: application.id,
                 oportunidadeId: application.oportunidadeId,
-                titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
-                mensagem: nextStatus === APPLICATION_STATUS.APPROVED ? 'Sua candidatura foi aprovada pela instituição.' : 'Sua candidatura recebeu uma atualização da instituição.',
+                titulo,
+                mensagem,
                 lida: false,
                 criadoEm: updatedAt,
               })
+            }
+            if (athleteUserId) {
+              notify(athleteUserId, title, `Sua candidatura${target} ${ending}`)
+            }
+            if (application.responsavelUsuarioId) {
+              const name = application.atletaNome || 'o atleta vinculado'
+              notify(application.responsavelUsuarioId, title, `A candidatura de ${name}${target} ${ending}`)
             }
           }
           return success(updated)
@@ -1455,6 +1483,13 @@ export function createFirebaseRepositories() {
   }
 
   const evaluations = {
+    // Pareceres recebidos pela instituição (a regra só libera os da própria instituição).
+    listarAvaliacoesDaInstituicao: async (institutionId) => {
+      try {
+        const snapshots = await getDocs(query(collection(database, TECHNICAL_EVALUATIONS_COLLECTION), where('instituicaoId', '==', institutionId)))
+        return success(snapshots.docs.map(normalizeDocument).sort((a, b) => new Date(b.criadoEm) - new Date(a.criadoEm)))
+      } catch (error) { return mapFirebaseError(error) }
+    },
     listarSolicitacoesDoTreinador: async (trainerId) => {
       const trainer = await getPartnerByUserId(auth.currentUser?.uid)
       if (!trainer.ok || trainer.data.id !== trainerId) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Você não possui permissão para consultar estas solicitações.')
@@ -1467,7 +1502,7 @@ export function createFirebaseRepositories() {
       const institution = await getPartnerByUserId(auth.currentUser?.uid)
       const trainer = await getPartnerById(data.treinadorId)
       if (!institution.ok || institution.data.id !== data.instituicaoId || institution.data.tipo !== USER_TYPES.INSTITUTION) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente a instituição responsável pode solicitar uma avaliação.')
-      if (!institution.data.verificado || !trainer.ok || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador verificado.')
+      if (!trainer.ok || trainer.data.tipo !== USER_TYPES.TRAINER) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Escolha um treinador.')
       try {
         const requestReference = doc(collection(database, EVALUATION_REQUESTS_COLLECTION))
         const request = { id: requestReference.id, ...data, status: 'pendente', criadoEm: now(), atualizadoEm: now() }
@@ -1478,7 +1513,7 @@ export function createFirebaseRepositories() {
     registrarAvaliacao: async (data) => {
       const trainer = await getPartnerByUserId(auth.currentUser?.uid)
       const scores = ['notaTecnica', 'notaFisica', 'notaTatica'].map((key) => Number(data[key]))
-      if (!trainer.ok || trainer.data.id !== data.treinadorId || trainer.data.tipo !== USER_TYPES.TRAINER || !trainer.data.verificado) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador designado pode registrar a avaliação.')
+      if (!trainer.ok || trainer.data.id !== data.treinadorId || trainer.data.tipo !== USER_TYPES.TRAINER) return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Somente o treinador designado pode registrar a avaliação.')
       if (scores.some((score) => !Number.isInteger(score) || score < 1 || score > 5) || !String(data.parecer ?? '').trim()) return failure(REPOSITORY_ERROR_CODES.INVALID_DATA, 'Preencha as notas de 1 a 5 e o parecer da avaliação.')
       const requestReference = doc(database, EVALUATION_REQUESTS_COLLECTION, data.solicitacaoId)
       const evaluationReference = doc(collection(database, TECHNICAL_EVALUATIONS_COLLECTION))
@@ -1488,7 +1523,9 @@ export function createFirebaseRepositories() {
           if (!snapshot.exists()) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Solicitação de avaliação não encontrada.')
           const request = normalizeDocument(snapshot)
           if (request.treinadorId !== trainer.data.id || request.status !== 'pendente') return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta solicitação não está disponível para avaliação.')
-          const evaluation = { id: evaluationReference.id, ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+          // Notas como número (o seletor entrega texto e a regra do banco exige número).
+          const [notaTecnica, notaFisica, notaTatica] = scores
+          const evaluation = { id: evaluationReference.id, ...data, notaTecnica, notaFisica, notaTatica, atletaId: request.atletaId, oportunidadeId: request.oportunidadeId ?? null, instituicaoId: request.instituicaoId, criadoEm: now() }
           transaction.set(evaluationReference, evaluation)
           transaction.update(requestReference, { status: 'concluida', avaliacaoId: evaluation.id, atualizadoEm: evaluation.criadoEm })
           return success(evaluation)
@@ -1514,7 +1551,8 @@ export function createFirebaseRepositories() {
         const item = {
           id: reference.id,
           ...data,
-          parceiroId,
+          // Antes era "parceiroId," (variável inexistente): o registro de apoio sempre falhava.
+          parceiroId: partnerId,
           descricao: data.descricao.trim(),
           status: 'concedido',
           criadoEm: now(),

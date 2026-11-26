@@ -1,5 +1,6 @@
 import React from 'react'
-import { Pressable, ScrollView, Text, View } from 'react-native'
+import { Pressable, ScrollView, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { ListHeader } from '../../components/ListHeader'
 import { OpportunityRow } from '../../components/OpportunityRow'
@@ -18,12 +19,12 @@ export function OpportunitiesList({ role, go, back, created = false }) {
         <Text style={styles.filterActive}>Ativas</Text>
         <Text style={styles.filterPill}>Encerradas</Text>
         {trainer && !created && (
-          <Pressable onPress={() => go('oportunidadesCriadasTecnico')}>
+          <Pressable accessibilityRole="button" onPress={() => go('oportunidadesCriadasTecnico')}>
             <Text style={styles.filterPill}>Criadas</Text>
           </Pressable>
         )}
       </View>
-      <ScrollView contentContainerStyle={styles.listContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.listContent}>
         {opportunityRows.slice(0, created ? 1 : 4).map((item, index) => (
           <OpportunityRow
             key={item[0]}
@@ -36,7 +37,7 @@ export function OpportunitiesList({ role, go, back, created = false }) {
         ))}
       </ScrollView>
       {!athlete && (
-        <Pressable onPress={() => go(createTarget)} style={styles.createButton}>
+        <Pressable accessibilityRole="button" onPress={() => go(createTarget)} style={styles.createButton}>
           <Text style={styles.createButtonText}>⊕  Criar nova oportunidade</Text>
         </Pressable>
       )}

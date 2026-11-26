@@ -9,9 +9,9 @@ export const opportunityRows = [
 
 export const candidates = [
   ['Mirra Andrade', 'Sub-20', '94%', assets.mirra],
-  ['Ariana Sabalenka', 'Sub-25', '89%', assets.ariana],
-  ['Helena Rybakin', 'Sub-25', '85%', assets.helena],
-  ['Coco Gauffina', 'Sub-20', '82%', assets.coco],
+  ['Ariana Salles', 'Sub-25', '89%', assets.ariana],
+  ['Helena Ribeiro', 'Sub-25', '85%', assets.helena],
+  ['Clara Gouveia', 'Sub-20', '82%', assets.coco],
 ]
 
 export const notices = [

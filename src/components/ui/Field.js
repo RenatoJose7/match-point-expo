@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
-import { Pressable, Text, TextInput, View } from 'react-native'
+import { Pressable, View } from 'react-native'
+import { Text, TextInput } from '../accessibility/AppText'
 import { styles } from '../../theme/styles'
 
 export function Field({
@@ -25,7 +26,7 @@ export function Field({
         keyboardType={keyboardType}
       />
       {secureTextEntry && (
-        <Pressable onPress={() => setHidden(value => !value)} hitSlop={12}>
+        <Pressable accessibilityRole="button" onPress={() => setHidden(value => !value)} hitSlop={12}>
           <Text style={styles.eye}>{hidden ? '⊙' : '◉'}</Text>
         </Pressable>
       )}

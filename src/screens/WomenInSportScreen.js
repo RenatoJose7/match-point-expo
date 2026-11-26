@@ -1,8 +1,12 @@
 import React from 'react'
-import { Image, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../components/accessibility/AppText'
 import { BackButton } from '../components/ui/BackButton'
+import { DecorativeCurves } from '../components/ui/DecorativeCurves'
 import { BottomNav } from '../components/navigation/BottomNav'
 import { assets } from '../theme/assets'
+import { withGriffithsOverhang } from '../theme/typography'
+import { ABSOLUTE_FILL } from '../theme/colors'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
@@ -20,9 +24,10 @@ function openLink(url) {
 export function WomenInSportScreen({ go, back }) {
   return (
     <View style={localStyles.screen}>
+      <DecorativeCurves top={-20} />
       <BackButton onPress={back} style={localStyles.back} />
       <Image source={assets.monogram} style={localStyles.mark} resizeMode="contain" />
-      <Text numberOfLines={1} style={localStyles.title}>
+      <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.8} style={localStyles.title}>
         Mulheres <Text style={localStyles.titleConnector}>no</Text> Esporte
       </Text>
 
@@ -52,20 +57,20 @@ export function WomenInSportScreen({ go, back }) {
   )
 }
 
-const localStyles = StyleSheet.create({
+const localStyles = StyleSheet.create(withGriffithsOverhang({
   screen: { flex: 1, backgroundColor: BLUE, overflow: 'hidden' },
   back: { top: 37, left: 18, zIndex: 3 },
   mark: { position: 'absolute', zIndex: 2, top: 39, alignSelf: 'center', width: 54, height: 57 },
-  title: { position: 'relative', zIndex: 2, marginTop: 116, width: '100%', paddingHorizontal: 16, color: LIME, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 46, textAlign: 'center' },
+  title: { position: 'relative', zIndex: 2, marginTop: 116, width: '100%', paddingHorizontal: 10, color: LIME, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 46, lineHeight: 54, textAlign: 'center' },
   titleConnector: { color: '#fff' },
   scroll: { zIndex: 2 },
   list: { paddingHorizontal: 13, paddingTop: 33, paddingBottom: 104, gap: 19 },
   feature: { height: 151, borderRadius: 7, overflow: 'hidden', borderWidth: 1, borderColor: '#fff', backgroundColor: '#123f71' },
-  featureImage: { ...StyleSheet.absoluteFillObject, width: '100%', height: '100%' },
-  featureOverlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(4, 38, 57, 0.25)' },
+  featureImage: { ...ABSOLUTE_FILL, width: '100%', height: '100%' },
+  featureOverlay: { ...ABSOLUTE_FILL, backgroundColor: 'rgba(4, 38, 57, 0.25)' },
   featureTitle: { position: 'absolute', left: 8, top: 3, color: '#fff', fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 34 },
   tag: { position: 'absolute', right: 33, bottom: 63, borderRadius: 12, paddingHorizontal: 10, paddingVertical: 1, backgroundColor: LIME },
-  tagText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },
+  tagText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 11, lineHeight: 16 },
   card: { height: 151, borderRadius: 7, overflow: 'hidden', borderWidth: 1, borderColor: '#fff', backgroundColor: '#194f89' },
   serena: { position: 'absolute', left: -18, bottom: -12, width: 252, height: 210 },
   aryna: { position: 'absolute', right: -3, bottom: -5, width: 188, height: 160 },
@@ -74,5 +79,5 @@ const localStyles = StyleSheet.create({
   accent: { color: LIME },
   more: { position: 'absolute', right: 63, bottom: 10, borderRadius: 12, backgroundColor: LIME, paddingHorizontal: 17, paddingVertical: 1 },
   arynaMore: { left: 48, right: 'auto', width: 91, paddingHorizontal: 0, alignItems: 'center' },
-  moreText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },
-})
+  moreText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 11, lineHeight: 16 },
+}))

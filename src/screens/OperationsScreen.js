@@ -1,11 +1,18 @@
 import React, { useEffect, useState } from 'react'
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View, Image } from 'react-native'
+import { Pressable, ScrollView, StyleSheet, View, Image } from 'react-native'
+import { Text, TextInput } from '../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../components/navigation/BottomNav'
+import { BackButton } from '../components/ui/BackButton'
+import { ChoiceChips } from '../components/ui/ChoiceChips'
 import { withGriffithsWeight } from '../theme/typography'
 
 const BLUE = '#10579b'
 const GREEN = '#c4ff32'
+
+// Relato com tipo definido (nada de texto aberto sem contexto) e status em português.
+const REPORT_TYPES = ['Problema', 'Sugestão', 'Dúvida']
+const REPORT_STATUS = { aberto: 'Recebido', em_analise: 'Em análise', resolvido: 'Resolvido' }
 
 const SUPPORT_TYPES = [
   { value: 'bolsa_integral', label: 'Bolsa Integral' },
@@ -19,6 +26,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   const trainer = session?.tipo === 'treinador'
   const partner = institution || trainer
   const [message, setMessage] = useState('')
+  const [reportType, setReportType] = useState('')
   const [title, setTitle] = useState('')
   const [athleteId, setAthleteId] = useState(routeParams.athleteId || '')
   const [opportunityId, setOpportunityId] = useState(routeParams.opportunityId || '')
@@ -66,7 +74,8 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
   }, [partner, repositories, routeParams.athleteId, routeParams.candidateName, routeParams.opportunityId])
 
   const sendReport = async () => {
-    const result = await repositories.reports.enviarRelato({ mensagem: message })
+    if (!reportType || !message.trim()) return
+    const result = await repositories.reports.enviarRelato({ mensagem: `[${reportType}] ${message.trim()}` })
     setStatus(result.ok ? 'Relato enviado para acompanhamento.' : result.mensagem)
     if (result.ok) { setMessage(''); load() }
   }
@@ -127,26 +136,26 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
           <BackButton onPress={back} />
           <Text style={localStyles.simpleTitle}>{admin ? 'Administração' : 'Enviar relato'}</Text>
         </View>
-        <ScrollView contentContainerStyle={localStyles.simpleContent}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={localStyles.simpleContent}>
           {status ? <Text style={localStyles.statusMsg}>{status}</Text> : null}
           {admin ? (
             <>
               <Text style={localStyles.label}>Novo recurso da plataforma</Text>
               <TextInput value={title} onChangeText={setTitle} style={localStyles.input} placeholder="Título do recurso" />
-              <Pressable onPress={saveResource} style={localStyles.btn}><Text style={localStyles.btnText}>Salvar recurso</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={saveResource} style={localStyles.btn}><Text style={localStyles.btnText}>Salvar recurso</Text></Pressable>
               {resources.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.titulo}</Text></View>)}
               <Text style={localStyles.label}>Auditar Match Score</Text>
               <TextInput value={athleteId} onChangeText={setAthleteId} style={localStyles.input} placeholder="ID do atleta" />
               <TextInput value={opportunityId} onChangeText={setOpportunityId} style={localStyles.input} placeholder="ID da oportunidade" />
-              <Pressable onPress={audit} style={localStyles.btn}><Text style={localStyles.btnText}>Auditar cálculo</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={audit} style={localStyles.btn}><Text style={localStyles.btnText}>Auditar cálculo</Text></Pressable>
               <Text style={localStyles.label}>Contas parceiras</Text>
               {accounts.map((item) => (
                 <View key={item.id} style={localStyles.card}>
                   <Text>{item.nomeExibicao || item.id}</Text>
                   <Text style={localStyles.muted}>{item.statusAdministrativo || 'sem decisão'}</Text>
                   <View style={localStyles.actions}>
-                    <Pressable onPress={() => decide(item.id, 'aprovada')}><Text style={localStyles.action}>Aprovar</Text></Pressable>
-                    <Pressable onPress={() => decide(item.id, 'suspensa')}><Text style={localStyles.action}>Suspender</Text></Pressable>
+                    <Pressable accessibilityRole="button" onPress={() => decide(item.id, 'aprovada')}><Text style={localStyles.action}>Aprovar</Text></Pressable>
+                    <Pressable accessibilityRole="button" onPress={() => decide(item.id, 'suspensa')}><Text style={localStyles.action}>Suspender</Text></Pressable>
                   </View>
                 </View>
               ))}
@@ -155,14 +164,18 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
             </>
           ) : (
             <>
-              <Text style={localStyles.label}>Descreva o problema ou sugestão</Text>
-              <TextInput value={message} onChangeText={setMessage} multiline style={[localStyles.input, localStyles.multilineInput]} placeholder="Escreva aqui" />
-              <Pressable onPress={sendReport} style={localStyles.btn}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
-              {reports.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.mensagem}</Text><Text style={localStyles.muted}>{item.status}</Text></View>)}
+              <Text style={localStyles.label}>Tipo</Text>
+              <ChoiceChips label="Tipo do relato" options={REPORT_TYPES} value={reportType ? [reportType] : []} onChange={(list) => setReportType(list[list.length - 1] || '')} />
+              <Text style={localStyles.label}>Descreva em poucas palavras</Text>
+              <TextInput accessibilityLabel="Descrição do relato" value={message} onChangeText={setMessage} multiline maxLength={500} style={[localStyles.input, localStyles.multilineInput]} placeholder="Ex.: o botão de enviar documento não respondeu" placeholderTextColor="#6a7d86" />
+              <Text style={localStyles.counter}>{message.length}/500</Text>
+              <Pressable accessibilityRole="button" disabled={!reportType || !message.trim()} onPress={sendReport} style={[localStyles.btn, (!reportType || !message.trim()) && { opacity: 0.5 }]}><Text style={localStyles.btnText}>Enviar relato</Text></Pressable>
+              {reports.length ? <Text style={localStyles.label}>Seus relatos</Text> : null}
+              {reports.map((item) => <View key={item.id} style={localStyles.card}><Text>{item.mensagem}</Text><Text style={localStyles.muted}>{REPORT_STATUS[item.status] || item.status}</Text></View>)}
             </>
           )}
         </ScrollView>
-        <BottomNav go={go} role={roleNav} />
+        <BottomNav go={go} role={roleNav} active="profile" />
       </View>
     )
   }
@@ -255,6 +268,7 @@ export function OperationsScreen({ back, go, repositories, session, routeParams 
 }
 
 const localStyles = StyleSheet.create(withGriffithsWeight({
+  counter: { alignSelf: 'flex-end', color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
   page: { flex: 1, backgroundColor: BLUE },
   header: { height: 272, backgroundColor: BLUE, overflow: 'hidden' },
   headerStripe: { position: 'absolute', left: -173, bottom: 28, width: 390, height: 72, backgroundColor: '#e7e8e9', transform: [{ rotate: '54deg' }] },
@@ -262,34 +276,35 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   headerMark: { position: 'absolute', top: 87, width: 126, height: 126, alignSelf: 'center' },
   panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 8, borderTopRightRadius: 8, overflow: 'hidden' },
   panelContent: { paddingHorizontal: 10, paddingTop: 24, paddingBottom: 148, gap: 13 },
-  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
+  panelTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 17, lineHeight: 22 },
   titleRule: { height: 4, borderRadius: 2, backgroundColor: GREEN, marginTop: -9, marginBottom: 25 },
-  fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 20 },
+  fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 15, lineHeight: 20 },
   selectedAthleteField: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, backgroundColor: '#fff', paddingHorizontal: 10, height: 42, justifyContent: 'center' },
-  selectedAthleteText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  selectedAthleteText: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   radioGroup: { flexDirection: 'row', flexWrap: 'wrap', rowGap: 14, marginBottom: 18 },
   radioRow: { width: '48%', flexDirection: 'row', alignItems: 'center', gap: 10 },
   radioRowWide: { width: '100%' },
   radioOuter: { width: 17, height: 17, borderRadius: 9, borderWidth: 1, borderColor: '#69717a', alignItems: 'center', justifyContent: 'center' },
   radioOuterSelected: { borderColor: '#69717a' },
   radioInner: { width: 13, height: 13, borderRadius: 7, backgroundColor: GREEN },
-  radioLabel: { color: '#6d747d', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  valueInput: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, height: 42, paddingHorizontal: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  radioLabel: { color: '#6d747d', fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  valueInput: { borderWidth: 1, borderColor: '#cfd3d7', borderRadius: 4, height: 42, paddingHorizontal: 10, color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   submitBtn: { position: 'absolute', left: 4, right: 4, bottom: 78, height: 42, borderRadius: 22, backgroundColor: GREEN, alignItems: 'center', justifyContent: 'center', elevation: 5, shadowColor: '#164d34', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.18, shadowRadius: 8 },
   submitBtnPressed: { transform: [{ scale: 0.98 }] },
   submitBtnDisabled: { opacity: 0.65 },
-  submitBtnText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  submitBtnText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 15 },
   // Status
   statusBadge: { backgroundColor: '#eaf6ed', borderRadius: 8, padding: 12 },
-  statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 13 },
+  statusBadgeText: { color: '#164d34', fontFamily: 'Poppins_500Medium', fontSize: 12 },
   // Admin / simples
-  simpleHeader: { paddingTop: 54, paddingHorizontal: 22, paddingBottom: 16, backgroundColor: '#0d4730', gap: 10 },
-  simpleTitle: { color: '#fff', fontSize: 13, fontFamily: 'Poppins_600SemiBold' },
-  simpleContent: { padding: 20, gap: 12 },
+  simpleHeader: { paddingTop: 96, paddingHorizontal: 22, paddingBottom: 18, backgroundColor: BLUE, gap: 10 },
+  simpleTitle: { color: '#fff', fontSize: 20, fontFamily: 'Poppins_600SemiBold' },
+  // Conteúdo em painel claro: rótulos escuros ficavam ilegíveis direto sobre o azul.
+  simpleContent: { flexGrow: 1, padding: 20, paddingBottom: 120, gap: 12, backgroundColor: '#f3f4f4', borderTopLeftRadius: 24, borderTopRightRadius: 24 },
   label: { color: '#183126', fontFamily: 'Poppins_600SemiBold' },
-  input: { minHeight: 48, borderWidth: 1, borderColor: '#cddbd0', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  input: { minHeight: 48, borderWidth: 1, borderColor: '#cddbd0', borderRadius: 8, padding: 12, backgroundColor: '#fff', color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 14 },
   multilineInput: { minHeight: 130, textAlignVertical: 'top' },
-  btn: { backgroundColor: '#236b46', borderRadius: 8, padding: 14, alignItems: 'center' },
+  btn: { backgroundColor: BLUE, borderRadius: 12, minHeight: 52, padding: 14, alignItems: 'center', justifyContent: 'center' },
   btnText: { color: '#fff', fontFamily: 'Poppins_600SemiBold' },
   statusMsg: { color: '#164d34', backgroundColor: '#eaf6ed', padding: 12, borderRadius: 8, fontFamily: 'Poppins_500Medium' },
   card: { backgroundColor: '#fff', borderRadius: 8, padding: 12, gap: 4, borderWidth: 1, borderColor: '#dce6dd' },

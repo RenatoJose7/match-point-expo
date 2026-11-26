@@ -1,19 +1,51 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View, RefreshControl } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
 import { withGriffithsWeight } from '../../theme/typography'
+import { computeMatchScore } from '../../domain/matchScore.js'
 import { FeedbackMessage, getOwnedOpportunity, getPartnerProfile, LoadingState } from './partnerOpportunityUi'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
-const demoCandidates = [
-  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Sub-20', date: 'Inscrição em 28/03/2026', photo: assets.mirra, score: 94 },
-  { id: 'demo-ariana', name: 'Ariana Sabalenka', category: 'Sub-25', date: 'Inscrição em 30/03/2026', photo: assets.ariana, score: 88 },
-  { id: 'demo-helena', name: 'Helena Rybakina', category: 'Sub-25', date: 'Inscrição em 31/03/2026', photo: assets.helena, score: 80 },
-  { id: 'demo-coco', name: 'Coco Gauffina', category: 'Sub-20', date: 'Inscrição em 01/04/2026', photo: assets.coco, score: 76 },
+// Candidatos de exemplo (pessoas fictícias), inscritos nos últimos dias.
+const demoDate = (daysAgo) => `Inscrição em ${new Date(Date.now() - daysAgo * 86400000).toLocaleDateString('pt-BR')}`
+const demoCandidates = () => [
+  { id: 'demo-mirra', name: 'Mirra Andrade', category: 'Universitário', date: demoDate(2), photo: assets.mirra, score: 94 },
+  { id: 'demo-ariana', name: 'Ariana Salles', category: 'Adulto', date: demoDate(4), photo: assets.ariana, score: 88 },
+  { id: 'demo-helena', name: 'Helena Ribeiro', category: 'Universitário', date: demoDate(6), photo: assets.helena, score: 80 },
+  { id: 'demo-coco', name: 'Clara Gouveia', category: 'Adulto', date: demoDate(9), photo: assets.coco, score: 76 },
 ]
+
+// Perfil completo de cada candidato de exemplo (pessoas fictícias), aberto como um perfil real.
+const DEMO_DETAILS = {
+  'demo-mirra': { modalidade: 'Tênis', posicao: 'Simples', maoDominante: 'Destro(a)', equipeAtual: 'Clube Atlético Suzano', tempoDePratica: 'Mais de 5 anos', ranking: 'Competitivo estadual', torneiosDisputados: 18, titulos: 3, status: 'documentos_enviados' },
+  'demo-ariana': { modalidade: 'Tênis', posicao: 'Simples e duplas', maoDominante: 'Canhoto(a)', equipeAtual: 'Academia Ponto Final', tempoDePratica: 'De 3 a 5 anos', ranking: 'Competitivo regional', torneiosDisputados: 11, titulos: 1, status: 'inscrita' },
+  'demo-helena': { modalidade: 'Tênis', posicao: 'Duplas', maoDominante: 'Destro(a)', equipeAtual: 'Equipe Universitária Mogi', tempoDePratica: 'Mais de 5 anos', ranking: 'Competitivo regional', torneiosDisputados: 9, titulos: 1, status: 'em_analise' },
+  'demo-coco': { modalidade: 'Tênis', posicao: 'Simples', maoDominante: 'Destro(a)', equipeAtual: 'Projeto Raquete Social', tempoDePratica: 'De 1 a 3 anos', ranking: 'Recreativo', torneiosDisputados: 4, titulos: 0, status: 'inscrita' },
+}
+
+function demoCandidateProfile(candidate, opportunityTitle) {
+  const details = DEMO_DETAILS[candidate.id] ?? DEMO_DETAILS['demo-coco']
+  const { status, ...sport } = details
+  const documents = status === 'inscrita' ? [] : [
+    { id: `${candidate.id}-cv`, tipo: 'curriculo_esportivo', conteudoExemplo: `${candidate.name}
+Categoria: ${candidate.category}
+Modalidade: ${sport.modalidade} · ${sport.posicao}
+Equipe: ${sport.equipeAtual}
+Torneios disputados: ${sport.torneiosDisputados}
+Títulos: ${sport.titulos}
+Nível: ${sport.ranking}` },
+    { id: `${candidate.id}-video`, tipo: 'video_apresentacao', arquivoUrl: 'https://www.youtube.com/' },
+  ]
+  return {
+    profile: { nome: candidate.name, fotoExemplo: candidate.photo, categoria: candidate.category, perfilCompleto: true, ...sport },
+    application: { id: `${candidate.id}-candidatura`, status, documentos: documents, matchScore: candidate.score, oportunidadeTitulo: opportunityTitle },
+    evaluations: [],
+  }
+}
 
 function getCandidatePhotoSource(value) {
   const uri = String(value ?? '').trim()
@@ -46,15 +78,26 @@ function CandidateCard({ candidate, onPress }) {
         <Text style={styles.category}>{candidate.category}</Text>
         <View style={styles.dateRow}><Ionicons name="calendar" size={12} color={BLUE} /><Text style={styles.date}>{candidate.date}</Text></View>
       </View>
-      {candidate.score ? <View style={styles.score}><Text style={styles.scoreCaption}>Match{`\n`}Score</Text><Text style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
+      {candidate.score !== null && candidate.score !== undefined ? <View style={styles.score}><Text fixedSize style={styles.scoreCaption}>Match{`\n`}Score</Text><Text fixedSize style={styles.scoreValue}>{candidate.score}%</Text></View> : null}
     </Pressable>
   )
 }
 
+// Títulos longos diminuem para caber em até duas linhas sem partir palavras no meio.
+function titleSize(text = '') {
+  const longestWord = Math.max(...String(text).split(/\s+/).map((word) => word.length), 0)
+  const size = text.length <= 18 && longestWord <= 12 ? 46 : text.length <= 30 && longestWord <= 16 ? 38 : longestWord > 18 ? 26 : 32
+  return { fontSize: size, lineHeight: Math.round(size * 1.15) }
+}
+
 export function PartnerOpportunityCandidatesScreen({ go, back, repositories, session, routeParams = {} }) {
   const role = session?.tipo === 'treinador' ? 'trainer' : 'institution'
-  const [title, setTitle] = useState('Bolsas de Estudos')
-  const [candidates, setCandidates] = useState(demoCandidates)
+  // Candidatos de exemplo só nas oportunidades de exemplo; oportunidade real mostra só os reais.
+  const isDemo = Boolean(routeParams.demo)
+  const demoList = () => demoCandidates().slice(0, Math.max(1, Math.min(4, Number(routeParams.demoCount) || 4)))
+  const [notice, setNotice] = useState('')
+  const [title, setTitle] = useState(routeParams.title || 'Candidatos')
+  const [candidates, setCandidates] = useState(isDemo ? demoList : [])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filterOpen, setFilterOpen] = useState(false)
@@ -66,6 +109,10 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
       setLoading(true)
       setError('')
       try {
+        if (isDemo) {
+          if (mounted) setCandidates(demoList())
+          return
+        }
         const partner = await getPartnerProfile(repositories, session)
         if (!routeParams.opportunityId) throw new Error('Oportunidade não informada.')
         const opportunity = await getOwnedOpportunity(repositories, partner.id, routeParams.opportunityId)
@@ -79,32 +126,26 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
           id: application.id,
           athleteId: application.atletaId,
           name: profile?.nome || `Candidato ${index + 1}`,
-          category: profile?.categoria || 'Sub-20',
-          date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição em 19/08/2026',
+          category: profile?.categoria || 'Categoria não informada',
+          date: application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : 'Inscrição recente',
           photo: getCandidatePhotoSource(profile?.fotoUrl),
           initials: getCandidateInitials(profile?.nome),
-          score: application.matchScore,
+          // Sem score gravado na candidatura, calcula com o perfil público do atleta.
+          score: application.matchScore ?? (profile ? computeMatchScore(profile, opportunity).percentualTotal : null),
         }))
         if (mounted) {
-          const visualCandidates = mapped.length < 4
-            ? [...mapped, ...demoCandidates.filter((candidate) => !mapped.some((item) => item.name === candidate.name)).slice(0, 4 - mapped.length)]
-            : mapped
-          setTitle(opportunity.titulo || 'Bolsas de Estudos')
-          setCandidates(visualCandidates.length ? visualCandidates : demoCandidates)
+          setTitle(opportunity.titulo || 'Candidatos')
+          setCandidates(mapped)
         }
-      } catch {
-        // A conta nova recebe uma amostra visual; os dados reais assumem quando existirem.
-        if (mounted) {
-          setTitle('Bolsas de Estudos')
-          setCandidates(demoCandidates)
-        }
+      } catch (loadError) {
+        if (mounted) setError(loadError.message || 'Não foi possível carregar os candidatos.')
       } finally {
         if (mounted) setLoading(false)
       }
     }
     load()
     return () => { mounted = false }
-  }, [repositories, routeParams.opportunityId, session, refreshKey])
+  }, [repositories, routeParams.opportunityId, session, refreshKey, isDemo])
 
   return (
     <View style={styles.page}>
@@ -112,27 +153,24 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
         <View style={styles.stripe} />
         <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
-        <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="filter-outline" size={21} color="#fff" /></Pressable>
-        <Text numberOfLines={2} style={styles.title}>{title}</Text>
-        <Text style={styles.pill}>Candidatos</Text>
-        {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel="Opções de filtro" accessibilityState={{ expanded: filterOpen }} onPress={() => setFilterOpen((value) => !value)} style={styles.filter}><Ionicons name="funnel-outline" size={22} color="#fff" /></Pressable>
+        <Text numberOfLines={2} style={[styles.title, titleSize(title)]}>{title}</Text>
+        <Text fixedSize style={styles.pill}>Candidatos</Text>
+        {filterOpen ? <View style={styles.filterMenu}><Text style={styles.filterText}>Candidatos mais recentes</Text><Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)}><Text style={styles.filterAction}>Atualizar lista</Text></Pressable></View> : null}
       </View>
 
       {loading ? <LoadingState label="Carregando candidatos..." /> : error ? <View style={styles.state}><FeedbackMessage>{error}</FeedbackMessage></View> : (
-        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false}>
+        <ScrollView style={styles.list} contentContainerStyle={styles.listContent} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={false} onRefresh={() => setRefreshKey((value) => value + 1)} colors={[BLUE]} />}>
+          {notice ? <FeedbackMessage tone="warning">{notice}</FeedbackMessage> : null}
+          {candidates.length === 0 ? <Text style={styles.emptyText}>Nenhum candidato ainda. Quando um atleta se candidatar, ele aparece aqui.</Text> : null}
           {candidates.map((candidate) => (
             <CandidateCard
               key={candidate.id}
               candidate={candidate}
-              onPress={() => role === 'trainer'
-                ? go('operations', {
-                  opportunityId: routeParams.opportunityId,
-                  athleteId: candidate.athleteId || 'atleta-adulto',
-                  candidateName: candidate.name,
-                })
-                : candidate.athleteId
-                  ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId })
-                  : undefined}
+              // Treinador e instituição abrem o mesmo perfil (de lá aprovam, rejeitam ou registram apoio).
+              onPress={() => (candidate.athleteId
+                ? go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, athleteId: candidate.athleteId, opportunityTitle: title })
+                : go('partnerCandidateProfile', { opportunityId: routeParams.opportunityId, opportunityTitle: title, demoCandidate: demoCandidateProfile(candidate, title) }))}
             />
           ))}
         </ScrollView>
@@ -143,14 +181,15 @@ export function PartnerOpportunityCandidatesScreen({ go, back, repositories, ses
 }
 
 const styles = StyleSheet.create(withGriffithsWeight({
+  emptyText: { color: '#59626b', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 22, textAlign: 'center', paddingHorizontal: 24, paddingTop: 32 },
   page: { flex: 1, backgroundColor: '#f3f4f4' },
   header: { minHeight: 243, backgroundColor: BLUE, overflow: 'hidden', position: 'relative', zIndex: 2, paddingBottom: 18 },
   stripe: { position: 'absolute', bottom: -8, left: -115, width: 337, height: 65, backgroundColor: '#e5e6e7', transform: [{ rotate: '54deg' }] },
   back: { position: 'absolute', top: 32, left: 13, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', top: 32, alignSelf: 'center', width: 57, height: 61 },
   filter: { position: 'absolute', top: 35, right: 17, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
-  title: { color: LIME, fontFamily: 'Griffiths', fontSize: 40, lineHeight: 48, marginTop: 102, textAlign: 'center', paddingHorizontal: 18 },
-  pill: { alignSelf: 'center', marginTop: 20, width: 157, height: 33, borderRadius: 18, overflow: 'hidden', backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 33, textAlign: 'center' },
+  title: { color: LIME, fontFamily: 'Griffiths', fontSize: 46, lineHeight: 52, marginTop: 102, textAlign: 'center', paddingHorizontal: 18 },
+  pill: { alignSelf: 'center', marginTop: 20, width: 157, height: 33, borderRadius: 18, overflow: 'hidden', backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 14, lineHeight: 33, textAlign: 'center' },
   filterMenu: { position: 'absolute', zIndex: 8, top: 70, right: 16, padding: 11, gap: 8, borderRadius: 12, backgroundColor: '#fff', elevation: 4 },
   filterText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13 },
   filterAction: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
@@ -159,14 +198,14 @@ const styles = StyleSheet.create(withGriffithsWeight({
   card: { minHeight: 133, borderRadius: 17, padding: 9, backgroundColor: '#fff', flexDirection: 'row', alignItems: 'center', ...require('react-native').Platform.select({ web: { boxShadow: '0 2px 7px rgba(26, 56, 92, .14)' }, default: { elevation: 3 } }) },
   photo: { width: 94, height: 113, borderRadius: 10 },
   photoFallback: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#e8f0f8', borderWidth: 1, borderColor: '#d7e4f2' },
-  photoInitials: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  photoInitials: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 18 },
   copy: { flex: 1, minWidth: 0, paddingLeft: 13, justifyContent: 'center' },
-  name: { color: '#1878d3', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 19 },
-  category: { color: '#1878d3', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 17 },
+  name: { color: '#1878d3', fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 19 },
+  category: { color: '#1878d3', fontFamily: 'Poppins_400Regular', fontStyle: 'italic', fontSize: 13, lineHeight: 17 },
   dateRow: { marginTop: 2, flexDirection: 'row', alignItems: 'center', gap: 3 },
-  date: { color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  score: { alignSelf: 'stretch', width: 78, marginVertical: -9, marginRight: -9, paddingTop: 11, alignItems: 'center', backgroundColor: LIME, borderTopRightRadius: 17, borderBottomRightRadius: 17 },
-  scoreCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22, textAlign: 'center' },
-  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 34 },
+  date: { color: '#6d7784', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  score: { alignSelf: 'flex-start', width: 78, height: 88, marginTop: -9, marginRight: -9, paddingTop: 8, alignItems: 'center', backgroundColor: LIME, borderTopRightRadius: 17, borderBottomLeftRadius: 12 },
+  scoreCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 18, lineHeight: 16, textAlign: 'center' },
+  scoreValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 30, lineHeight: 34 },
   state: { flex: 1, justifyContent: 'center', padding: 20 },
 }))

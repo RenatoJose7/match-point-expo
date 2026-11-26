@@ -1,6 +1,9 @@
 import React from 'react'
-import { Image, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from './accessibility/AppText'
+import { Ionicons } from '@expo/vector-icons'
 import { assets } from '../theme/assets'
+import { BLUE } from '../theme/colors'
 import { styles } from '../theme/styles'
 import { BackButton } from './ui/BackButton'
 
@@ -24,17 +27,23 @@ export function ListHeader({
       <Text style={[styles.listTitle, localStyles.title, titleStyle]}>{title}</Text>
       {onSearchChange ? (
         <View style={[styles.search, localStyles.search]}>
+          <Ionicons name="search-outline" size={22} color={BLUE} />
           <TextInput
             accessibilityLabel={searchPlaceholder}
-            placeholder={`⌕  ${searchPlaceholder}`}
-            placeholderTextColor="#2b5c9c"
+            placeholder={searchPlaceholder}
+            placeholderTextColor={BLUE}
             returnKeyType="search"
-            style={[styles.searchText, { alignSelf: 'stretch', flex: 1 }]}
+            style={[styles.searchText, localStyles.searchInput]}
             value={searchValue}
             onChangeText={onSearchChange}
           />
         </View>
-      ) : <View style={[styles.search, localStyles.search]}><Text style={styles.searchText}>⌕  Buscar oportunidades</Text></View>}
+      ) : (
+        <View style={[styles.search, localStyles.search]}>
+          <Ionicons name="search-outline" size={22} color={BLUE} />
+          <Text style={styles.searchText}>{searchPlaceholder}</Text>
+        </View>
+      )}
       {headerOverlay}
       {headerAction}
     </View>
@@ -47,6 +56,15 @@ const localStyles = StyleSheet.create({
   },
   search: {
     zIndex: 5,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 8,
+  },
+  searchInput: {
+    alignSelf: 'stretch',
+    flex: 1,
+    minWidth: 0,
   },
   title: {
     fontSize: 40,

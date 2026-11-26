@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { Header } from '../../components/Header'
@@ -7,31 +8,32 @@ import { StatIcon } from '../../components/StatIcon'
 import { assets } from '../../theme/assets'
 import { BLUE, GREEN } from '../../theme/colors'
 import { styles } from '../../theme/styles'
+import { useHeightFit } from '../../theme/layout'
 import { withGriffithsWeight } from '../../theme/typography'
+import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 export function PartnerHome({ go, role, initials, name, activeCount, candidateCount, bannerPressable = true, repositories, session }) {
+  const fit = useHeightFit()
   const [summary, setSummary] = useState({ activeCount, candidateCount })
   const [displayName, setDisplayName] = useState(name)
   const Banner = bannerPressable ? Pressable : View
   const opportunitiesTarget = role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
   const createTarget = 'partnerOpportunityForm'
-  const bannerTarget = role === 'trainer' ? 'partnerOpportunityForm' : 'women'
+  // No treinador, o banner "Acompanhe e avalie" leva às avaliações técnicas pedidas pelas
+  // instituições (antes não havia nenhum caminho até essa tela).
+  const bannerTarget = role === 'trainer' ? 'technicalEvaluations' : 'women'
 
   useEffect(() => {
     let active = true
     Promise.resolve().then(async () => {
       const partnerResult = await repositories.users.obterPerfilParceiroPorUsuario(session?.id)
       if (!partnerResult.ok) return
-      const opportunitiesResult = await repositories.opportunities.listarOportunidadesDoParceiro(partnerResult.data.id)
-      if (!opportunitiesResult.ok || !active) return
-      const opportunities = opportunitiesResult.data
-      const candidates = await Promise.all(opportunities.map(async (item) => repositories.applications.listarCandidatosDaOportunidade(item.id)))
-      if (!active) return
+      // Mesma lista da tela Oportunidades (com os exemplos): os números sempre batem.
+      const data = await loadPartnerOpportunities(repositories, session).catch(() => null)
+      if (!data || !active) return
       setDisplayName(partnerResult.data.nomeExibicao || name)
-      setSummary({
-        activeCount: opportunities.filter((item) => item.status === 'ativa').length,
-        candidateCount: candidates.reduce((total, result) => total + (result.ok ? result.data.length : 0), 0),
-      })
+      setSummary(summarizePartnerOpportunities(data))
     })
     return () => { active = false }
   }, [repositories, session?.id, name])
@@ -40,19 +42,20 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
     return (
       <View style={styles.trainerHomeScreen}>
         <Header initials={initials} name={displayName} photoUrl={session?.fotoUrl} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
-        <ScrollView contentContainerStyle={[styles.trainerHomeScroll, localStyles.trainerHomeScroll]} showsVerticalScrollIndicator={false}>
+        <ScrollView contentContainerStyle={[styles.trainerHomeScroll, localStyles.trainerHomeScroll, { paddingTop: fit(9, 5), gap: fit(9, 4) }]} showsVerticalScrollIndicator={false}>
+          <WelcomeTips role="treinador" />
           <View style={[styles.trainerOpportunityCard, localStyles.trainerCard]}>
             <View style={localStyles.cardHeading}>
               <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
               <Text numberOfLines={1} style={localStyles.cardTitle}>Oportunidades</Text>
-              <Pressable onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
+              <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
                 <Text style={localStyles.seeAll}>Ver mais</Text>
               </Pressable>
             </View>
 
             <View style={[styles.trainerOpportunityBody, localStyles.trainerBody]}>
               <View style={localStyles.countBlock}>
-                <Text style={localStyles.countLabel}>Oportunidades{`\n`}ativas</Text>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={localStyles.countLabel}>Oportunidades{`\n`}ativas</Text>
                 <Text style={localStyles.countValue}>{summary.activeCount}</Text>
               </View>
               <View style={localStyles.cardDivider} />
@@ -60,17 +63,17 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotGreen, localStyles.statusDot]} />
                   <Text style={localStyles.statusNumber}>{summary.activeCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Ativas</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Divulgadas</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotBlue, localStyles.statusDot]} />
-                  <Text style={styles.trainerStatusNumber}>{summary.candidateCount}</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Análise</Text>
+                  <Text style={localStyles.statusNumber}>{summary.reviewCount ?? 0}</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Em análise</Text>
                 </View>
                 <View style={[styles.trainerStatusRow, localStyles.statusRow]}>
                   <View style={[styles.trainerStatusDot, styles.trainerStatusDotOrange, localStyles.statusDot]} />
-                  <Text style={styles.trainerStatusNumber}>—</Text>
-                  <Text numberOfLines={1} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Sem info.</Text>
+                  <Text style={localStyles.statusNumber}>{summary.waitingCount ?? 0}</Text>
+                  <Text numberOfLines={2} style={[styles.trainerStatusLabel, localStyles.statusLabel]}>Aguardando inscrições</Text>
                 </View>
               </View>
               <Pressable accessibilityRole="button" accessibilityLabel="Criar oportunidade" onPress={() => go(createTarget)} style={styles.trainerCreateShortcut}>
@@ -80,7 +83,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
           </View>
 
-          <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.trainerCandidatesCard, localStyles.trainerCard]}>
+          <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} style={[styles.trainerCandidatesCard, localStyles.trainerCard]}>
             <View style={localStyles.cardHeading}>
               <View style={localStyles.cardIcon}><Ionicons name="people" size={18} color={BLUE} /></View>
               <Text numberOfLines={1} style={localStyles.cardTitle}>Candidatos</Text>
@@ -88,27 +91,30 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
             <View style={[styles.trainerCandidatesBody, localStyles.trainerBody]}>
               <View style={localStyles.countBlock}>
-                <Text style={localStyles.countLabel}>Candidatos{`\n`}recebidos</Text>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={localStyles.countLabel}>Candidatos{`\n`}recebidos</Text>
                 <Text style={localStyles.countValue}>{summary.candidateCount}</Text>
               </View>
               <View style={styles.trainerCandidatePreview}>
                 <View style={styles.trainerCandidateFaces}>
-                  {[assets.coco, assets.mirra, assets.ariana].map((photo, index) => (
+                  {/* Quantas fotos aparecem e o "+N" vêm do total de candidatos, para nunca contradizer o número. */}
+                  {[assets.coco, assets.mirra, assets.ariana].slice(0, Math.min(3, summary.candidateCount ?? 0)).map((photo, index) => (
                     <Image key={index} source={photo} style={[styles.trainerCandidateFace, index > 0 && styles.trainerCandidateFaceOverlap]} />
                   ))}
-                  <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
-                    <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount}</Text>
-                  </View>
+                  {(summary.candidateCount ?? 0) > 3 ? (
+                    <View style={[styles.trainerCandidateFace, styles.trainerCandidateFaceOverlap, styles.trainerCandidateMore]}>
+                      <Text style={styles.trainerCandidateMoreText}>+{summary.candidateCount - 3}</Text>
+                    </View>
+                  ) : null}
                 </View>
-                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>Novos candidatos aguardando análise</Text>
+                <Text style={[styles.trainerCandidateCaption, localStyles.candidateCaption]}>{(summary.candidateCount ?? 0) > 0 ? 'Novos candidatos aguardando análise' : 'Nenhum candidato ainda'}</Text>
               </View>
             </View>
           </Pressable>
 
-          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner]}>
+          <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner, { minHeight: fit(152, 12) }]}>
             <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
             <Text style={localStyles.bannerCopy}>Acompanhe e avalie os{`\n`}próximos talentos.</Text>
-            <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
+            <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Ver avaliações</Text>
             <Image source={assets.trainerBanner} style={[styles.trainerBannerPerson, localStyles.bannerPerson]} resizeMode="contain" />
           </Banner>
         </ScrollView>
@@ -120,12 +126,12 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
   return (
     <View style={styles.home}>
       <Header initials={initials} name={displayName} photoUrl={session?.fotoUrl} subtitle="Bem-vindo de volta" go={go} repositories={repositories} trainer />
-      <ScrollView contentContainerStyle={[styles.homeScroll, localStyles.partnerHomeScroll]}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={[styles.homeScroll, localStyles.partnerHomeScroll]}>
         <View style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
             <Text numberOfLines={1} style={localStyles.cardTitle}>Oportunidades</Text>
-            <Pressable onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
+            <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} hitSlop={10} style={localStyles.seeAllButton}>
               <Text style={localStyles.seeAll}>Ver mais</Text>
             </Pressable>
           </View>
@@ -138,7 +144,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </Pressable>
           </View>
         </View>
-        <Pressable onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
+        <Pressable accessibilityRole="button" onPress={() => go(opportunitiesTarget)} style={[styles.whiteCard, styles.trainerCard, localStyles.partnerCard]}>
           <View style={localStyles.cardHeading}>
             <View style={localStyles.cardIcon}><Ionicons name="people" size={18} color={BLUE} /></View>
             <Text numberOfLines={1} style={localStyles.cardTitle}>Candidatos</Text>
@@ -152,7 +158,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
         <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.heroBanner, styles.trainerBanner, localStyles.partnerBanner]}>
           <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
           <Text style={localStyles.bannerCopy}>Acompanhe, avalie e{`\n`}descubra o próximo{`\n`}destaque do esporte.</Text>
-          <Text numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
+          <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
           <Image source={assets.trainerBanner} style={styles.bannerPerson} resizeMode="contain" />
         </Banner>
       </ScrollView>
@@ -176,9 +182,10 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     paddingTop: 1,
     paddingBottom: 9,
   },
+  // Altura mínima (não fixa): o texto nunca se sobrepõe em telas baixas.
   trainerBanner: {
     minHeight: 152,
-    height: 152,
+    height: 'auto',
     paddingTop: 11,
     paddingBottom: 10,
     overflow: 'hidden',
@@ -190,13 +197,13 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
     fontSize: 13,
-    lineHeight: 22,
+    lineHeight: 15,
   },
   countValue: {
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
-    lineHeight: 34,
+    fontSize: 32,
+    lineHeight: 38,
   },
   cardDivider: {
     width: 1,
@@ -220,18 +227,18 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     marginRight: 5,
   },
   statusNumber: {
-    width: 23,
+    width: 26,
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
+    fontSize: 16, lineHeight: 20,
   },
   statusLabel: {
     flex: 1,
     minWidth: 0,
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
   },
   createShortcut: {
     width: 58,
@@ -240,15 +247,15 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
   createLabel: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
     marginTop: 4,
   },
   candidateCaption: {
     color: BLUE,
     fontFamily: 'Poppins_400Regular',
-    fontSize: 13,
-    lineHeight: 22,
+    fontSize: 10,
+    lineHeight: 13,
     marginTop: 6,
     textAlign: 'center',
     paddingHorizontal: 4,
@@ -305,7 +312,7 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     marginLeft: 'auto',
     color: BLUE,
     fontFamily: 'Poppins_600SemiBold',
-    fontSize: 13,
+    fontSize: 11,
   },
   bannerTitle: {
     zIndex: 2,
@@ -321,21 +328,21 @@ const localStyles = StyleSheet.create(withGriffithsWeight({
     color: '#ffffff',
     fontFamily: 'Poppins_400Regular',
     fontSize: 13,
-    lineHeight: 22,
+    lineHeight: 16,
     marginTop: 4,
   },
   bannerCta: {
     zIndex: 2,
     marginTop: 6,
-    minWidth: 108,
-    height: 30,
-    borderRadius: 15,
+    minWidth: 72,
+    height: 15,
+    borderRadius: 8,
     backgroundColor: GREEN,
     alignSelf: 'flex-start',
     color: BLUE,
     fontFamily: 'Poppins_500Medium',
-    fontSize: 13,
-    lineHeight: 30,
+    fontSize: 9,
+    lineHeight: 15,
     textAlign: 'center',
   },
   bannerPerson: {

@@ -2,9 +2,10 @@ export const assets = {
   opening: require('../../assets/opening-bg-hd.png'),
   logo: require('../../assets/logo-hd.png'),
   court: require('../../assets/court-hd.png'),
-  recovery1: require('../../assets/recovery-1-hd.png'),
-  recovery2: require('../../assets/recovery-2-hd.png'),
-  recovery3: require('../../assets/recovery-3-hd.png'),
+  choiceCourt: require('../../assets/choice-court.png'),
+  recovery1: require('../../assets/recovery-1-full.png'),
+  recovery2: require('../../assets/recovery-2-full.png'),
+  recovery3: require('../../assets/recovery-3-full.png'),
   // A versão ultra mantém o monograma nítido tanto no cabeçalho compacto
   // quanto nas telas que usam a marca em destaque.
   monogram: require('../../assets/monogram-ultra.png'),

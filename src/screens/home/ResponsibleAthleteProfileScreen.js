@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
-import { BackButton } from '../../components/ui/BackButton'
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
+import { PartnerHeader } from '../partner/partnerOpportunityUi'
+import { displayStatus } from '../applications/athleteApplications'
 import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 
@@ -10,7 +12,7 @@ const fields = [
   ['posicao', 'Posição'],
   ['equipeAtual', 'Equipe atual'],
   ['tempoDePratica', 'Tempo de prática'],
-  ['ranking', 'Ranking'],
+  ['nivelCompetitivo', 'Nível competitivo'],
 ]
 
 const selectOptionsByKey = {
@@ -18,6 +20,7 @@ const selectOptionsByKey = {
   categoria: SELECT_OPTIONS.categorias,
   posicao: SELECT_OPTIONS.posicoes,
   tempoDePratica: SELECT_OPTIONS.tempoDePratica,
+  nivelCompetitivo: SELECT_OPTIONS.niveisCompetitivos,
 }
 
 export function ResponsibleAthleteProfileScreen({ back, repositories, routeParams = {}, session }) {
@@ -29,6 +32,7 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
   const [editing, setEditing] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [applications, setApplications] = useState([])
 
   useEffect(() => {
     let active = true
@@ -43,7 +47,16 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
         if (!athletesResult.ok) throw new Error(athletesResult.mensagem || 'Não foi possível validar o vínculo.')
         const linkedAthlete = athletesResult.data.find((item) => item.id === routeParams.athleteId)
         if (!linkedAthlete) throw new Error('Este atleta não está vinculado à sua conta.')
+        // O responsável acompanha as candidaturas do atleta menor (a regra do banco permite a leitura).
+        const applicationsResult = await repositories.applications.listarCandidaturasDoAtleta(linkedAthlete.id).catch(() => null)
+        const withOpportunity = applicationsResult?.ok
+          ? await Promise.all(applicationsResult.data.map(async (application) => {
+            const opportunity = await repositories.opportunities.obterOportunidade(application.oportunidadeId).catch(() => null)
+            return { ...application, titulo: opportunity?.ok ? opportunity.data.titulo : 'Oportunidade' }
+          }))
+          : []
         if (active) {
+          setApplications(withOpportunity)
           setGuardian(guardianResult.data)
           setAthlete(linkedAthlete)
           setValues(Object.fromEntries(fields.map(([key]) => [key, String(linkedAthlete[key] ?? '')])))
@@ -71,6 +84,8 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
       const data = Object.fromEntries(fields.map(([key]) => [key, values[key]?.trim() || '']))
       const result = await repositories.users.atualizarAtletaComoResponsavel(guardian.id, athlete.id, {
         ...data,
+        // O nível também vai para "ranking", o campo que o perfil público do candidato mostra.
+        ranking: data.nivelCompetitivo,
         perfilCompleto: Boolean(modalidade),
       })
       if (!result.ok) throw new Error(result.mensagem || 'Não foi possível salvar o perfil.')
@@ -87,11 +102,12 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}><BackButton onPress={back} /><Text style={styles.title}>Perfil do atleta</Text></View>
+      {/* Cabeçalho azul do app: o botão Voltar (branco) antes ficava invisível no fundo branco. */}
+      <PartnerHeader title="Perfil do atleta" subtitle={athlete?.nome || 'Atleta vinculado'} onBack={back} />
       {loading ? <View style={styles.state}><ActivityIndicator color="#126b35" /><Text style={styles.stateText}>Carregando perfil...</Text></View> : error && !athlete ? (
         <View style={styles.state}><Text accessibilityRole="alert" style={styles.error}>{error}</Text></View>
       ) : athlete ? (
-        <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <Text style={styles.description}>Você pode editar somente este atleta, que está vinculado à sua conta.</Text>
           {fields.map(([key, label]) => (
             <View key={key} style={styles.field}>
@@ -108,9 +124,19 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
           {editing ? (
             <>
               <Button wide disabled={saving} onPress={save}>{saving ? 'Salvando...' : 'Salvar alterações'}</Button>
-              <Pressable onPress={() => { setEditing(false); setValues(Object.fromEntries(fields.map(([key]) => [key, String(athlete[key] ?? '')]))) }}><Text style={styles.cancel}>Cancelar</Text></Pressable>
+              <Pressable accessibilityRole="button" onPress={() => { setEditing(false); setValues(Object.fromEntries(fields.map(([key]) => [key, String(athlete[key] ?? '')]))) }}><Text style={styles.cancel}>Cancelar</Text></Pressable>
             </>
           ) : <Button wide onPress={() => { setEditing(true); setNotice('') }}>Editar perfil</Button>}
+          <Text style={styles.sectionTitle}>Candidaturas</Text>
+          {applications.length ? applications.map((application) => (
+            <View key={application.id} style={styles.applicationRow}>
+              <View style={styles.applicationCopy}>
+                <Text style={styles.applicationTitle}>{application.titulo}</Text>
+                <Text style={styles.applicationDate}>{application.criadoEm ? `Inscrição em ${new Date(application.criadoEm).toLocaleDateString('pt-BR')}` : ''}</Text>
+              </View>
+              <Text style={styles.applicationStatus}>{displayStatus(application)}</Text>
+            </View>
+          )) : <Text style={styles.description}>Este atleta ainda não se candidatou a nenhuma oportunidade.</Text>}
         </ScrollView>
       ) : null}
     </View>
@@ -119,14 +145,18 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f5f8f7' },
-  header: { gap: 12, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, backgroundColor: '#ffffff' },
-  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   content: { gap: 12, padding: 20, paddingBottom: 28 },
-  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 18 },
+  description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 18 },
   field: { gap: 5 },
+  sectionTitle: { marginTop: 10, color: '#10579b', fontFamily: 'Poppins_600SemiBold', fontSize: 17 },
+  applicationRow: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 8, backgroundColor: '#ffffff' },
+  applicationCopy: { flex: 1, minWidth: 0, gap: 2 },
+  applicationTitle: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 14 },
+  applicationDate: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 12 },
+  applicationStatus: { color: '#10579b', fontFamily: 'Poppins_600SemiBold', fontSize: 12 },
   label: { color: '#344b55', fontFamily: 'Poppins_500Medium', fontSize: 13 },
-  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
-  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 13 },
+  value: { minHeight: 46, paddingHorizontal: 12, paddingVertical: 13, borderRadius: 8, backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
+  input: { minHeight: 46, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: '#c8d5d8', backgroundColor: '#ffffff', color: '#17313c', fontFamily: 'Poppins_400Regular', fontSize: 14 },
   state: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 24 },
   stateText: { color: '#526770', fontFamily: 'Poppins_400Regular' },
   error: { color: '#8c2721', fontFamily: 'Poppins_500Medium', fontSize: 13, lineHeight: 18 },

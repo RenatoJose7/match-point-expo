@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text, TextInput } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
+import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 import { assets } from '../../theme/assets'
 
 const BLUE = '#10579b'
@@ -15,10 +18,12 @@ const sample = {
   descricao: 'www.santosfc.com.br',
 }
 
-export function InstitutionProfileScreen({ go, back, repositories, session }) {
+export function InstitutionProfileScreen({ go, back, repositories, session, routeParams = {} }) {
+  // Logo após o cadastro, a instituição completa o perfil antes de ir para o início.
+  const onboarding = Boolean(routeParams.onboarding)
   const [profile, setProfile] = useState(null)
   const [values, setValues] = useState({ nomeExibicao: '', documento: '', localizacao: '', descricao: '', tipoInstituicao: '' })
-  const [editing, setEditing] = useState(false)
+  const [editing, setEditing] = useState(onboarding)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState('')
 
@@ -48,6 +53,20 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
 
   const save = async () => {
     if (!profile || saving) return
+    if (!values.tipoInstituicao?.trim() || !values.localizacao?.trim()) {
+      setMessage('Informe o tipo da instituição e a localização.')
+      return
+    }
+    const cnpjDigits = String(values.documento ?? '').replace(/\D/g, '')
+    if (cnpjDigits && cnpjDigits.length !== 14) {
+      setMessage('CNPJ incompleto. Confira os 14 números.')
+      return
+    }
+    const site = String(values.descricao ?? '').trim()
+    if (site && !/^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(site)) {
+      setMessage('Site inválido. Exemplo: www.suainstituicao.com.br')
+      return
+    }
     setSaving(true)
     setMessage('')
     const result = await profile.source.users.atualizarPerfilParceiro(profile.id, values)
@@ -56,6 +75,7 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
     setProfile((current) => ({ ...current, ...result.data }))
     setEditing(false)
     setMessage('Perfil atualizado.')
+    if (onboarding) go('homeInstitution')
   }
 
   const cancelEditing = () => {
@@ -75,38 +95,40 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
     ['Localização', values.localizacao],
     ['Site', values.descricao],
   ].map(([label, value]) => [label, value || 'Não informado'])
-  const profileInitials = values.nomeExibicao.trim().split(/\s+/).filter(Boolean).slice(0, 2).map((part) => part[0]).join('').toUpperCase() || 'IN'
 
   return (
     <View style={styles.screen}>
       <View style={styles.header}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>
+        {onboarding ? null : <Pressable accessibilityRole="button" accessibilityLabel="Voltar" hitSlop={8} onPress={back} style={styles.back}><Ionicons name="arrow-back" size={22} color="#fff" /></Pressable>}
         <Image source={assets.monogram} style={styles.mark} resizeMode="contain" />
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <View style={styles.identity}>
-          <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
+          <ProfilePhotoPicker compact repositories={repositories} session={session} size={58} />
           <View style={styles.identityCopy}><Text numberOfLines={2} style={styles.name}>{values.nomeExibicao}</Text><Text style={styles.role}>Instituição</Text></View>
         </View>
-        <Pressable accessibilityRole="button" accessibilityLabel={editing ? 'Cancelar edição' : 'Editar perfil'} onPress={() => editing ? cancelEditing() : setEditing(true)} style={styles.headerEditButton}><Text style={styles.headerEditText}>{editing ? 'Cancelar' : 'Editar perfil'}</Text></Pressable>
       </View>
 
       <View style={styles.panel}>
         <ScrollView contentContainerStyle={styles.panelContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <ProfilePhotoPicker repositories={repositories} session={session} size={78} />
-          <Text style={styles.sectionTitle}>Informações</Text>
-          {message ? <Text style={styles.message}>{message}</Text> : null}
+          <Text style={styles.sectionTitle}>{onboarding ? 'Complete seu perfil' : 'Informações'}</Text>
+          {message ? <Text accessibilityRole="alert" style={styles.message}>{message}</Text> : null}
           {editing ? (
             <View style={styles.form}>
-              <Field label="Nome da instituição" value={values.nomeExibicao} onChangeText={(nomeExibicao) => setValues((current) => ({ ...current, nomeExibicao }))} />
-              <Field label="CNPJ" value={values.documento} onChangeText={(documento) => setValues((current) => ({ ...current, documento }))} />
-              <Field label="Tipo da instituicao" value={values.tipoInstituicao} onChangeText={(tipoInstituicao) => setValues((current) => ({ ...current, tipoInstituicao }))} />
-              <Field label="Localização" value={values.localizacao} onChangeText={(localizacao) => setValues((current) => ({ ...current, localizacao }))} />
-              <Field label="Site" value={values.descricao} onChangeText={(descricao) => setValues((current) => ({ ...current, descricao }))} />
+              <Field label="Nome da instituição" maxLength={80} value={values.nomeExibicao} onChangeText={(nomeExibicao) => setValues((current) => ({ ...current, nomeExibicao }))} />
+              <Field label="CNPJ" keyboardType="number-pad" maxLength={18} placeholder="00.000.000/0000-00" value={values.documento} onChangeText={(documento) => setValues((current) => ({ ...current, documento: formatCnpj(documento) }))} />
+              <View style={styles.field}><Text style={styles.fieldLabel}>Tipo da instituição *</Text><SelectField accessibilityLabel="Tipo da instituição" options={SELECT_OPTIONS.tipoInstituicao} value={values.tipoInstituicao} onChange={(tipoInstituicao) => setValues((current) => ({ ...current, tipoInstituicao }))} placeholder="Selecione o tipo" /></View>
+              <View style={styles.field}><Text style={styles.fieldLabel}>Localização *</Text><SelectField accessibilityLabel="Localização" options={SELECT_OPTIONS.locais} allowCustom value={values.localizacao} onChange={(localizacao) => setValues((current) => ({ ...current, localizacao }))} placeholder="Selecione a cidade" /></View>
+              <Field label="Site (opcional)" keyboardType="url" autoCapitalize="none" maxLength={100} placeholder="www.suainstituicao.com.br" value={values.descricao} onChangeText={(descricao) => setValues((current) => ({ ...current, descricao }))} />
               <Pressable accessibilityRole="button" onPress={save} disabled={saving} style={[styles.editButton, saving && styles.buttonDisabled]}><Text style={styles.editText}>{saving ? 'Salvando...' : 'Salvar alterações'}</Text></Pressable>
-              <Pressable accessibilityRole="button" onPress={cancelEditing} style={styles.cancelButton}><Text style={styles.cancelText}>Cancelar</Text></Pressable>
-              <DeleteAccountSection repositories={repositories} />
+              <Pressable accessibilityRole="button" onPress={onboarding ? () => go('homeInstitution') : cancelEditing} style={styles.cancelButton}><Text style={styles.cancelText}>{onboarding ? 'Preencher depois' : 'Cancelar'}</Text></Pressable>
+              {onboarding ? null : <DeleteAccountSection repositories={repositories} />}
             </View>
           ) : (
-            <View style={styles.infoList}>{rows.map(([label, value], index) => <View key={label} style={[styles.infoRow, index === 3 && styles.lastRow]}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View>)}</View>
+            <>
+              <View style={styles.infoList}>{rows.map(([label, value], index) => <View key={label} style={[styles.infoRow, index === 3 && styles.lastRow]}><Text style={styles.label}>{label}</Text><Text style={styles.value}>{value}</Text></View>)}</View>
+              <Pressable accessibilityRole="button" onPress={() => setEditing(true)} style={({ pressed }) => [styles.editButton, styles.viewEditButton, pressed && styles.buttonPressed]}><Text style={styles.editText}>Editar perfil</Text></Pressable>
+              <DeleteAccountSection repositories={repositories} />
+            </>
           )}
         </ScrollView>
       </View>
@@ -115,39 +137,48 @@ export function InstitutionProfileScreen({ go, back, repositories, session }) {
   )
 }
 
-function Field({ label, value, onChangeText }) {
-  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} style={styles.input} /></View>
+function Field({ label, value, onChangeText, ...inputProps }) {
+  return <View style={styles.field}><Text style={styles.fieldLabel}>{label}</Text><TextInput accessibilityLabel={label} value={value} onChangeText={onChangeText} placeholderTextColor="#6a7d86" style={styles.input} {...inputProps} /></View>
+}
+
+// CNPJ com máscara enquanto digita: 00.000.000/0000-00.
+function formatCnpj(value) {
+  const d = String(value ?? '').replace(/\D/g, '').slice(0, 14)
+  return [d.slice(0, 2), d.slice(2, 5), d.slice(5, 8)].filter(Boolean).join('.') + (d.length > 8 ? `/${d.slice(8, 12)}` : '') + (d.length > 12 ? `-${d.slice(12)}` : '')
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BLUE },
-  header: { height: 159, backgroundColor: BLUE },
+  header: { height: 196, backgroundColor: BLUE },
   back: { position: 'absolute', top: 41, left: 14, width: 42, height: 42, alignItems: 'center', justifyContent: 'center' },
   mark: { position: 'absolute', top: 18, alignSelf: 'center', width: 54, height: 58 },
-  identity: { position: 'absolute', left: 20, right: 124, bottom: 20, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  identity: { position: 'absolute', left: 36, right: 16, bottom: 40, flexDirection: 'row', alignItems: 'center', gap: 12 },
   identityCopy: { flex: 1, minWidth: 0 },
   initials: { width: 58, height: 58, borderRadius: 29, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center' },
   initialsText: { color: BLUE, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 47 },
-  name: { maxWidth: 215, color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
-  role: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 18 },
+  name: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 19, lineHeight: 24 },
+  role: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 14, lineHeight: 18 },
   panel: { flex: 1, backgroundColor: '#fff', borderTopLeftRadius: 25, borderTopRightRadius: 25, overflow: 'hidden' },
   panelContent: { paddingHorizontal: 22, paddingTop: 27, paddingBottom: 125 },
-  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 24, marginBottom: 18, marginTop: 14 },
+  sectionTitle: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 22, lineHeight: 28, marginBottom: 18, marginTop: 14 },
   infoList: { gap: 0 },
   infoRow: { minHeight: 63, paddingHorizontal: 4, paddingVertical: 10, flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' },
   lastRow: { borderTopWidth: 1, borderTopColor: '#9db6d3' },
   label: { width: '45%', color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  value: { flex: 1, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'left' },
+  // Endereços longos (site, CNPJ) quebram dentro da linha em vez de passar da tela.
+  value: { flex: 1, minWidth: 0, color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, textAlign: 'left', ...Platform.select({ web: { wordBreak: 'break-word', overflowWrap: 'anywhere' } }) },
   editButton: { minHeight: 52, marginTop: 8, borderRadius: 18, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  editText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  editText: { color: '#fff', fontFamily: 'Poppins_600SemiBold', fontSize: 16 },
   form: { gap: 14 },
   field: { gap: 5 },
   fieldLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
   input: { height: 45, borderWidth: 1, borderColor: '#9db6d3', borderRadius: 10, paddingHorizontal: 12, color: BLUE, fontFamily: 'Poppins_400Regular' },
   cancelButton: { height: 40, alignItems: 'center', justifyContent: 'center' },
   cancelText: { color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13 },
-  message: { color: '#1878d3', fontFamily: 'Poppins_500Medium', marginTop: -22, marginBottom: 15 },
+  message: { color: '#1878d3', fontFamily: 'Poppins_500Medium', marginTop: -8, marginBottom: 15 },
   buttonDisabled: { opacity: 0.6 },
+  buttonPressed: { opacity: 0.88 },
+  viewEditButton: { marginTop: 40 },
   headerEditButton: { position: 'absolute', right: 18, bottom: 35, minHeight: 34, borderRadius: 18, paddingHorizontal: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: LIME },
   headerEditText: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
 })

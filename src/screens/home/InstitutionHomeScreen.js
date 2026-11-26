@@ -1,56 +1,42 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Text } from '../../components/accessibility/AppText'
 import { Ionicons } from '@expo/vector-icons'
 import { BottomNav } from '../../components/navigation/BottomNav'
 import { assets } from '../../theme/assets'
+import { fitGriffithsSize, withGriffithsOverhang } from '../../theme/typography'
+import { useFrameSize } from '../../theme/layout'
+import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
+import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
+import { NotificationBell } from '../../components/navigation/NotificationBell'
+import { WelcomeTips } from '../../components/ui/WelcomeTips'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
 export function InstitutionHomeScreen({ go, repositories, session }) {
   const [profileName, setProfileName] = useState(session?.nome || 'Instituição')
-  const [summary, setSummary] = useState({ active: 31, published: 19, underReview: 22, awaiting: 0, candidates: 1300 })
+  // Mesmos números da lista "Oportunidades" (reais + exemplos), como na home do treinador.
+  const [summary, setSummary] = useState({ active: 0, published: 0, underReview: 0, awaiting: 0, candidates: 0 })
 
   useEffect(() => {
     let active = true
     const load = async () => {
       try {
-        let source = repositories
-        let profileResult = await source.users.obterPerfilParceiroPorUsuario(session?.id)
-        if (!profileResult.ok && repositories.demo) {
-          source = repositories.demo
-          profileResult = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
-        }
-        if (!profileResult.ok) return
-        const ownProfileName = profileResult.data.nomeExibicao || session?.nome || 'Instituição'
-        let opportunitiesResult = await source.opportunities.listarOportunidadesDoParceiro(profileResult.data.id)
-        if (opportunitiesResult.ok && opportunitiesResult.data.length === 0 && repositories.demo) {
-          source = repositories.demo
-          profileResult = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
-          opportunitiesResult = await source.opportunities.listarOportunidadesDoParceiro(profileResult.data.id)
-        }
-        if (!active || !opportunitiesResult.ok) return
-        const opportunities = opportunitiesResult.data
-        const candidates = await Promise.all(opportunities.map((item) => source.applications.listarCandidatosDaOportunidade(item.id)))
-        const candidateCount = candidates.reduce((total, item) => total + (item.ok ? item.data.length : 0), 0)
+        const profileResult = await repositories.users.obterPerfilParceiroPorUsuario(session?.id)
+        if (active && profileResult.ok) setProfileName(profileResult.data.nomeExibicao || session?.nome || 'Instituição')
+        const data = await loadPartnerOpportunities(repositories, session)
         if (!active) return
-        const usingDemo = source === repositories.demo
-        setProfileName(ownProfileName)
-        setSummary(usingDemo ? {
-          active: 31,
-          published: 19,
-          underReview: 22,
-          awaiting: 0,
-          candidates: 1300,
-        } : {
-          active: opportunities.filter((item) => item.status === 'ativa').length,
-          published: opportunities.filter((item) => item.status === 'ativa').length,
-          underReview: candidateCount,
-          awaiting: opportunities.filter((item) => item.status === 'rascunho').length,
-          candidates: candidateCount,
+        const totals = summarizePartnerOpportunities(data)
+        setSummary({
+          active: totals.activeCount,
+          published: totals.activeCount,
+          underReview: totals.reviewCount,
+          awaiting: totals.waitingCount,
+          candidates: totals.candidateCount,
         })
       } catch {
-        // A composição continua disponível com os números demonstrativos seguros.
+        // Sem conexão, a tela continua com zeros em vez de números inventados.
       }
     }
     load()
@@ -59,6 +45,11 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
 
   const signOut = () => repositories.authentication.sair()
   const displayName = String(profileName).trim() || 'Instituição'
+  // Como no cabeçalho do atleta e do treinador, a saudação usa só o primeiro nome.
+  const greetingName = displayName.split(/\s+/)[0]
+  // A saudação encolhe em telas estreitas ou com nomes longos, em vez de ser cortada.
+  const frame = useFrameSize()
+  const greetingSize = fitGriffithsSize(`Olá, ${greetingName}`, frame.width - 190, 40)
   const profileInitials = displayName
     .split(/\s+/)
     .filter(Boolean)
@@ -74,17 +65,20 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
         <View style={styles.identity}>
           <View style={styles.initials}><Text style={styles.initialsText}>{profileInitials}</Text></View>
           <View style={styles.identityCopy}>
-            <Text numberOfLines={1} style={styles.greeting}>Olá, <Text style={styles.greetingAccent}>{displayName}</Text></Text>
-            <Text style={styles.welcome}>Bem-vindo de volta</Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7} style={[styles.greeting, { fontSize: greetingSize, lineHeight: Math.round(greetingSize * 1.16) }]}>Olá, <Text style={styles.greetingAccent}>{greetingName}</Text></Text>
+            <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75} style={styles.welcome}>Bem-vindo de volta</Text>
           </View>
         </View>
+        <AccessibilityButton style={ACCESSIBILITY_CORNER} />
         <Pressable accessibilityRole="button" accessibilityLabel="Sair da conta" onPress={signOut} style={styles.logout}>
           <Ionicons name="log-out-outline" size={22} color="#fff" />
         </Pressable>
+        <NotificationBell go={go} repositories={repositories} size={22} style={styles.bell} />
         <View style={styles.rule} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <WelcomeTips role="instituicao" />
         <View style={styles.card}>
           <View style={styles.cardHeading}>
             <View style={styles.cardIcon}><Ionicons name="stats-chart" size={17} color={BLUE} /></View>
@@ -93,7 +87,7 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           </View>
           <View style={styles.opportunityBody}>
             <View style={styles.countBlock}>
-              <Text style={styles.countLabel}>Oportunidades{`\n`}ativas</Text>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.countLabel}>Oportunidades{`\n`}ativas</Text>
               <Text style={styles.count}>{summary.active}</Text>
             </View>
             <View style={styles.divider} />
@@ -117,23 +111,23 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           </View>
           <View style={styles.candidatesBody}>
             <View style={styles.countBlock}>
-              <Text style={styles.countLabel}>Candidatos{`\n`}recebidos</Text>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.countLabel}>Candidatos{`\n`}recebidos</Text>
               <Text style={styles.count}>{summary.candidates}</Text>
             </View>
             <View style={styles.facesColumn}>
               <View style={styles.faces}>
-                {[assets.coco, assets.mirra, assets.ariana].map((source, index) => <Image key={index} source={source} style={[styles.face, index > 0 && styles.faceOverlap]} />)}
-                <View style={[styles.face, styles.faceOverlap, styles.moreFace]}><Text style={styles.moreFaceText}>+9</Text></View>
+                {[assets.coco, assets.mirra, assets.ariana].slice(0, Math.min(3, summary.candidates)).map((source, index) => <Image key={index} source={source} style={[styles.face, index > 0 && styles.faceOverlap]} />)}
+                {summary.candidates > 3 ? <View style={[styles.face, styles.faceOverlap, styles.moreFace]}><Text style={styles.moreFaceText}>+{summary.candidates - 3}</Text></View> : null}
               </View>
-              <Text style={styles.facesCaption}>Novos candidatos aguardando análise</Text>
+              <Text style={styles.facesCaption}>{summary.candidates > 0 ? 'Novos candidatos aguardando análise' : 'Nenhum candidato ainda'}</Text>
             </View>
           </View>
         </Pressable>
 
         <Pressable accessibilityRole="button" onPress={() => go('opportunitiesInstitution')} style={styles.banner}>
           <Text numberOfLines={1} style={styles.bannerTitle}>Transforme talentos</Text>
-          <Text numberOfLines={2} style={styles.bannerCopy}>Acompanhe, avalie e descubra talentos.</Text>
-          <Text style={styles.bannerCta}>Saiba mais</Text>
+          <Text numberOfLines={3} style={styles.bannerCopy}>Acompanhe, avalie e{'\n'}descubra o próximo{'\n'}destaque do esporte.</Text>
+          <Text fixedSize style={styles.bannerCta}>Saiba mais</Text>
           <Image source={assets.trainerBanner} style={styles.bannerImage} resizeMode="contain" />
         </Pressable>
       </ScrollView>
@@ -146,7 +140,7 @@ function Status({ color, value, label }) {
   return <View style={styles.status}><View style={[styles.statusDot, { backgroundColor: color }]} /><Text style={styles.statusValue}>{value}</Text><Text style={styles.statusLabel}>{label}</Text></View>
 }
 
-const styles = StyleSheet.create({
+const styles = StyleSheet.create(withGriffithsOverhang({
   screen: { flex: 1, backgroundColor: BLUE },
   header: { height: 177, paddingTop: 18 },
   mark: { width: 51, height: 56, alignSelf: 'center' },
@@ -156,39 +150,40 @@ const styles = StyleSheet.create({
   identityCopy: { flex: 1, minWidth: 0 },
   greeting: { color: '#fff', fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 46 },
   greetingAccent: { color: LIME },
-  welcome: { color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 22 },
-  logout: { position: 'absolute', right: 15, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  rule: { position: 'absolute', bottom: 0, left: 8, right: 16, height: 1, backgroundColor: LIME },
+  welcome: { color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 18 },
+  logout: { position: 'absolute', right: 56, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  bell: { position: 'absolute', right: 15, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  rule: { position: 'absolute', bottom: 0, left: 8, right: 16, height: 1, backgroundColor: 'rgba(255,255,255,0.45)' },
   content: { paddingHorizontal: 19, paddingTop: 8, paddingBottom: 124, gap: 10 },
   card: { height: 153, borderRadius: 18, backgroundColor: '#fff', padding: 14 },
   cardHeading: { minHeight: 36, flexDirection: 'row', alignItems: 'center', gap: 8 },
   cardIcon: { width: 27, height: 27, borderRadius: 15, backgroundColor: LIME, alignItems: 'center', justifyContent: 'center' },
   cardTitle: { color: BLUE, flex: 1, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 26, lineHeight: 30, minWidth: 0 },
-  seeAll: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
+  seeAll: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 11 },
   opportunityBody: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingTop: 6 },
   candidatesBody: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingTop: 5 },
   countBlock: { width: 126 },
-  countLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 22 },
-  count: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 36 },
+  countLabel: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, lineHeight: 15 },
+  count: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 32, lineHeight: 38 },
   divider: { width: 1, height: 81, backgroundColor: '#d5d8dc' },
   breakdown: { flex: 1, gap: 7, paddingLeft: 12 },
   status: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   statusDot: { width: 9, height: 9, borderRadius: 5 },
-  statusValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 13, width: 18 },
-  statusLabel: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, flex: 1 },
+  statusValue: { color: BLUE, fontFamily: 'Poppins_600SemiBold', fontSize: 16, lineHeight: 20, width: 26 },
+  statusLabel: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 10, lineHeight: 13, flex: 1 },
   createShortcut: { width: 45, alignItems: 'center' },
   createCircle: { width: 39, height: 39, borderRadius: 20, backgroundColor: BLUE, alignItems: 'center', justifyContent: 'center' },
-  createCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, marginTop: 3 },
+  createCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 10, marginTop: 3 },
   facesColumn: { flex: 1, alignItems: 'center' },
   faces: { flexDirection: 'row', alignItems: 'center' },
   face: { width: 41, height: 41, borderRadius: 21, borderWidth: 2, borderColor: '#fff' },
   faceOverlap: { marginLeft: -7 },
   moreFace: { alignItems: 'center', justifyContent: 'center', backgroundColor: '#edf0f2' },
-  moreFaceText: { color: '#9da2a7', fontFamily: 'Poppins_600SemiBold', fontSize: 13 },
-  facesCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 13, marginTop: 5, textAlign: 'center' },
+  moreFaceText: { color: '#9da2a7', fontFamily: 'Poppins_600SemiBold', fontSize: 12 },
+  facesCaption: { color: BLUE, fontFamily: 'Poppins_400Regular', fontSize: 10, lineHeight: 13, marginTop: 5, textAlign: 'center' },
   banner: { height: 140, borderRadius: 17, borderWidth: 1, borderColor: '#fff', overflow: 'hidden', backgroundColor: '#16528b', padding: 12 },
   bannerTitle: { zIndex: 2, color: LIME, fontFamily: 'Griffiths', fontWeight: '400', fontSize: 26, lineHeight: 30 },
-  bannerCopy: { zIndex: 2, color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 20, marginTop: 4 },
-  bannerCta: { zIndex: 2, marginTop: 6, width: 70, borderRadius: 10, backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 13, textAlign: 'center', paddingVertical: 2 },
+  bannerCopy: { zIndex: 2, maxWidth: 200, color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 13, lineHeight: 16, marginTop: 4 },
+  bannerCta: { zIndex: 2, marginTop: 6, width: 70, borderRadius: 10, backgroundColor: LIME, color: BLUE, fontFamily: 'Poppins_500Medium', fontSize: 9, lineHeight: 13, textAlign: 'center', paddingVertical: 2 },
   bannerImage: { position: 'absolute', right: -4, bottom: -7, width: 150, height: 150 },
-})
+}))

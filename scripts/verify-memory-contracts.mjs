@@ -93,8 +93,8 @@ const publicCandidateProfile = await repositories.applications.obterPerfilPublic
 )
 assert.equal(publicCandidateProfile.ok, true)
 assert.equal(publicCandidateProfile.data.nome, 'Atleta Demo Adulto')
-assert.equal(publicCandidateProfile.data.modalidade, 'Tenis')
-assert.equal(publicCandidateProfile.data.categoria, 'Universitario')
+assert.equal(publicCandidateProfile.data.modalidade, 'Tênis')
+assert.equal(publicCandidateProfile.data.categoria, 'Universitário')
 assert.deepEqual(Object.keys(publicCandidateProfile.data).sort(), [
   'categoria',
   'equipeAtual',
@@ -354,7 +354,7 @@ const partnerSignup = await signupRepositories.authentication.cadastrar(
   USER_TYPES.TRAINER,
   {
     nome: 'Treinador Novo',
-    perfil: { nomeExibicao: 'Treinador Novo', documento: '12345678900', verificado: false },
+    perfil: { nomeExibicao: 'Treinador Novo', documento: '12345678900' },
   },
 )
 assert.equal(partnerSignup.ok, true)
@@ -371,18 +371,19 @@ const grantedUnverifiedSupport = await signupRepositories.support.registrarApoio
 })
 assert.equal(grantedUnverifiedSupport.ok, true)
 assert.equal(grantedUnverifiedSupport.data.status, 'concedido')
-const blockedUnverifiedPublication = await signupRepositories.opportunities.criarOportunidade({
+// Sem verificação de parceiro: treinador e instituição publicam direto.
+const directPublication = await signupRepositories.opportunities.criarOportunidade({
   criadorId: partnerProfile.data.id,
-  titulo: 'Avaliação em validação',
-  descricao: 'Oportunidade de teste para parceiro ainda não verificado.',
+  titulo: 'Avaliação publicada',
+  descricao: 'Oportunidade de teste publicada por um parceiro recém-cadastrado.',
   modalidade: 'Tenis',
   categoria: 'Sub-18',
   localizacao: 'Suzano - SP',
   fimInscricoes: '2026-12-20T23:59:59.000Z',
   status: OPPORTUNITY_STATUS.ACTIVE,
 })
-assert.equal(blockedUnverifiedPublication.ok, false)
-assert.equal(blockedUnverifiedPublication.codigo, REPOSITORY_ERROR_CODES.FORBIDDEN)
+assert.equal(directPublication.ok, true)
+assert.equal(directPublication.data.status, OPPORTUNITY_STATUS.ACTIVE)
 const unverifiedDraft = await signupRepositories.opportunities.criarOportunidade({
   criadorId: partnerProfile.data.id,
   titulo: 'Rascunho em validação',

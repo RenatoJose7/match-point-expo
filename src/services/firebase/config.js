@@ -1,5 +1,5 @@
 import { getApp, getApps, initializeApp } from 'firebase/app'
-import { getFirestore } from 'firebase/firestore'
+import { getFirestore, initializeFirestore } from 'firebase/firestore'
 import { getStorage } from 'firebase/storage'
 
 const firebaseConfig = {
@@ -26,8 +26,18 @@ export function getFirebaseApp() {
   return getApps().length > 0 ? getApp() : initializeApp(firebaseConfig)
 }
 
+// Campos opcionais vazios chegam como undefined (ex.: benefício, início das inscrições).
+// Sem esta opção o Firestore recusa a gravação inteira e o app mostrava um erro genérico.
+let database = null
 export function getFirebaseDatabase() {
-  return getFirestore(getFirebaseApp())
+  if (database) return database
+  const app = getFirebaseApp()
+  try {
+    database = initializeFirestore(app, { ignoreUndefinedProperties: true })
+  } catch {
+    database = getFirestore(app)
+  }
+  return database
 }
 
 export function getFirebaseStorage() {
