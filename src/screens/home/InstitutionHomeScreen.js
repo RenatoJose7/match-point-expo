@@ -7,54 +7,34 @@ import { assets } from '../../theme/assets'
 import { fitGriffithsSize, withGriffithsOverhang } from '../../theme/typography'
 import { useFrameSize } from '../../theme/layout'
 import { ACCESSIBILITY_CORNER, AccessibilityButton } from '../../components/accessibility/AccessibilityButton'
+import { loadPartnerOpportunities, summarizePartnerOpportunities } from '../partner/partnerOpportunitiesData'
 
 const BLUE = '#10579b'
 const LIME = '#c4ff32'
 
 export function InstitutionHomeScreen({ go, repositories, session }) {
   const [profileName, setProfileName] = useState(session?.nome || 'Instituição')
-  const [summary, setSummary] = useState({ active: 31, published: 19, underReview: 22, awaiting: 0, candidates: 1300 })
+  // Mesmos números da lista "Oportunidades" (reais + exemplos), como na home do treinador.
+  const [summary, setSummary] = useState({ active: 0, published: 0, underReview: 0, awaiting: 0, candidates: 0 })
 
   useEffect(() => {
     let active = true
     const load = async () => {
       try {
-        let source = repositories
-        let profileResult = await source.users.obterPerfilParceiroPorUsuario(session?.id)
-        if (!profileResult.ok && repositories.demo) {
-          source = repositories.demo
-          profileResult = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
-        }
-        if (!profileResult.ok) return
-        const ownProfileName = profileResult.data.nomeExibicao || session?.nome || 'Instituição'
-        let opportunitiesResult = await source.opportunities.listarOportunidadesDoParceiro(profileResult.data.id)
-        if (opportunitiesResult.ok && opportunitiesResult.data.length === 0 && repositories.demo) {
-          source = repositories.demo
-          profileResult = await source.users.obterPerfilParceiroPorUsuario('usuario-instituicao')
-          opportunitiesResult = await source.opportunities.listarOportunidadesDoParceiro(profileResult.data.id)
-        }
-        if (!active || !opportunitiesResult.ok) return
-        const opportunities = opportunitiesResult.data
-        const candidates = await Promise.all(opportunities.map((item) => source.applications.listarCandidatosDaOportunidade(item.id)))
-        const candidateCount = candidates.reduce((total, item) => total + (item.ok ? item.data.length : 0), 0)
+        const profileResult = await repositories.users.obterPerfilParceiroPorUsuario(session?.id)
+        if (active && profileResult.ok) setProfileName(profileResult.data.nomeExibicao || session?.nome || 'Instituição')
+        const data = await loadPartnerOpportunities(repositories, session)
         if (!active) return
-        const usingDemo = source === repositories.demo
-        setProfileName(ownProfileName)
-        setSummary(usingDemo ? {
-          active: 31,
-          published: 19,
-          underReview: 22,
-          awaiting: 0,
-          candidates: 1300,
-        } : {
-          active: opportunities.filter((item) => item.status === 'ativa').length,
-          published: opportunities.filter((item) => item.status === 'ativa').length,
-          underReview: candidateCount,
-          awaiting: opportunities.filter((item) => item.status === 'rascunho').length,
-          candidates: candidateCount,
+        const totals = summarizePartnerOpportunities(data)
+        setSummary({
+          active: totals.activeCount,
+          published: totals.activeCount,
+          underReview: totals.reviewCount,
+          awaiting: totals.waitingCount,
+          candidates: totals.candidateCount,
         })
       } catch {
-        // A composição continua disponível com os números demonstrativos seguros.
+        // Sem conexão, a tela continua com zeros em vez de números inventados.
       }
     }
     load()
@@ -91,6 +71,9 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
         <Pressable accessibilityRole="button" accessibilityLabel="Sair da conta" onPress={signOut} style={styles.logout}>
           <Ionicons name="log-out-outline" size={22} color="#fff" />
         </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Notificações" onPress={() => go('notifications')} style={styles.bell}>
+          <Ionicons name="notifications" size={22} color="#fff" />
+        </Pressable>
         <View style={styles.rule} />
       </View>
 
@@ -103,7 +86,7 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           </View>
           <View style={styles.opportunityBody}>
             <View style={styles.countBlock}>
-              <Text style={styles.countLabel}>Oportunidades{`\n`}ativas</Text>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.countLabel}>Oportunidades{`\n`}ativas</Text>
               <Text style={styles.count}>{summary.active}</Text>
             </View>
             <View style={styles.divider} />
@@ -127,15 +110,15 @@ export function InstitutionHomeScreen({ go, repositories, session }) {
           </View>
           <View style={styles.candidatesBody}>
             <View style={styles.countBlock}>
-              <Text style={styles.countLabel}>Candidatos{`\n`}recebidos</Text>
+              <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={styles.countLabel}>Candidatos{`\n`}recebidos</Text>
               <Text style={styles.count}>{summary.candidates}</Text>
             </View>
             <View style={styles.facesColumn}>
               <View style={styles.faces}>
-                {[assets.coco, assets.mirra, assets.ariana].map((source, index) => <Image key={index} source={source} style={[styles.face, index > 0 && styles.faceOverlap]} />)}
-                <View style={[styles.face, styles.faceOverlap, styles.moreFace]}><Text style={styles.moreFaceText}>+9</Text></View>
+                {[assets.coco, assets.mirra, assets.ariana].slice(0, Math.min(3, summary.candidates)).map((source, index) => <Image key={index} source={source} style={[styles.face, index > 0 && styles.faceOverlap]} />)}
+                {summary.candidates > 3 ? <View style={[styles.face, styles.faceOverlap, styles.moreFace]}><Text style={styles.moreFaceText}>+{summary.candidates - 3}</Text></View> : null}
               </View>
-              <Text style={styles.facesCaption}>Novos candidatos aguardando análise</Text>
+              <Text style={styles.facesCaption}>{summary.candidates > 0 ? 'Novos candidatos aguardando análise' : 'Nenhum candidato ainda'}</Text>
             </View>
           </View>
         </Pressable>
@@ -167,7 +150,8 @@ const styles = StyleSheet.create(withGriffithsOverhang({
   greeting: { color: '#fff', fontFamily: 'Griffiths', fontWeight: '400', fontSize: 40, lineHeight: 46 },
   greetingAccent: { color: LIME },
   welcome: { color: '#fff', fontFamily: 'Poppins_400Regular', fontSize: 15, lineHeight: 18 },
-  logout: { position: 'absolute', right: 15, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  logout: { position: 'absolute', right: 56, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  bell: { position: 'absolute', right: 15, top: 116, width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   rule: { position: 'absolute', bottom: 0, left: 8, right: 16, height: 1, backgroundColor: 'rgba(255,255,255,0.45)' },
   content: { paddingHorizontal: 19, paddingTop: 8, paddingBottom: 124, gap: 10 },
   card: { height: 153, borderRadius: 18, backgroundColor: '#fff', padding: 14 },

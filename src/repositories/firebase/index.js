@@ -154,6 +154,8 @@ function buildRegistrationProfile(type, userId, initialData, createdAt) {
       collection: ATHLETES_COLLECTION,
       data: {
         ...base,
+        // Nome também no perfil esportivo: o responsável não lê a coleção de usuários.
+        nome: initialData.nome?.trim() || '',
         dataNascimento: profile.dataNascimento,
         modalidade: profile.modalidade?.trim() ?? '',
         perfilCompleto: false,
@@ -1154,6 +1156,8 @@ export function createFirebaseRepositories() {
             id: applicationReference.id,
             oportunidadeId: opportunityId,
             atletaId: athleteId,
+            // Quem recebe as notificações: a instituição não pode ler o perfil do atleta.
+            atletaUsuarioId: athlete.usuarioId,
             status: APPLICATION_STATUS.SUBMITTED,
             matchScore: calculateMatchScore(eligibility, createdAt, athleteData).percentualTotal,
             documentos: data.documentos ?? [],
@@ -1292,9 +1296,9 @@ export function createFirebaseRepositories() {
           if (!canTransitionApplicationStatus(application.status, nextStatus)) {
             return failure(REPOSITORY_ERROR_CODES.INVALID_TRANSITION, 'Transição de status não permitida.')
           }
-          const athleteSnapshot = [APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)
-            ? await transaction.get(doc(database, ATHLETES_COLLECTION, application.atletaId))
-            : null
+          // O parceiro não lê o perfil do atleta (regra do banco): o destinatário vem da própria
+          // candidatura; nas antigas, o id do atleta é o mesmo id do usuário (criado no cadastro).
+          const athleteUserId = application.atletaUsuarioId ?? application.atletaId
 
           const event = {
             id: doc(collection(database, 'eventosCandidatura')).id,
@@ -1319,11 +1323,11 @@ export function createFirebaseRepositories() {
             atualizadoEm: updated.atualizadoEm,
           })
           if ([APPLICATION_STATUS.APPROVED, APPLICATION_STATUS.REJECTED].includes(nextStatus)) {
-            if (athleteSnapshot?.exists()) {
+            if (athleteUserId) {
               const notificationReference = doc(collection(database, NOTIFICATIONS_COLLECTION))
               transaction.set(notificationReference, {
                 id: notificationReference.id,
-                usuarioId: athleteSnapshot.data().usuarioId,
+                usuarioId: athleteUserId,
                 candidaturaId: application.id,
                 oportunidadeId: application.oportunidadeId,
                 titulo: nextStatus === APPLICATION_STATUS.APPROVED ? 'Candidatura aprovada' : 'Atualização da candidatura',
@@ -1488,7 +1492,9 @@ export function createFirebaseRepositories() {
           if (!snapshot.exists()) return failure(REPOSITORY_ERROR_CODES.NOT_FOUND, 'Solicitação de avaliação não encontrada.')
           const request = normalizeDocument(snapshot)
           if (request.treinadorId !== trainer.data.id || request.status !== 'pendente') return failure(REPOSITORY_ERROR_CODES.FORBIDDEN, 'Esta solicitação não está disponível para avaliação.')
-          const evaluation = { id: evaluationReference.id, ...data, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
+          // Notas como número (o seletor entrega texto e a regra do banco exige número).
+          const [notaTecnica, notaFisica, notaTatica] = scores
+          const evaluation = { id: evaluationReference.id, ...data, notaTecnica, notaFisica, notaTatica, atletaId: request.atletaId, instituicaoId: request.instituicaoId, criadoEm: now() }
           transaction.set(evaluationReference, evaluation)
           transaction.update(requestReference, { status: 'concluida', avaliacaoId: evaluation.id, atualizadoEm: evaluation.criadoEm })
           return success(evaluation)
@@ -1514,7 +1520,8 @@ export function createFirebaseRepositories() {
         const item = {
           id: reference.id,
           ...data,
-          parceiroId,
+          // Antes era "parceiroId," (variável inexistente): o registro de apoio sempre falhava.
+          parceiroId: partnerId,
           descricao: data.descricao.trim(),
           status: 'concedido',
           criadoEm: now(),

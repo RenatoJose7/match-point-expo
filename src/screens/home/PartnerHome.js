@@ -19,7 +19,9 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
   const Banner = bannerPressable ? Pressable : View
   const opportunitiesTarget = role === 'trainer' ? 'opportunitiesTrainer' : 'opportunitiesInstitution'
   const createTarget = 'partnerOpportunityForm'
-  const bannerTarget = role === 'trainer' ? 'partnerOpportunityForm' : 'women'
+  // No treinador, o banner "Acompanhe e avalie" leva às avaliações técnicas pedidas pelas
+  // instituições (antes não havia nenhum caminho até essa tela).
+  const bannerTarget = role === 'trainer' ? 'technicalEvaluations' : 'women'
 
   useEffect(() => {
     let active = true
@@ -51,7 +53,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
 
             <View style={[styles.trainerOpportunityBody, localStyles.trainerBody]}>
               <View style={localStyles.countBlock}>
-                <Text style={localStyles.countLabel}>Oportunidades{`\n`}ativas</Text>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={localStyles.countLabel}>Oportunidades{`\n`}ativas</Text>
                 <Text style={localStyles.countValue}>{summary.activeCount}</Text>
               </View>
               <View style={localStyles.cardDivider} />
@@ -87,7 +89,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
             </View>
             <View style={[styles.trainerCandidatesBody, localStyles.trainerBody]}>
               <View style={localStyles.countBlock}>
-                <Text style={localStyles.countLabel}>Candidatos{`\n`}recebidos</Text>
+                <Text numberOfLines={2} adjustsFontSizeToFit minimumFontScale={0.6} style={localStyles.countLabel}>Candidatos{`\n`}recebidos</Text>
                 <Text style={localStyles.countValue}>{summary.candidateCount}</Text>
               </View>
               <View style={styles.trainerCandidatePreview}>
@@ -110,7 +112,7 @@ export function PartnerHome({ go, role, initials, name, activeCount, candidateCo
           <Banner {...(bannerPressable ? { onPress: () => go(bannerTarget) } : {})} style={[styles.trainerTalentBanner, localStyles.trainerBanner, { minHeight: fit(152, 12) }]}>
             <Text numberOfLines={1} style={localStyles.bannerTitle}>Transforme talentos</Text>
             <Text style={localStyles.bannerCopy}>Acompanhe e avalie os{`\n`}próximos talentos.</Text>
-            <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Saiba mais</Text>
+            <Text fixedSize numberOfLines={1} style={localStyles.bannerCta}>Ver avaliações</Text>
             <Image source={assets.trainerBanner} style={[styles.trainerBannerPerson, localStyles.bannerPerson]} resizeMode="contain" />
           </Banner>
         </ScrollView>

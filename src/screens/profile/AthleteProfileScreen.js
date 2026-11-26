@@ -158,6 +158,8 @@ export function AthleteProfileScreen(props) {
 
     const data = {
       ...normalizedValues,
+      // Mantém o nome no perfil esportivo (é o que o responsável vê na lista de vinculados).
+      ...(session?.nome ? { nome: session.nome } : {}),
       dataNascimento: dateOfBirth,
       perfilCompleto: Boolean(dateOfBirth && normalizedValues.modalidade),
       atualizadoEm: new Date().toISOString(),

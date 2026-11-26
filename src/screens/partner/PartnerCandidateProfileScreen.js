@@ -131,7 +131,7 @@ export function PartnerCandidateProfileScreen({ go, back, repositories, session,
       <PartnerHeader title="Perfil esportivo" subtitle="Dados compartilhados nesta candidatura" onBack={back} />
       {loading ? (
         <LoadingState label="Carregando perfil esportivo..." />
-      ) : error ? (
+      ) : error && !profile ? (
         <View style={styles.stateContent}>
           <FeedbackMessage>{error}</FeedbackMessage>
           <Pressable accessibilityRole="button" onPress={() => setRefreshKey((value) => value + 1)} style={partnerStyles.primaryButton}>

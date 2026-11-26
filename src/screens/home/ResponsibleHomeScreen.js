@@ -4,6 +4,7 @@ import { Text } from '../../components/accessibility/AppText'
 import { Button } from '../../components/ui/Button'
 import { DeleteAccountSection } from '../../components/profile/DeleteAccountSection'
 import { ProfilePhotoPicker } from '../../components/profile/ProfilePhotoPicker'
+import { Header } from '../../components/Header'
 
 export function ResponsibleHomeScreen({ go, repositories, session }) {
   const firstName = String(session?.nome ?? '')
@@ -64,13 +65,17 @@ export function ResponsibleHomeScreen({ go, repositories, session }) {
 
   return (
     <View style={styles.screen}>
+      {/* Mesmo cabeçalho azul das outras áreas: logo, acessibilidade, notificações e sair da conta. */}
+      <Header
+        initials={firstName.slice(0, 2)}
+        name={session?.nome || 'Responsável'}
+        photoUrl={session?.fotoUrl}
+        subtitle="Responsável"
+        go={go}
+        repositories={repositories}
+      />
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
-        <Text style={styles.eyebrow}>MatchPoint · Responsável</Text>
-        <Text style={styles.title}>Olá, {firstName}.</Text>
         <Text style={styles.subtitle}>Gerencie somente os perfis esportivos vinculados à sua conta.</Text>
-        <Pressable accessibilityRole="button" onPress={() => go('notifications')} style={styles.notificationsButton}>
-          <Text style={styles.notificationsText}>Notificações</Text>
-        </Pressable>
         <ProfilePhotoPicker repositories={repositories} session={session} />
 
         {loading ? (
@@ -115,14 +120,15 @@ export function ResponsibleHomeScreen({ go, repositories, session }) {
               <Pressable
                 key={athlete.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Editar perfil de ${athlete.modalidade || 'atleta vinculado'}`}
+                accessibilityLabel={`Editar perfil de ${athlete.nome || 'atleta vinculado'}`}
                 onPress={() => go('responsibleAthleteProfile', { athleteId: athlete.id })}
                 style={styles.athleteCard}
               >
-                <View style={styles.avatar}><Text style={styles.avatarText}>{(athlete.modalidade || 'A').slice(0, 1).toUpperCase()}</Text></View>
+                <View style={styles.avatar}><Text style={styles.avatarText}>{(athlete.nome || 'A').slice(0, 1).toUpperCase()}</Text></View>
                 <View style={styles.athleteCopy}>
-                  <Text style={styles.athleteTitle}>{athlete.modalidade || 'Perfil esportivo'}</Text>
-                  <Text style={styles.athleteMeta}>{athlete.categoria || 'Categoria não informada'} · {athlete.perfilCompleto ? 'Perfil completo' : 'Perfil em preenchimento'}</Text>
+                  <Text style={styles.athleteTitle}>{athlete.nome || 'Atleta vinculado'}</Text>
+                  <Text style={styles.athleteMeta}>{[athlete.modalidade, athlete.categoria || 'Categoria não informada'].filter(Boolean).join(' · ')}</Text>
+                  <Text style={styles.athleteMeta}>{athlete.perfilCompleto ? 'Perfil completo' : 'Perfil em preenchimento'}</Text>
                 </View>
                 <Text style={styles.edit}>Editar</Text>
               </Pressable>

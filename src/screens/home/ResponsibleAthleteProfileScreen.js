@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native'
 import { Text, TextInput } from '../../components/accessibility/AppText'
-import { BackButton } from '../../components/ui/BackButton'
+import { PartnerHeader } from '../partner/partnerOpportunityUi'
 import { Button } from '../../components/ui/Button'
 import { SelectField, SELECT_OPTIONS } from '../../components/ui/SelectField'
 
@@ -88,7 +88,8 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 
   return (
     <View style={styles.screen}>
-      <View style={styles.header}><BackButton onPress={back} /><Text style={styles.title}>Perfil do atleta</Text></View>
+      {/* Cabeçalho azul do app: o botão Voltar (branco) antes ficava invisível no fundo branco. */}
+      <PartnerHeader title="Perfil do atleta" subtitle={athlete?.nome || 'Atleta vinculado'} onBack={back} />
       {loading ? <View style={styles.state}><ActivityIndicator color="#126b35" /><Text style={styles.stateText}>Carregando perfil...</Text></View> : error && !athlete ? (
         <View style={styles.state}><Text accessibilityRole="alert" style={styles.error}>{error}</Text></View>
       ) : athlete ? (
@@ -120,8 +121,6 @@ export function ResponsibleAthleteProfileScreen({ back, repositories, routeParam
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#f5f8f7' },
-  header: { gap: 12, paddingHorizontal: 20, paddingTop: 20, paddingBottom: 14, backgroundColor: '#ffffff' },
-  title: { color: '#17313c', fontFamily: 'Poppins_600SemiBold', fontSize: 20 },
   content: { gap: 12, padding: 20, paddingBottom: 28 },
   description: { color: '#526770', fontFamily: 'Poppins_400Regular', fontSize: 14, lineHeight: 18 },
   field: { gap: 5 },
